@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TimeTree-Style Team Member Calendar & iCal Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Supabase Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- TOP NAVBAR / HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo">
+          <span class="logo-icon">📅</span>
+          <div class="logo-text">
+            <h1>Team Calendar</h1>
+            <span class="logo-subtitle">TimeTree-Style & iCal Hub</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <button id="prevMonthBtn" class="icon-btn" title="เดือนก่อนหน้า">❮</button>
+        <h2 id="currentMonthYear">มกราคม 2026</h2>
+        <button id="nextMonthBtn" class="icon-btn" title="เดือนถัดไป">❯</button>
+        <button id="todayBtn" class="today-btn">วันนี้</button>
+      </div>
+
+      <div class="header-right">
+        <button id="openIcalModalBtn" class="btn btn-secondary">
+          <span>📲</span> ลิงก์ iCal / QR Code
+        </button>
+        <button id="openAddEventBtn" class="btn btn-primary">
+          <span>➕</span> เพิ่มกิจกรรม
+        </button>
+      </div>
+    </header>
+
+    <!-- MEMBER FILTER CHIPS BAR -->
+    <section class="member-bar-container">
+      <div class="member-bar-title">
+        <span>👥 กรองดูตารางงานตามสมาชิก:</span>
+      </div>
+      <div id="memberFilterList" class="member-filter-list">
+        <!-- Dynamic Member Chips rendered here -->
+      </div>
+    </section>
+
+    <!-- MAIN CALENDAR WORKSPACE (TIMETREE LAYOUT) -->
+    <main class="calendar-workspace">
+      
+      <!-- LEFT/TOP: MONTH GRID VIEW -->
+      <section class="calendar-grid-section">
+        <div class="calendar-weekdays">
+          <div class="weekday sun">อา</div>
+          <div class="weekday">จ</div>
+          <div class="weekday">อ</div>
+          <div class="weekday">พ</div>
+          <div class="weekday">พฤ</div>
+          <div class="weekday">ศ</div>
+          <div class="weekday sat">ส</div>
+        </div>
+        <div id="calendarDaysGrid" class="calendar-days-grid">
+          <!-- Calendar Days rendered here -->
+        </div>
+      </section>
+
+      <!-- RIGHT/BOTTOM: DAILY AGENDA VIEW -->
+      <section class="daily-agenda-section">
+        <div class="agenda-header">
+          <div class="agenda-title-group">
+            <h3 id="selectedDateTitle">ตารางงานประจำวัน</h3>
+            <span id="selectedDateSubtitle" class="agenda-subtitle">กรุณาเลือกวันที่บนปฏิทิน</span>
+          </div>
+          <button id="quickAddDailyBtn" class="btn-sm btn-outline">+ เพิ่มงานวันนี้</button>
+        </div>
+
+        <div id="dailyEventList" class="daily-event-list">
+          <!-- Dynamic Event Cards rendered here -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FLOATING ACTION BUTTON (MOBILE) -->
+    <button id="mobileFabBtn" class="mobile-fab" title="เพิ่มกิจกรรม">➕</button>
+
+  </div>
+
+  <!-- ============================================================================== -->
+  <!-- MODAL 1: ADD/EDIT EVENT MODAL -->
+  <!-- ============================================================================== -->
+  <div id="eventModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="eventModalTitle">✨ เพิ่มกิจกรรมใหม่</h3>
+        <button id="closeEventModalBtn" class="close-btn">&times;</button>
+      </div>
+      <form id="eventForm" class="modal-form">
+        <input type="hidden" id="eventId">
+
+        <div class="form-group">
+          <label for="eventTitle">หัวข้อกิจกรรม / งานที่ต้องทำ *</label>
+          <input type="text" id="eventTitle" placeholder="เช่น ประชุมสรุปงานประจำสัปดาห์" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="eventStartDate">วันที่เริ่ม *</label>
+            <input type="date" id="eventStartDate" required>
+          </div>
+          <div class="form-group">
+            <label for="eventStartTime">เวลาเริ่ม *</label>
+            <input type="time" id="eventStartTime" value="09:00" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="eventEndDate">วันที่สิ้นสุด *</label>
+            <input type="date" id="eventEndDate" required>
+          </div>
+          <div class="form-group">
+            <label for="eventEndTime">เวลาสิ้นสุด *</label>
+            <input type="time" id="eventEndTime" value="10:00" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>เลือกสมาชิกผู้รับผิดชอบ (เลือกได้หลายคน) *</label>
+          <div id="formMemberSelector" class="form-member-selector">
+            <!-- Checkbox options for members -->
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="eventCategory">หมวดหมู่กิจกรรม</label>
+            <select id="eventCategory">
+              <option value="Meeting">💼 ประชุม (Meeting)</option>
+              <option value="Client Work">🤝 งานลูกค้า (Client Work)</option>
+              <option value="Internal Task">📝 งานภายใน (Internal Task)</option>
+              <option value="Urgent">🚨 งานด่วน (Urgent)</option>
+              <option value="Personal">Personal/Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="eventAlarm">การแจ้งเตือน Push Notification</label>
+            <select id="eventAlarm">
+              <option value="15">⏰ เตือนล่วงหน้า 15 นาที</option>
+              <option value="30">⏰ เตือนล่วงหน้า 30 นาที</option>
+              <option value="60">⏰ เตือนล่วงหน้า 1 ชั่วโมง</option>
+              <option value="1440">⏰ เตือนล่วงหน้า 1 วัน</option>
+              <option value="0">❌ ไม่ต้องแจ้งเตือน</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="eventLocation">สถานที่ / ลิงก์ออนไลน์</label>
+          <input type="text" id="eventLocation" placeholder="เช่น ห้องประชุม 2 / Google Meet">
+        </div>
+
+        <div class="form-group">
+          <label for="eventDescription">รายละเอียดเพิ่มเติม</label>
+          <textarea id="eventDescription" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="cancelEventBtn" class="btn btn-secondary">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary">บันทึกกิจกรรม</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================================== -->
+  <!-- MODAL 2: ICAL SUBSCRIPTION & QR CODE MODAL -->
+  <!-- ============================================================================== -->
+  <div id="icalModal" class="modal-overlay hidden">
+    <div class="modal-box ical-modal-box">
+      <div class="modal-header">
+        <h3>📲 สมัครรับปฏิทิน iCal (.ics) บนมือถือ</h3>
+        <button id="closeIcalModalBtn" class="close-btn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="ical-intro">
+          นำลิงก์ iCal ไป Subscribe บนสมาร์ทโฟน (Apple Calendar บน iPhone, Google Calendar, หรือ TimeTree) 
+          กิจกรรมจะถูกซิงค์และแจ้งเตือนผ่าน Push Notification อัตโนมัติ 24 ชั่วโมง!
+        </p>
+
+        <div class="form-group">
+          <label for="icalMemberSelect">เลือกรายชื่อสมาชิกเพื่อรับลิงก์เฉพาะบุคคล:</label>
+          <select id="icalMemberSelect">
+            <option value="team">👥 ลิงก์รวมกิจกรรมของทั้งทีม (All Team)</option>
+            <!-- Dynamic Member Options -->
+          </select>
+        </div>
+
+        <div class="ical-url-box">
+          <label>URL สำหรับ Subscribe iCal (.ics):</label>
+          <div class="url-input-group">
+            <input type="text" id="icalUrlInput" readonly>
+            <button id="copyIcalUrlBtn" class="btn btn-primary">คัดลอก</button>
+          </div>
+        </div>
+
+        <div class="ical-quick-actions">
+          <a id="appleCalWebcalBtn" href="#" class="quick-btn apple-btn" target="_blank">
+            <span>🍎</span> กดสมัครรับบน iPhone (Apple Calendar)
+          </a>
+          <a id="googleCalSubscribeBtn" href="#" class="quick-btn google-btn" target="_blank">
+            <span>📅</span> เปิดใน Google Calendar
+          </a>
+        </div>
+
+        <div class="qr-code-section">
+          <div class="qr-title">หรือใช้มือถือสแกน QR Code เพื่อ Subscribe ทันที:</div>
+          <div class="qr-container">
+            <img id="qrCodeImg" src="" alt="iCal QR Code">
+          </div>
+        </div>
+
+        <div class="ical-instructions">
+          <h4>💡 วิธีสมัครรับบนมือถือ:</h4>
+          <ul>
+            <li><strong>iPhone / Mac:</strong> กดปุ่ม "สมัครรับบน iPhone" ด้านบน ระบบจะเปิดแอป Apple Calendar แล้วกด Subscribe ได้ทันที</li>
+            <li><strong>Google Calendar / Android:</strong> ไปที่ <a href="https://calendar.google.com" target="_blank">calendar.google.com</a> บนเบราว์เซอร์ -> กดเครื่องหมาย <code>+</code> ข้าง ปฏิทินอื่น -> เลือก "จาก URL" แล้ววางลิงก์ที่คัดลอกไป</li>
+            <li><strong>TimeTree:</strong> สมาชิกนำลิงก์ iCal เพิ่มเข้า Apple/Google Calendar ในเครื่อง จากนั้นเปิด TimeTree -> Settings -> Sync OS Calendar</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="closeIcalDrawerBtn" class="btn btn-secondary">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
