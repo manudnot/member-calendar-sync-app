@@ -19,12 +19,11 @@ let members = [
   { id: 'mem_manudnot', name: 'manudnot', color: '#8B5CF6', avatar: '👨‍💻', email: 'manudnot@unit21.com' },
   { id: 'mem_june', name: 'June', color: '#EC4899', avatar: '👩‍💼', email: 'june@unit21.com' },
   { id: 'mem_thanatat', name: 'Thanatat Parnsaeng', color: '#F59E0B', avatar: '👨‍🔬', email: 'thanatat@unit21.com' },
-  { id: 'mem_phak_ek', 'name': 'ผก.เอก', color: '#EF4444', avatar: '👮‍♂️', email: 'ek@unit21.com' },
+  { id: 'mem_phak_ek', name: 'ผก.เอก', color: '#EF4444', avatar: '👮‍♂️', email: 'ek@unit21.com' },
   { id: 'mem_keng', name: 'มว.เก่ง', color: '#06B6D4', avatar: '👨‍✈️', email: 'keng@unit21.com' },
   { id: 'mem_tum', name: 'มว.ตั้ม', color: '#84CC16', avatar: '👨‍✈️', email: 'tum@unit21.com' }
 ];
 
-// Pre-loaded events with exact colors and member assignments from 27/12/2024 onwards
 let events = [
   { "id": "evt_tt_1", "title": "Open house All", "start_time": "2024-12-27T09:00:00Z", "end_time": "2024-12-27T17:00:00Z", "category": "Open House (Purple)", "member_ids": ["mem_woooddy", "mem_supanut"], "alarm_minutes": 15 },
   { "id": "evt_tt_2", "title": "ตรวจพื้นที่ All บน.6 (ประชุม กฝร. 8:30 / SBAC 9:00)", "start_time": "2025-01-02T08:30:00Z", "end_time": "2025-01-02T16:00:00Z", "category": "ตรวจพื้นที่ (Red)", "member_ids": ["mem_phak_ek", "mem_woooddy"], "alarm_minutes": 15 },
@@ -119,6 +118,10 @@ const THAI_MONTHS = [
   "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
 ];
 
+// Default Direct Credentials for Live Supabase Integration
+const DEFAULT_SUPABASE_URL = "https://aevutuguijjakfhulgjd.supabase.co";
+const DEFAULT_SUPABASE_KEY = "sb_publishable_8LNKQLJ6snj6AvxPGf2TmA_Sm8KCbhU";
+
 // DOM Elements
 const prevMonthBtn = document.getElementById('prevMonthBtn');
 const nextMonthBtn = document.getElementById('nextMonthBtn');
@@ -164,12 +167,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function initSupabaseIfConfigured() {
   const urlParams = new URLSearchParams(window.location.search);
-  const supaUrl = urlParams.get('supaUrl') || localStorage.getItem('SUPABASE_URL');
-  const supaKey = urlParams.get('supaKey') || localStorage.getItem('SUPABASE_ANON_KEY');
+  const supaUrl = urlParams.get('supaUrl') || localStorage.getItem('SUPABASE_URL') || DEFAULT_SUPABASE_URL;
+  const supaKey = urlParams.get('supaKey') || localStorage.getItem('SUPABASE_ANON_KEY') || DEFAULT_SUPABASE_KEY;
 
   if (supaUrl && supaKey && window.supabase) {
-    supabaseClient = window.supabase.createClient(supaUrl, supaKey);
-    console.log('Connected to Supabase Client successfully!');
+    try {
+      supabaseClient = window.supabase.createClient(supaUrl, supaKey);
+      console.log('Connected to Supabase Client successfully!');
+    } catch (e) {
+      console.warn('Supabase initialization failed:', e);
+    }
   }
 }
 
