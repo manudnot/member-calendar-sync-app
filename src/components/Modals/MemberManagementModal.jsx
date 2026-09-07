@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Search, Plus, User, Trash2, Edit3, Check } from 'lucide-react';
+import { X, Search, Plus, Trash2, Check } from 'lucide-react';
 
 export default function MemberManagementModal({
   isOpen,
@@ -13,7 +13,6 @@ export default function MemberManagementModal({
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
-  const [newMemberRole, setNewMemberRole] = useState('Virtual member');
   const [newMemberColor, setNewMemberColor] = useState('#10b981');
 
   if (!isOpen) return null;
@@ -32,9 +31,7 @@ export default function MemberManagementModal({
       id: `mem_${Date.now()}`,
       name: newMemberName.trim(),
       initials,
-      role: newMemberRole,
-      color: newMemberColor,
-      email: `${newMemberName.toLowerCase().replace(/\s+/g, '')}@unit21.com`
+      color: newMemberColor
     };
 
     onAddMember(newMember);
@@ -81,27 +78,18 @@ export default function MemberManagementModal({
 
             <input
               type="text"
-              placeholder="ชื่อสมาชิก (เช่น สมชาย วงศ์สว่าง)"
+              placeholder="ชื่อสมาชิก"
               className="input-field text-xs"
               value={newMemberName}
               onChange={(e) => setNewMemberName(e.target.value)}
               required
             />
 
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                className="input-field text-xs"
-                value={newMemberRole}
-                onChange={(e) => setNewMemberRole(e.target.value)}
-              >
-                <option value="Member">Member</option>
-                <option value="Virtual member">Virtual member</option>
-                <option value="Creator">Creator</option>
-              </select>
-
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-slate-600 dark:text-slate-400">เลือกสีประจำตัว:</label>
               <input
                 type="color"
-                className="input-field text-xs h-9 cursor-pointer"
+                className="input-field text-xs h-9 cursor-pointer w-20"
                 value={newMemberColor}
                 onChange={(e) => setNewMemberColor(e.target.value)}
               />
@@ -137,7 +125,6 @@ export default function MemberManagementModal({
           <div className="flex flex-col gap-2">
             {filteredMembers.map(mem => {
               const isVisible = visibleMemberIds.includes(mem.id);
-              const roleTag = mem.role || (mem.name === 'manudnot' ? 'Me' : mem.name.includes('Thanatat') ? 'Creator' : 'Virtual member');
 
               return (
                 <div
@@ -152,23 +139,9 @@ export default function MemberManagementModal({
                       {mem.initials || mem.name.substring(0, 2).toUpperCase()}
                     </div>
 
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-slate-800 dark:text-slate-100">
-                          {mem.name}
-                        </span>
-                        <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-md ${
-                          roleTag === 'Me'
-                            ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                            : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                        }`}>
-                          {roleTag}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {mem.email || 'active'}
-                      </span>
-                    </div>
+                    <span className="text-xs font-black text-slate-800 dark:text-slate-100">
+                      {mem.name}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-3">
@@ -183,16 +156,14 @@ export default function MemberManagementModal({
                       <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
                     </label>
 
-                    {/* Delete Member (if not primary) */}
-                    {roleTag === 'Virtual member' && (
-                      <button
-                        onClick={() => onDeleteMember(mem.id)}
-                        className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
-                        title="ลบสมาชิก"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    {/* Delete Member Button (Enabled for ALL members) */}
+                    <button
+                      onClick={() => onDeleteMember(mem.id)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
+                      title="ลบสมาชิก"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               );

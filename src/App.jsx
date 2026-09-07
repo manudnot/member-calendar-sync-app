@@ -11,16 +11,16 @@ import MemberManagementModal from './components/Modals/MemberManagementModal';
 import { formatDateKey } from './utils/helpers';
 import { supabase } from './utils/supabase';
 
-// INITIAL REAL TIMETREE MEMBERS (8 MEMBERS WITH ROLES & INITIALS)
+// INITIAL REAL TIMETREE MEMBERS (8 MEMBERS WITH INITIALS & COLOR TOKENS)
 const INITIAL_MEMBERS = [
-  { id: 'mem_manudnot', name: 'manudnot', initials: 'MN', role: 'Me', color: '#8b5cf6', email: 'manudnot@unit21.com' },
-  { id: 'mem_thanatat', name: 'Thanatat Parnsaeng', initials: 'TT', role: 'Creator', color: '#f59e0b', email: 'thanatat@unit21.com' },
-  { id: 'mem_supanut', name: 'Supanut Tongnumwon', initials: 'SN', role: 'Member', color: '#3b82f6', email: 'supanut@unit21.com' },
-  { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', role: 'Member', color: '#10b981', email: 'woooddy@unit21.com' },
-  { id: 'mem_june', name: 'June', initials: 'JN', role: 'Member', color: '#ec4899', email: 'june@unit21.com' },
-  { id: 'mem_phak_ek', name: 'ผก.เอก', initials: 'PE', role: 'Virtual member', color: '#ef4444', email: 'ek@unit21.com' },
-  { id: 'mem_keng', name: 'มว.เก่ง', initials: 'KG', role: 'Virtual member', color: '#06b6d4', email: 'keng@unit21.com' },
-  { id: 'mem_tum', name: 'มว.ตั้ม', initials: 'TM', role: 'Virtual member', color: '#84cc16', email: 'tum@unit21.com' }
+  { id: 'mem_manudnot', name: 'manudnot', initials: 'MN', color: '#8b5cf6' },
+  { id: 'mem_thanatat', name: 'Thanatat Parnsaeng', initials: 'TT', color: '#f59e0b' },
+  { id: 'mem_supanut', name: 'Supanut Tongnumwon', initials: 'SN', color: '#3b82f6' },
+  { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', color: '#10b981' },
+  { id: 'mem_june', name: 'June', initials: 'JN', color: '#ec4899' },
+  { id: 'mem_phak_ek', name: 'ผก.เอก', initials: 'PE', color: '#ef4444' },
+  { id: 'mem_keng', name: 'มว.เก่ง', initials: 'KG', color: '#06b6d4' },
+  { id: 'mem_tum', name: 'มว.ตั้ม', initials: 'TM', color: '#84cc16' }
 ];
 
 const INITIAL_EVENTS = [
