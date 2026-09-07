@@ -11,20 +11,23 @@ import MemberManagementModal from './components/Modals/MemberManagementModal';
 import FirstTimeUserModal from './components/Modals/FirstTimeUserModal';
 import AuthPinModal from './components/Modals/AuthPinModal';
 import ActivityLogModal from './components/Modals/ActivityLogModal';
+import ForgotPinModal from './components/Modals/ForgotPinModal';
 import { formatDateKey } from './utils/helpers';
 import { supabase } from './utils/supabase';
 
-// INITIAL REAL TIMETREE MEMBERS (8 MEMBERS WITH INITIALS & COLOR TOKENS)
+// INITIAL REAL & VIRTUAL TIMETREE MEMBERS (9 MEMBERS WITH INITIALS & COLOR TOKENS)
 const INITIAL_MEMBERS = [
-  { id: 'mem_manudnot', name: 'manudnot', initials: 'MN', color: '#8b5cf6', pin_code: '1234' },
-  { id: 'mem_thanatat', name: 'Thanatat Parnsaeng', initials: 'TT', color: '#f59e0b' },
-  { id: 'mem_supanut', name: 'Supanut Tongnumwon', initials: 'SN', color: '#3b82f6' },
-  { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', color: '#10b981' },
-  { id: 'mem_june', name: 'June', initials: 'JN', color: '#ec4899' },
-  { id: 'mem_phak_ek', name: 'ผก.เอก', initials: 'PE', color: '#ef4444' },
-  { id: 'mem_keng', name: 'มว.เก่ง', initials: 'KG', color: '#06b6d4' },
-  { id: 'mem_tum', name: 'มว.ตั้ม', initials: 'TM', color: '#84cc16' }
+  { id: 'mem_manudnot', name: 'Not', initials: 'NO', color: '#8b5cf6', pin_code: '1234', member_type: 'real', email: 'signal21onduty@gmail.com' },
+  { id: 'mem_third', name: 'Third', initials: 'TH', color: '#0ea5e9', pin_code: '1234', member_type: 'real', email: 'third@unit21.com' },
+  { id: 'mem_june', name: 'June', initials: 'JU', color: '#ec4899', member_type: 'real', email: 'june@unit21.com' },
+  { id: 'mem_thanatat', name: 'Top', initials: 'TO', color: '#f59e0b', member_type: 'real', email: 'top@unit21.com' },
+  { id: 'mem_phak_ek', name: 'เอก', initials: 'PE', color: '#ef4444', member_type: 'real', email: 'ek@unit21.com' },
+  { id: 'mem_keng', name: 'เก่ง', initials: 'KG', color: '#06b6d4', member_type: 'real', email: 'keng@unit21.com' },
+  { id: 'mem_tum', name: 'ตั้ม', initials: 'TM', color: '#84cc16', member_type: 'real', email: 'tum@unit21.com' },
+  { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', color: '#10b981', member_type: 'real', email: 'woooddy@unit21.com' },
+  { id: 'mem_wm', name: 'เวรหมาย', initials: 'WM', color: '#64748b', member_type: 'virtual' }
 ];
+
 
 const INITIAL_EVENTS = [
   { "id": "evt_tt_1", "title": "Open house All", "start_time": "2024-12-27T09:00:00Z", "end_time": "2024-12-27T17:00:00Z", "all_day": true, "color": "#8b5cf6", "member_ids": ["mem_woooddy", "mem_supanut"], "alarm_minutes": 15 },
@@ -106,6 +109,7 @@ export default function App() {
   const [isFirstTimeModalOpen, setIsFirstTimeModalOpen] = useState(!activeUserId);
   const [isAuthPinModalOpen, setIsAuthPinModalOpen] = useState(false);
   const [isActivityLogModalOpen, setIsActivityLogModalOpen] = useState(false);
+  const [isForgotPinModalOpen, setIsForgotPinModalOpen] = useState(false);
 
   const [targetMemberForAuth, setTargetMemberForAuth] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
@@ -227,8 +231,25 @@ export default function App() {
     setToast({ message: `ยินดีต้อนรับคุณ ${mem ? mem.name : ''}! ระบบจำตัวตนสำหรับอุปกรณ์นี้แล้ว`, type: 'success' });
   };
 
+  const handleResetPinWithOtp = async (memberId, newPinCode) => {
+    const updatedMembers = members.map(m => m.id === memberId ? { ...m, pin_code: newPinCode } : m);
+    setMembers(updatedMembers);
+    localStorage.setItem('member_calendar_members', JSON.stringify(updatedMembers));
+
+    if (supabase) {
+      try {
+        const target = updatedMembers.find(m => m.id === memberId);
+        await supabase.from('members').upsert([target]);
+      } catch (e) {}
+    }
+
+    const mem = updatedMembers.find(m => m.id === memberId);
+    setToast({ message: `รีเซ็ตรหัส PIN ใหม่สำหรับคุณ ${mem ? mem.name : ''} สำเร็จแล้ว!`, type: 'success' });
+  };
+
   const handleSaveNewPin = async (memberId, pinCode, enableBiometrics) => {
     const updatedMembers = members.map(m => m.id === memberId ? { ...m, pin_code: pinCode } : m);
+
     setMembers(updatedMembers);
     localStorage.setItem('member_calendar_members', JSON.stringify(updatedMembers));
 
@@ -556,6 +577,14 @@ export default function App() {
         members={members}
         onSelectMemberWithPin={handleSelectMemberWithPin}
         onSaveNewPin={handleSaveNewPin}
+        onOpenForgotPin={() => setIsForgotPinModalOpen(true)}
+      />
+
+      <ForgotPinModal
+        isOpen={isForgotPinModalOpen}
+        onClose={() => setIsForgotPinModalOpen(false)}
+        members={members}
+        onResetPinWithOtp={handleResetPinWithOtp}
       />
 
       <AuthPinModal

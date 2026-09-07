@@ -5,7 +5,8 @@ export default function FirstTimeUserModal({
   isOpen,
   members,
   onSelectMemberWithPin,
-  onSaveNewPin
+  onSaveNewPin,
+  onOpenForgotPin
 }) {
   const [selectedMember, setSelectedMember] = useState(null);
   const [pinInput, setPinInput] = useState(['', '', '', '']);
@@ -16,7 +17,8 @@ export default function FirstTimeUserModal({
 
   if (!isOpen) return null;
 
-  const activeMembers = members.filter(m => !m.is_archived && m.status !== 'resigned');
+  const activeMembers = members.filter(m => !m.is_archived && m.status !== 'resigned' && m.member_type !== 'virtual');
+
 
   const handleChooseMember = (member) => {
     setSelectedMember(member);
@@ -202,7 +204,17 @@ export default function FirstTimeUserModal({
                     />
                   ))}
                 </div>
+                {onOpenForgotPin && (
+                  <button
+                    type="button"
+                    onClick={onOpenForgotPin}
+                    className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer mt-1"
+                  >
+                    ลืมรหัส PIN? (กู้คืนทาง Email)
+                  </button>
+                )}
               </div>
+
 
               {/* Biometrics Switch */}
               <div className="p-3 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-2xl flex items-center justify-between">
