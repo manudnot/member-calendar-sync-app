@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Check, Calendar as CalendarIcon } from 'lucide-react';
+import { Users, Check, Calendar as CalendarIcon, Edit3 } from 'lucide-react';
 
 export default function Sidebar({
   members,
@@ -7,7 +7,8 @@ export default function Sidebar({
   visibleMemberIds,
   onToggleMemberVisibility,
   onSelectAllMembers,
-  isOpen
+  isOpen,
+  onEditMember
 }) {
   const getEventCountForMember = (memberId) => {
     return events.filter(e => Array.isArray(e.member_ids) && e.member_ids.includes(memberId)).length;
@@ -66,29 +67,44 @@ export default function Sidebar({
               <div
                 key={mem.id}
                 onClick={() => onToggleMemberVisibility(mem.id)}
-                className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all border ${
+                className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all border group ${
                   isChecked
                     ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50 shadow-xs'
                     : 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border-transparent opacity-60'
                 }`}
               >
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2.5 overflow-hidden pr-1">
                   <div
-                    className="w-7 h-7 rounded-full text-white flex items-center justify-center font-black text-[11px] shadow-sm font-mono"
+                    className="w-7 h-7 rounded-full text-white flex items-center justify-center font-black text-[11px] shadow-sm font-mono shrink-0"
                     style={{ backgroundColor: mem.color || '#10b981' }}
                   >
                     {mem.initials || mem.name.substring(0, 2).toUpperCase()}
                   </div>
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                     {mem.name}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 shrink-0">
                   <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono">
                     {count}
                   </span>
                   
+                  {/* Quick Edit Member Button */}
+                  {onEditMember && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditMember(mem);
+                      }}
+                      className="p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-md transition-colors cursor-pointer"
+                      title="แก้ไขชื่อและสี"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+
                   {/* Checkbox */}
                   <input
                     type="checkbox"
@@ -105,3 +121,4 @@ export default function Sidebar({
     </aside>
   );
 }
+

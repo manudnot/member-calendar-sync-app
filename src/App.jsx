@@ -62,7 +62,14 @@ export default function App() {
   const [isMemberManagementOpen, setIsMemberManagementOpen] = useState(false);
 
   const [editingEvent, setEditingEvent] = useState(null);
+  const [memberToEdit, setMemberToEdit] = useState(null);
   const [toast, setToast] = useState(null);
+
+  const handleOpenEditMember = (member) => {
+    setMemberToEdit(member);
+    setIsMemberManagementOpen(true);
+  };
+
 
   // Theme manager
   useEffect(() => {
@@ -263,6 +270,7 @@ export default function App() {
           onToggleMemberVisibility={handleToggleMemberVisibility}
           onSelectAllMembers={handleSelectAllMembers}
           isOpen={isSidebarOpen}
+          onEditMember={handleOpenEditMember}
         />
 
         {/* Center Workspace (Month Grid & Daily Agenda Drawer) */}
@@ -291,7 +299,7 @@ export default function App() {
 
         {/* Right Toolbar Actions */}
         <RightToolbar
-          onOpenMemberManagement={() => setIsMemberManagementOpen(true)}
+          onOpenMemberManagement={() => { setMemberToEdit(null); setIsMemberManagementOpen(true); }}
           onOpenIcalModal={() => setIsIcalModalOpen(true)}
           onOpenAddEvent={() => handleOpenAddEvent(selectedDateStr)}
         />
@@ -315,14 +323,16 @@ export default function App() {
 
       <MemberManagementModal
         isOpen={isMemberManagementOpen}
-        onClose={() => setIsMemberManagementOpen(false)}
+        onClose={() => { setIsMemberManagementOpen(false); setMemberToEdit(null); }}
         members={members}
         onAddMember={handleAddMember}
         onUpdateMember={handleUpdateMember}
         onDeleteMember={handleDeleteMember}
         visibleMemberIds={visibleMemberIds}
         onToggleMemberVisibility={handleToggleMemberVisibility}
+        memberToEdit={memberToEdit}
       />
+
 
       <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
