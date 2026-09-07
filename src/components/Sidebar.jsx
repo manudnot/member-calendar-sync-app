@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Check, Calendar as CalendarIcon, Edit3 } from 'lucide-react';
+import { Users, Check, Calendar as CalendarIcon } from 'lucide-react';
 
 export default function Sidebar({
   members,
@@ -7,8 +7,7 @@ export default function Sidebar({
   visibleMemberIds,
   onToggleMemberVisibility,
   onSelectAllMembers,
-  isOpen,
-  onEditMember
+  isOpen
 }) {
   const getEventCountForMember = (memberId) => {
     return events.filter(e => Array.isArray(e.member_ids) && e.member_ids.includes(memberId)).length;
@@ -87,21 +86,6 @@ export default function Sidebar({
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {/* Quick Edit Member Button */}
-                  {onEditMember && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditMember(mem);
-                      }}
-                      className="p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-md transition-colors cursor-pointer"
-                      title="แก้ไขชื่อและสี"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-
                   {/* Checkbox */}
                   <input
                     type="checkbox"

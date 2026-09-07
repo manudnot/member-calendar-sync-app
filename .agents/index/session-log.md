@@ -12,4 +12,8 @@
 ### Version 3.5 - Removed Sidebar Member Event Count Badge
 - **Clean UI Cleanup**: Removed the event count badge (`<span>{count}</span>`) from the sidebar member selection items as requested.
 - **Git Commit**: `43e7740` pushed to `manudnot/member-calendar-sync-app` main branch.
-- **Verification**: `npm run build` completed cleanly in 1.64s.
+
+### Version 3.6 - Toggle Select All / Deselect All Members
+- **Interactive Toggle**: Updated sidebar member filter button to toggle between "เลือกทั้งหมด" (Select All) and "ยกเลิกเลือกทั้งหมด" (Deselect All) dynamically.
+- **Git Commit**: `6895225` pushed to `manudnot/member-calendar-sync-app` main branch.
+- **Verification**: `npm run build` completed cleanly in 1.93s.

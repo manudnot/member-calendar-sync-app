@@ -21,8 +21,6 @@ export default function MemberManagementModal({
   onAddMember,
   onUpdateMember,
   onDeleteMember,
-  visibleMemberIds,
-  onToggleMemberVisibility,
   memberToEdit = null
 }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -232,8 +230,6 @@ export default function MemberManagementModal({
           {/* Member List Items */}
           <div className="flex flex-col gap-2">
             {filteredMembers.map(mem => {
-              const isVisible = visibleMemberIds.includes(mem.id);
-
               return (
                 <div
                   key={mem.id}
@@ -253,17 +249,6 @@ export default function MemberManagementModal({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {/* Toggle Switch for Member Visibility */}
-                    <label className="relative inline-flex items-center cursor-pointer mr-1">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={isVisible}
-                        onChange={() => onToggleMemberVisibility(mem.id)}
-                      />
-                      <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-                    </label>
-
                     {/* Edit Member Button */}
                     <button
                       onClick={() => handleOpenEdit(mem)}

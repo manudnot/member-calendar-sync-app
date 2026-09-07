@@ -280,7 +280,6 @@ export default function App() {
           onToggleMemberVisibility={handleToggleMemberVisibility}
           onSelectAllMembers={handleSelectAllMembers}
           isOpen={isSidebarOpen}
-          onEditMember={handleOpenEditMember}
         />
 
         {/* Center Workspace (Month Grid & Daily Agenda Drawer) */}
@@ -338,8 +337,6 @@ export default function App() {
         onAddMember={handleAddMember}
         onUpdateMember={handleUpdateMember}
         onDeleteMember={handleDeleteMember}
-        visibleMemberIds={visibleMemberIds}
-        onToggleMemberVisibility={handleToggleMemberVisibility}
         memberToEdit={memberToEdit}
       />
 
