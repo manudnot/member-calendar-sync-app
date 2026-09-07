@@ -31,4 +31,11 @@
 - **Root Cause Fix**: Identified that initial `useEffect` fetch from Supabase was unconditionally overwriting `localStorage` with old database rows on page reload (F5).
 - **Client-First Sync**: Updated `fetchData()` on mount to check if `localStorage` contains user edits. If so, it preserves local edits (`Champ`, custom colors) and pushes them to Supabase via `.upsert(localMembers)`, preventing any reset upon F5.
 - **Git Commit**: `1c53164` pushed to `manudnot/member-calendar-sync-app` main branch.
-- **Verification**: `npm run build` completed cleanly in 1.53s.
+
+### Version 4.0 - Soft Delete / Member Resignation Mode
+- **Soft Delete Action**: Added `UserX` (แจ้งลาออก - Soft Delete) button in `MemberManagementModal.jsx` to archive members without wiping historic task records (`is_archived: true`).
+- **Daily Agenda Historical Display**: Rendered soft-deleted members on historical tasks in `DailyAgenda.jsx` with an explicit `(ลาออก)` badge.
+- **Future Selection Filtering**: Filtered out soft-deleted members from `Sidebar.jsx` and `MissionModal.jsx` so resigned members cannot be assigned to future events.
+- **Restore Capability**: Added `UserCheck` (คืนสภาพสมาชิก) action in `MemberManagementModal.jsx` to easily un-archive members.
+- **Git Commit**: `e7ef4f0` pushed to `manudnot/member-calendar-sync-app` main branch.
+- **Verification**: `npm run build` completed cleanly in 1.59s.

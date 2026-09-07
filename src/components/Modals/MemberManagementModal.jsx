@@ -46,6 +46,16 @@ export default function MemberManagementModal({
     !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
   );
 
+  // Sort: Active members at top, Resigned (soft deleted) members at bottom, maintaining addition order
+  const sortedMembers = [...filteredMembers].sort((a, b) => {
+    const aResigned = Boolean(a.is_archived || a.status === 'resigned');
+    const bResigned = Boolean(b.is_archived || b.status === 'resigned');
+
+    if (aResigned && !bResigned) return 1;
+    if (!aResigned && bResigned) return -1;
+    return 0;
+  });
+
   const handleOpenAdd = () => {
     setEditingMemberId(null);
     setMemberName('');
@@ -233,7 +243,7 @@ export default function MemberManagementModal({
 
           {/* Member List Items */}
           <div className="flex flex-col gap-2">
-            {filteredMembers.map(mem => {
+            {sortedMembers.map(mem => {
               const isArchived = mem.is_archived || mem.status === 'resigned';
 
               return (
