@@ -1,5 +1,5 @@
-import React from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Sun, Moon, Laptop, QrCode, Plus, Menu } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, ChevronLeft, ChevronRight, Sun, Moon, Laptop, QrCode, Plus, Menu, History, Shield, ChevronDown, UserCheck } from 'lucide-react';
 import { THAI_MONTHS } from '../utils/helpers';
 
 export default function Header({
@@ -14,7 +14,10 @@ export default function Header({
   setTheme,
   onToggleSidebar,
   onOpenIcalModal,
-  onOpenAddEvent
+  onOpenAddEvent,
+  activeUser,
+  onOpenSwitchUserModal,
+  onOpenActivityLogModal
 }) {
   const monthName = THAI_MONTHS[currentMonth];
   const thaiYear = currentYear + 543;
@@ -26,7 +29,7 @@ export default function Header({
       <div className="flex items-center gap-3">
         <button
           onClick={onToggleSidebar}
-          className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors focus:outline-none"
+          className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors focus:outline-none cursor-pointer"
           title="Toggle Sidebar"
         >
           <Menu className="w-5 h-5" />
@@ -49,7 +52,7 @@ export default function Header({
         <div className="flex items-center gap-1 border border-slate-200 dark:border-dark-border rounded-xl px-2 py-1 bg-slate-50 dark:bg-dark-bg shadow-inner">
           <button
             onClick={onPrevMonth}
-            className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 p-1 rounded-lg transition-colors focus:outline-none"
+            className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 p-1 rounded-lg transition-colors focus:outline-none cursor-pointer"
             title="เดือนก่อนหน้า"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -61,7 +64,7 @@ export default function Header({
 
           <button
             onClick={onNextMonth}
-            className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 p-1 rounded-lg transition-colors focus:outline-none"
+            className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 p-1 rounded-lg transition-colors focus:outline-none cursor-pointer"
             title="เดือนถัดไป"
           >
             <ChevronRight className="w-4 h-4" />
@@ -99,9 +102,39 @@ export default function Header({
         </div>
       </div>
 
-      {/* Right: Theme Switcher & Actions */}
+      {/* Right: User Identity Chip, Log & Theme Switcher & Actions */}
       <div className="flex items-center gap-2 lg:gap-3">
-        {/* Theme Switcher (DutyRoster Header Style) */}
+
+        {/* Per-Device Active User Avatar Chip */}
+        {activeUser && (
+          <button
+            onClick={onOpenSwitchUserModal}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-dark-bg border border-slate-200 dark:border-dark-border hover:border-emerald-500 dark:hover:border-emerald-500 transition-all cursor-pointer shadow-xs group"
+            title="สลับตัวตนผู้ใช้งานประจำเครื่อง"
+          >
+            <span
+              className="w-5 h-5 rounded-full text-white flex items-center justify-center font-mono font-black text-[10px] shadow-xs"
+              style={{ backgroundColor: activeUser.color }}
+            >
+              {activeUser.initials || activeUser.name.substring(0, 2).toUpperCase()}
+            </span>
+            <span className="text-xs font-black text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 truncate max-w-[90px] hidden sm:inline">
+              {activeUser.name}
+            </span>
+            <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-emerald-600" />
+          </button>
+        )}
+
+        {/* Activity Log & Recycle Bin Button */}
+        <button
+          onClick={onOpenActivityLogModal}
+          className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-dark-border transition-colors cursor-pointer"
+          title="ประวัติการทำงาน & ถังขยะกู้คืน"
+        >
+          <History className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        </button>
+
+        {/* Theme Switcher */}
         <div className="flex items-center gap-1 bg-slate-100 dark:bg-dark-bg p-1 rounded-xl border border-slate-200 dark:border-dark-border">
           <button
             onClick={() => setTheme('light')}

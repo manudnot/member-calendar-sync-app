@@ -8,12 +8,15 @@ import DailyAgenda from './components/Scheduler/DailyAgenda';
 import MissionModal from './components/Scheduler/MissionModal';
 import IcalModal from './components/Modals/IcalModal';
 import MemberManagementModal from './components/Modals/MemberManagementModal';
+import FirstTimeUserModal from './components/Modals/FirstTimeUserModal';
+import AuthPinModal from './components/Modals/AuthPinModal';
+import ActivityLogModal from './components/Modals/ActivityLogModal';
 import { formatDateKey } from './utils/helpers';
 import { supabase } from './utils/supabase';
 
 // INITIAL REAL TIMETREE MEMBERS (8 MEMBERS WITH INITIALS & COLOR TOKENS)
 const INITIAL_MEMBERS = [
-  { id: 'mem_manudnot', name: 'manudnot', initials: 'MN', color: '#8b5cf6' },
+  { id: 'mem_manudnot', name: 'manudnot', initials: 'MN', color: '#8b5cf6', pin_code: '1234' },
   { id: 'mem_thanatat', name: 'Thanatat Parnsaeng', initials: 'TT', color: '#f59e0b' },
   { id: 'mem_supanut', name: 'Supanut Tongnumwon', initials: 'SN', color: '#3b82f6' },
   { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', color: '#10b981' },
@@ -51,9 +54,13 @@ export default function App() {
   const [viewMode, setViewMode] = useState('monthly');
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('member_calendar_theme') || 'light';
-  }); // 'light' | 'dark' | 'system'
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+  // Per-Device Active User Identity State
+  const [activeUserId, setActiveUserId] = useState(() => {
+    return localStorage.getItem('member_calendar_active_user_id') || null;
+  });
 
   const [members, setMembers] = useState(() => {
     const saved = localStorage.getItem('member_calendar_members');
@@ -77,6 +84,17 @@ export default function App() {
     return INITIAL_EVENTS;
   });
 
+  const [activityLogs, setActivityLogs] = useState(() => {
+    const saved = localStorage.getItem('member_calendar_activity_logs');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return [];
+  });
+
   const [visibleMemberIds, setVisibleMemberIds] = useState(() => {
     return members.map(m => m.id);
   });
@@ -85,15 +103,16 @@ export default function App() {
   const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
   const [isIcalModalOpen, setIsIcalModalOpen] = useState(false);
   const [isMemberManagementOpen, setIsMemberManagementOpen] = useState(false);
+  const [isFirstTimeModalOpen, setIsFirstTimeModalOpen] = useState(!activeUserId);
+  const [isAuthPinModalOpen, setIsAuthPinModalOpen] = useState(false);
+  const [isActivityLogModalOpen, setIsActivityLogModalOpen] = useState(false);
 
+  const [targetMemberForAuth, setTargetMemberForAuth] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
   const [memberToEdit, setMemberToEdit] = useState(null);
   const [toast, setToast] = useState(null);
 
-  const handleOpenEditMember = (member) => {
-    setMemberToEdit(member);
-    setIsMemberManagementOpen(true);
-  };
+  const activeUser = members.find(m => m.id === activeUserId) || members[0];
 
   // Theme manager
   useEffect(() => {
@@ -111,7 +130,6 @@ export default function App() {
       }
     }
   }, [theme]);
-
 
   // Load & Sync between LocalStorage and Supabase on mount
   useEffect(() => {
@@ -134,7 +152,6 @@ export default function App() {
         try {
           // Fetch members from Supabase
           const { data: supaMembers } = await supabase.from('members').select('*');
-
           if (localMembers && localMembers.length > 0) {
             setMembers(localMembers);
             setVisibleMemberIds(localMembers.map(m => m.id));
@@ -146,21 +163,23 @@ export default function App() {
             setMembers(cleanSupaMembers);
             localStorage.setItem('member_calendar_members', JSON.stringify(cleanSupaMembers));
             setVisibleMemberIds(cleanSupaMembers.map(m => m.id));
-          } else {
-            await supabase.from('members').upsert(INITIAL_MEMBERS);
           }
 
           // Fetch events from Supabase
           const { data: supaEvents } = await supabase.from('events').select('*');
-
           if (localEvents && localEvents.length > 0) {
             setEvents(localEvents);
             await supabase.from('events').upsert(localEvents);
           } else if (supaEvents && supaEvents.length > 0) {
             setEvents(supaEvents);
             localStorage.setItem('member_calendar_events', JSON.stringify(supaEvents));
-          } else {
-            await supabase.from('events').upsert(INITIAL_EVENTS);
+          }
+
+          // Fetch activity logs from Supabase
+          const { data: supaLogs } = await supabase.from('activity_logs').select('*').order('created_at', { ascending: false });
+          if (supaLogs && supaLogs.length > 0) {
+            setActivityLogs(supaLogs);
+            localStorage.setItem('member_calendar_activity_logs', JSON.stringify(supaLogs));
           }
         } catch (err) {
           console.warn('Supabase sync notice:', err);
@@ -169,6 +188,68 @@ export default function App() {
     }
     fetchData();
   }, []);
+
+  // Audit Logging helper
+  const logActivity = async (action, evt, details = '') => {
+    const actor = members.find(m => m.id === activeUserId) || members[0];
+    const newLog = {
+      id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      event_id: evt ? evt.id : null,
+      event_title: evt ? evt.title : 'กิจกรรม',
+      action,
+      actor_id: actor ? actor.id : 'unknown',
+      actor_name: actor ? actor.name : 'ผู้ใช้งาน',
+      actor_color: actor ? actor.color : '#10b981',
+      details,
+      created_at: new Date().toISOString()
+    };
+
+    const updatedLogs = [newLog, ...activityLogs];
+    setActivityLogs(updatedLogs);
+    localStorage.setItem('member_calendar_activity_logs', JSON.stringify(updatedLogs));
+
+    if (supabase) {
+      try {
+        await supabase.from('activity_logs').upsert([newLog]);
+      } catch (err) {
+        console.warn('Supabase activity log error:', err);
+      }
+    }
+  };
+
+  // Identity & PIN Verification Handlers
+  const handleSelectMemberWithPin = (memberId, pinCode, enableBiometrics) => {
+    setActiveUserId(memberId);
+    localStorage.setItem('member_calendar_active_user_id', memberId);
+    setIsFirstTimeModalOpen(false);
+    
+    const mem = members.find(m => m.id === memberId);
+    setToast({ message: `ยินดีต้อนรับคุณ ${mem ? mem.name : ''}! ระบบจำตัวตนสำหรับอุปกรณ์นี้แล้ว`, type: 'success' });
+  };
+
+  const handleSaveNewPin = async (memberId, pinCode, enableBiometrics) => {
+    const updatedMembers = members.map(m => m.id === memberId ? { ...m, pin_code: pinCode } : m);
+    setMembers(updatedMembers);
+    localStorage.setItem('member_calendar_members', JSON.stringify(updatedMembers));
+
+    setActiveUserId(memberId);
+    localStorage.setItem('member_calendar_active_user_id', memberId);
+    setIsFirstTimeModalOpen(false);
+
+    if (supabase) {
+      try {
+        const target = updatedMembers.find(m => m.id === memberId);
+        await supabase.from('members').upsert([target]);
+      } catch (e) {}
+    }
+
+    const mem = updatedMembers.find(m => m.id === memberId);
+    setToast({ message: `ตั้งรหัส PIN และสลับตัวตนเป็นคุณ ${mem ? mem.name : ''} สำเร็จ!`, type: 'success' });
+  };
+
+  const handleSwitchUserClick = () => {
+    setIsFirstTimeModalOpen(true);
+  };
 
   const handleToggleMemberVisibility = (memberId) => {
     if (visibleMemberIds.includes(memberId)) {
@@ -322,10 +403,13 @@ export default function App() {
     let updated;
 
     if (exists) {
-      updated = events.map(e => e.id === eventPayload.id ? eventPayload : e);
+      updated = events.map(e => e.id === eventPayload.id ? { ...eventPayload, is_deleted: false } : e);
+      logActivity('UPDATE', eventPayload, 'แก้ไขรายละเอียดกิจกรรม');
       setToast({ message: 'แก้ไขกิจกรรมสำเร็จแล้ว!', type: 'success' });
     } else {
-      updated = [...events, eventPayload];
+      const newEvt = { ...eventPayload, is_deleted: false };
+      updated = [...events, newEvt];
+      logActivity('CREATE', newEvt, 'สร้างกิจกรรมใหม่');
       setToast({ message: 'สร้างกิจกรรมใหม่สำเร็จแล้ว!', type: 'success' });
     }
 
@@ -342,21 +426,62 @@ export default function App() {
   };
 
   const handleDeleteEvent = async (eventId) => {
-    if (!window.confirm('คุณต้องการลบกิจกรรมนี้ใช่หรือไม่?')) return;
+    const targetEvt = events.find(e => e.id === eventId);
+    if (!targetEvt) return;
 
-    const updated = events.filter(e => e.id !== eventId);
+    if (!window.confirm(`คุณต้องการย้ายกิจกรรม "${targetEvt.title}" ไปยังถังขยะใช่หรือไม่?`)) return;
+
+    const softDeletedEvt = {
+      ...targetEvt,
+      is_deleted: true,
+      deleted_at: new Date().toISOString()
+    };
+
+    const updated = events.map(e => e.id === eventId ? softDeletedEvt : e);
     setEvents(updated);
     localStorage.setItem('member_calendar_events', JSON.stringify(updated));
 
+    logActivity('DELETE', targetEvt, 'ย้ายกิจกรรมลงถังขยะ (กู้คืนได้ใน Activity Log)');
+
     if (supabase) {
       try {
-        await supabase.from('events').delete().eq('id', eventId);
+        await supabase.from('events').upsert([softDeletedEvt]);
       } catch(e) {
-        console.warn('Supabase delete event warning:', e);
+        console.warn('Supabase soft delete event warning:', e);
       }
     }
-    setToast({ message: 'ลบกิจกรรมเรียบร้อยแล้ว', type: 'info' });
+    setToast({ message: 'ย้ายกิจกรรมไปถังขยะเรียบร้อยแล้ว (สามารถกู้คืนได้)', type: 'info' });
   };
+
+  const handleRestoreEvent = async (eventId) => {
+    const targetEvt = events.find(e => e.id === eventId);
+    if (!targetEvt) return;
+
+    const restoredEvt = {
+      ...targetEvt,
+      is_deleted: false,
+      deleted_at: null
+    };
+
+    const updated = events.map(e => e.id === eventId ? restoredEvt : e);
+    setEvents(updated);
+    localStorage.setItem('member_calendar_events', JSON.stringify(updated));
+
+    logActivity('RESTORE', targetEvt, 'กู้คืนกิจกรรมกลับมายังปฏิทิน');
+
+    if (supabase) {
+      try {
+        await supabase.from('events').upsert([restoredEvt]);
+      } catch(e) {
+        console.warn('Supabase restore event warning:', e);
+      }
+    }
+    setToast({ message: `กู้คืนกิจกรรม "${targetEvt.title}" กลับมาบนปฏิทินแล้ว!`, type: 'success' });
+  };
+
+  // Active (Non-deleted) Events for MonthGrid and DailyAgenda
+  const activeEvents = events.filter(e => !e.is_deleted);
+  const deletedEvents = events.filter(e => e.is_deleted);
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-slate-100">
@@ -375,6 +500,9 @@ export default function App() {
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         onOpenIcalModal={() => setIsIcalModalOpen(true)}
         onOpenAddEvent={() => handleOpenAddEvent(selectedDateStr)}
+        activeUser={activeUser}
+        onOpenSwitchUserModal={handleSwitchUserClick}
+        onOpenActivityLogModal={() => setIsActivityLogModalOpen(true)}
       />
 
       {/* 2. Three-Column Main Body Layout */}
@@ -383,7 +511,7 @@ export default function App() {
         {/* Left Sidebar (Member Filters & Initials Avatars) */}
         <Sidebar
           members={members}
-          events={events}
+          events={activeEvents}
           visibleMemberIds={visibleMemberIds}
           onToggleMemberVisibility={handleToggleMemberVisibility}
           onSelectAllMembers={handleSelectAllMembers}
@@ -397,7 +525,7 @@ export default function App() {
             currentMonth={currentMonth}
             selectedDateStr={selectedDateStr}
             onSelectDate={setSelectedDateStr}
-            events={events}
+            events={activeEvents}
             members={members}
             visibleMemberIds={visibleMemberIds}
             onEditEvent={handleOpenEditEvent}
@@ -405,7 +533,7 @@ export default function App() {
 
           <DailyAgenda
             selectedDateStr={selectedDateStr}
-            events={events}
+            events={activeEvents}
             members={members}
             visibleMemberIds={visibleMemberIds}
             onOpenAddEvent={handleOpenAddEvent}
@@ -423,6 +551,32 @@ export default function App() {
       </div>
 
       {/* Modals & Toast */}
+      <FirstTimeUserModal
+        isOpen={isFirstTimeModalOpen}
+        members={members}
+        onSelectMemberWithPin={handleSelectMemberWithPin}
+        onSaveNewPin={handleSaveNewPin}
+      />
+
+      <AuthPinModal
+        isOpen={isAuthPinModalOpen}
+        onClose={() => setIsAuthPinModalOpen(false)}
+        targetMember={targetMemberForAuth}
+        onAuthenticateSuccess={(mId) => {
+          setActiveUserId(mId);
+          localStorage.setItem('member_calendar_active_user_id', mId);
+        }}
+      />
+
+      <ActivityLogModal
+        isOpen={isActivityLogModalOpen}
+        onClose={() => setIsActivityLogModalOpen(false)}
+        activityLogs={activityLogs}
+        deletedEvents={deletedEvents}
+        members={members}
+        onRestoreEvent={handleRestoreEvent}
+      />
+
       <MissionModal
         isOpen={isMissionModalOpen}
         onClose={() => setIsMissionModalOpen(false)}
@@ -448,7 +602,6 @@ export default function App() {
         onToggleArchiveMember={handleToggleArchiveMember}
         memberToEdit={memberToEdit}
       />
-
 
       <Toast toast={toast} onClose={() => setToast(null)} />
     </div>

@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS public.members (
     color TEXT NOT NULL DEFAULT '#3B82F6',
     avatar TEXT NOT NULL DEFAULT '👤',
     email TEXT,
+    pin_code TEXT, -- 4-digit PIN code for multi-device authentication
+    is_archived BOOLEAN DEFAULT FALSE,
+    status TEXT DEFAULT 'active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -24,12 +27,35 @@ CREATE TABLE IF NOT EXISTS public.events (
     category TEXT DEFAULT 'General',
     member_ids JSONB NOT NULL DEFAULT '[]'::jsonb, -- Array of member IDs e.g. ["mem_woooddy", "mem_supanut"]
     alarm_minutes INTEGER DEFAULT 15,             -- Notification alarm minutes before event (e.g. 15)
+    is_deleted BOOLEAN DEFAULT FALSE,             -- Soft delete flag for Recycle Bin
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 3. Create Activity Audit Logs Table
+CREATE TABLE IF NOT EXISTS public.activity_logs (
+    id TEXT PRIMARY KEY,
+    event_id TEXT,
+    event_title TEXT NOT NULL,
+    action TEXT NOT NULL,                         -- 'CREATE' | 'UPDATE' | 'DELETE' | 'RESTORE'
+    actor_id TEXT NOT NULL,                       -- Member ID of who performed action
+    actor_name TEXT NOT NULL,                     -- Member Name
+    actor_color TEXT DEFAULT '#10B981',
+    details TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
+
+-- Create Open Policies for Public API Access (Dev/Demo Mode)
+DROP POLICY IF EXISTS "Allow public read access on activity_logs" ON public.activity_logs;
+DROP POLICY IF EXISTS "Allow public insert access on activity_logs" ON public.activity_logs;
+CREATE POLICY "Allow public read access on activity_logs" ON public.activity_logs FOR SELECT USING (true);
+CREATE POLICY "Allow public insert access on activity_logs" ON public.activity_logs FOR INSERT WITH CHECK (true);
+
 
 -- Create Open Policies for Public API Access (Dev/Demo Mode)
 DROP POLICY IF EXISTS "Allow public read access on members" ON public.members;
