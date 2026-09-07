@@ -120,7 +120,17 @@ export default function App() {
   };
 
   const handleSelectAllMembers = () => {
-    setVisibleMemberIds(members.map(m => m.id));
+    const cleanMemberIds = members
+      .filter(m => !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName)))
+      .map(m => m.id);
+
+    const isAllSelected = cleanMemberIds.length > 0 && cleanMemberIds.every(id => visibleMemberIds.includes(id));
+
+    if (isAllSelected) {
+      setVisibleMemberIds([]);
+    } else {
+      setVisibleMemberIds(cleanMemberIds);
+    }
   };
 
   const handleAddMember = async (newMember) => {

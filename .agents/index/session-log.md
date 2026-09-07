@@ -9,3 +9,7 @@
 - **Git Commit**: `1e57a2a` pushed to `manudnot/member-calendar-sync-app` main branch.
 - **Verification**: `npm run build` succeeded in 2.18s (1642 modules transformed).
 
+### Version 3.5 - Removed Sidebar Member Event Count Badge
+- **Clean UI Cleanup**: Removed the event count badge (`<span>{count}</span>`) from the sidebar member selection items as requested.
+- **Git Commit**: `43e7740` pushed to `manudnot/member-calendar-sync-app` main branch.
+- **Verification**: `npm run build` completed cleanly in 1.64s.

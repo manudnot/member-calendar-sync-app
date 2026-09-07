@@ -19,6 +19,8 @@ export default function Sidebar({
     !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
   );
 
+  const isAllSelected = cleanMembers.length > 0 && cleanMembers.every(mem => visibleMemberIds.includes(mem.id));
+
   return (
     <aside
       className={`bg-white dark:bg-dark-card border-r border-slate-200 dark:border-dark-border flex flex-col transition-all duration-300 z-20 shrink-0 ${
@@ -53,7 +55,7 @@ export default function Sidebar({
             onClick={onSelectAllMembers}
             className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
           >
-            เลือกทั้งหมด
+            {isAllSelected ? 'ยกเลิกเลือกทั้งหมด' : 'เลือกทั้งหมด'}
           </button>
         </div>
 
