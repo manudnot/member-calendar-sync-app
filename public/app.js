@@ -6,7 +6,7 @@
  */
 
 // ------------------------------------------------------------------------------
-// INITIAL STATE & REAL TIMETREE MEMBERS (8 MEMBERS EXRACTED)
+// INITIAL STATE & REAL TIMETREE MEMBERS (8 MEMBERS EXTRACTED)
 // ------------------------------------------------------------------------------
 let currentYear = new Date().getFullYear();
 let currentMonth = new Date().getMonth(); // 0 - 11
@@ -123,15 +123,20 @@ const DEFAULT_SUPABASE_URL = "https://aevutuguijjakfhulgjd.supabase.co";
 const DEFAULT_SUPABASE_KEY = "sb_publishable_8LNKQLJ6snj6AvxPGf2TmA_Sm8KCbhU";
 
 // DOM Elements
+const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+const leftSidebar = document.getElementById('leftSidebar');
 const prevMonthBtn = document.getElementById('prevMonthBtn');
 const nextMonthBtn = document.getElementById('nextMonthBtn');
 const todayBtn = document.getElementById('todayBtn');
 const currentMonthYearEl = document.getElementById('currentMonthYear');
 const calendarDaysGridEl = document.getElementById('calendarDaysGrid');
 const memberFilterListEl = document.getElementById('memberFilterList');
+const selectAllMembersBtn = document.getElementById('selectAllMembersBtn');
+
+const tabMonthly = document.getElementById('tabMonthly');
+const tabWeekly = document.getElementById('tabWeekly');
 
 const selectedDateTitleEl = document.getElementById('selectedDateTitle');
-const selectedDateSubtitleEl = document.getElementById('selectedDateSubtitle');
 const dailyEventListEl = document.getElementById('dailyEventList');
 const quickAddDailyBtn = document.getElementById('quickAddDailyBtn');
 
@@ -153,12 +158,14 @@ const appleCalWebcalBtn = document.getElementById('appleCalWebcalBtn');
 const googleCalSubscribeBtn = document.getElementById('googleCalSubscribeBtn');
 const qrCodeImg = document.getElementById('qrCodeImg');
 
-const mobileFabBtn = document.getElementById('mobileFabBtn');
+const rtMembersBtn = document.getElementById('rtMembersBtn');
+const rtIcalBtn = document.getElementById('rtIcalBtn');
+const rtAddBtn = document.getElementById('rtAddBtn');
 
 document.addEventListener('DOMContentLoaded', async () => {
   initSupabaseIfConfigured();
   await loadDataFromSupabaseOrLocal();
-  renderMemberFilters();
+  renderMemberSidebar();
   renderCalendarGrid();
   renderDailyAgenda(selectedDateStr);
   setupEventListeners();
@@ -194,33 +201,37 @@ async function loadDataFromSupabaseOrLocal() {
   }
 }
 
-function renderMemberFilters() {
+function renderMemberSidebar() {
   memberFilterListEl.innerHTML = '';
 
-  const allChip = document.createElement('div');
-  allChip.className = `member-chip ${activeMemberFilter === 'all' ? 'active' : ''}`;
-  allChip.innerHTML = `<span class="member-dot" style="background:#3b82f6"></span> 👥 ทั้งหมด <span class="check-mark">✓</span>`;
-  allChip.addEventListener('click', () => {
-    activeMemberFilter = 'all';
-    renderMemberFilters();
-    renderCalendarGrid();
-    renderDailyAgenda(selectedDateStr);
-  });
-  memberFilterListEl.appendChild(allChip);
-
   members.forEach(mem => {
-    const chip = document.createElement('div');
-    chip.className = `member-chip ${activeMemberFilter === mem.id ? 'active' : ''}`;
-    chip.innerHTML = `<span class="member-dot" style="background:${mem.color}"></span> ${mem.avatar} ${mem.name} <span class="check-mark">✓</span>`;
-    chip.addEventListener('click', () => {
-      activeMemberFilter = mem.id;
-      renderMemberFilters();
+    const item = document.createElement('div');
+    const isChecked = activeMemberFilter === 'all' || activeMemberFilter === mem.id;
+    item.className = `member-sidebar-item ${activeMemberFilter === mem.id ? 'active' : ''}`;
+
+    item.innerHTML = `
+      <div class="member-item-left">
+        <span class="member-avatar-dot" style="background:${mem.color}">${mem.avatar}</span>
+        <span class="member-name">${mem.name}</span>
+      </div>
+      <input type="checkbox" class="member-checkbox" ${isChecked ? 'checked' : ''}>
+    `;
+
+    item.addEventListener('click', (e) => {
+      if (activeMemberFilter === mem.id) {
+        activeMemberFilter = 'all';
+      } else {
+        activeMemberFilter = mem.id;
+      }
+      renderMemberSidebar();
       renderCalendarGrid();
       renderDailyAgenda(selectedDateStr);
     });
-    memberFilterListEl.appendChild(chip);
+
+    memberFilterListEl.appendChild(item);
   });
 
+  // Modal ical select
   icalMemberSelect.innerHTML = `<option value="team">👥 ลิงก์รวมกิจกรรมของทั้งทีม (All Team)</option>`;
   members.forEach(mem => {
     const opt = document.createElement('option');
@@ -229,13 +240,14 @@ function renderMemberFilters() {
     icalMemberSelect.appendChild(opt);
   });
 
+  // Event Form Checkboxes
   formMemberSelectorEl.innerHTML = '';
   members.forEach(mem => {
     const label = document.createElement('label');
-    label.className = 'checkbox-member-label';
+    label.className = 'member-chip-checkbox';
     label.innerHTML = `
       <input type="checkbox" name="selectedMembers" value="${mem.id}">
-      <span class="member-dot" style="background:${mem.color}"></span>
+      <span style="width:10px;height:10px;border-radius:50%;background:${mem.color}"></span>
       ${mem.avatar} ${mem.name}
     `;
     formMemberSelectorEl.appendChild(label);
@@ -252,42 +264,61 @@ function renderCalendarGrid() {
 
   const todayStr = formatDateKey(new Date());
 
+  // Days from previous month
   for (let i = firstDayIndex; i > 0; i--) {
     const dayNum = prevMonthDays - i + 1;
     const cell = document.createElement('div');
     cell.className = 'day-cell other-month';
-    cell.innerHTML = `<span class="day-number">${dayNum}</span>`;
+    cell.innerHTML = `
+      <div class="day-header-row">
+        <span class="day-num">${dayNum}</span>
+      </div>
+    `;
     calendarDaysGridEl.appendChild(cell);
   }
 
+  // Days of current month
   for (let day = 1; day <= daysInMonth; day++) {
     const dateObj = new Date(currentYear, currentMonth, day);
     const dateStr = formatDateKey(dateObj);
+    const dayOfWeek = dateObj.getDay();
 
     const cell = document.createElement('div');
     cell.className = 'day-cell';
+    if (dayOfWeek === 0) cell.classList.add('sun');
+    if (dayOfWeek === 6) cell.classList.add('sat');
     if (dateStr === todayStr) cell.classList.add('today');
     if (dateStr === selectedDateStr) cell.classList.add('selected');
 
     const dayEvents = getFilteredEventsForDate(dateStr);
 
-    let dotsHtml = '';
+    let eventsPillsHtml = '';
     if (dayEvents.length > 0) {
-      dotsHtml = `<div class="day-event-dots">`;
+      eventsPillsHtml = `<div class="day-events-container">`;
       dayEvents.slice(0, 3).forEach(evt => {
         const mem = getMemberById(evt.member_ids ? evt.member_ids[0] : null);
-        const bgColor = mem ? mem.color : '#3b82f6';
-        dotsHtml += `<div class="event-dot-item" style="background:${bgColor}">${escapeHtml(evt.title)}</div>`;
+        const bgColor = mem ? mem.color : '#12b886';
+        eventsPillsHtml += `
+          <div class="event-pill" style="background:${bgColor}" title="${escapeHtml(evt.title)}">
+            <span>${escapeHtml(evt.title)}</span>
+          </div>
+        `;
       });
       if (dayEvents.length > 3) {
-        dotsHtml += `<div class="event-dot-item" style="background:#475569">+${dayEvents.length - 3} งาน</div>`;
+        eventsPillsHtml += `
+          <div class="event-pill" style="background:#868e96">
+            <span>+${dayEvents.length - 3} งาน</span>
+          </div>
+        `;
       }
-      dotsHtml += `</div>`;
+      eventsPillsHtml += `</div>`;
     }
 
     cell.innerHTML = `
-      <span class="day-number">${day}</span>
-      ${dotsHtml}
+      <div class="day-header-row">
+        <span class="day-num">${day}</span>
+      </div>
+      ${eventsPillsHtml}
     `;
 
     cell.addEventListener('click', () => {
@@ -305,30 +336,26 @@ function renderDailyAgenda(dateStr) {
   const formattedThaiDate = `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
   
   selectedDateTitleEl.textContent = `ตารางงานประจำวันที่ ${formattedThaiDate}`;
-  selectedDateSubtitleEl.textContent = activeMemberFilter === 'all' 
-    ? 'แสดงกิจกรรมของสมาชิกทุกคน' 
-    : `แสดงเฉพาะกิจกรรมของ ${getMemberById(activeMemberFilter)?.name || ''}`;
-
   dailyEventListEl.innerHTML = '';
+
   const dayEvents = getFilteredEventsForDate(dateStr);
 
   if (dayEvents.length === 0) {
     dailyEventListEl.innerHTML = `
-      <div class="no-events-box">
+      <div class="empty-agenda-text">
         <p>🎉 ไม่มีกิจกรรมในวันที่เลือก</p>
-        <button class="btn-sm btn-outline" style="margin-top:8px" onclick="openAddEventModalForDate('${dateStr}')">+ เพิ่มกิจกรรมใหม่</button>
       </div>
     `;
     return;
   }
 
   dayEvents.forEach(evt => {
-    const card = document.createElement('div');
-    card.className = 'event-card';
+    const item = document.createElement('div');
+    item.className = 'agenda-event-item';
 
     const firstMember = getMemberById(evt.member_ids ? evt.member_ids[0] : null);
     if (firstMember) {
-      card.style.borderLeftColor = firstMember.color;
+      item.style.borderLeftColor = firstMember.color;
     }
 
     let memberBadgesHtml = '';
@@ -336,7 +363,7 @@ function renderDailyAgenda(dateStr) {
       evt.member_ids.forEach(mId => {
         const m = getMemberById(mId);
         if (m) {
-          memberBadgesHtml += `<span class="event-member-badge" style="background:${m.color}">${m.avatar} ${m.name}</span>`;
+          memberBadgesHtml += `<span class="badge-pill" style="background:${m.color}">${m.avatar} ${m.name}</span>`;
         }
       });
     }
@@ -344,25 +371,36 @@ function renderDailyAgenda(dateStr) {
     const startTimeFormatted = formatTime(evt.start_time);
     const endTimeFormatted = formatTime(evt.end_time);
 
-    card.innerHTML = `
-      <div class="event-card-header">
-        <span class="event-card-title">${escapeHtml(evt.title)}</span>
-        <span class="event-card-category">${escapeHtml(evt.category || 'General')}</span>
+    item.innerHTML = `
+      <div class="agenda-event-left">
+        <span class="agenda-event-title">${escapeHtml(evt.title)}</span>
+        <div class="agenda-event-meta">
+          <span>⏰ ${startTimeFormatted} - ${endTimeFormatted}</span>
+          ${evt.location ? `<span>📍 ${escapeHtml(evt.location)}</span>` : ''}
+          <div class="agenda-member-badges">${memberBadgesHtml}</div>
+        </div>
       </div>
-      <div class="event-card-time">⏰ ${startTimeFormatted} - ${endTimeFormatted}</div>
-      <div class="event-card-members">${memberBadgesHtml}</div>
-      ${evt.location ? `<div class="event-card-location">📍 ${escapeHtml(evt.location)}</div>` : ''}
-      ${evt.description ? `<div class="event-card-desc">📝 ${escapeHtml(evt.description)}</div>` : ''}
-      <div class="event-card-actions">
-        <button class="event-action-btn delete" onclick="deleteEvent('${evt.id}')">🗑️ ลบ</button>
+      <div>
+        <button class="today-chip-btn" style="color:#e03131; border-color:#far" onclick="deleteEvent('${evt.id}')">ลบ</button>
       </div>
     `;
 
-    dailyEventListEl.appendChild(card);
+    dailyEventListEl.appendChild(item);
   });
 }
 
 function setupEventListeners() {
+  toggleSidebarBtn.addEventListener('click', () => {
+    leftSidebar.classList.toggle('collapsed');
+  });
+
+  selectAllMembersBtn.addEventListener('click', () => {
+    activeMemberFilter = 'all';
+    renderMemberSidebar();
+    renderCalendarGrid();
+    renderDailyAgenda(selectedDateStr);
+  });
+
   prevMonthBtn.addEventListener('click', () => {
     currentMonth--;
     if (currentMonth < 0) {
@@ -390,9 +428,18 @@ function setupEventListeners() {
     renderDailyAgenda(selectedDateStr);
   });
 
+  tabMonthly.addEventListener('click', () => {
+    tabMonthly.classList.add('active');
+    tabWeekly.classList.remove('active');
+  });
+
+  tabWeekly.addEventListener('click', () => {
+    tabWeekly.classList.add('active');
+    tabMonthly.classList.remove('active');
+  });
+
   openAddEventBtn.addEventListener('click', () => openAddEventModalForDate(selectedDateStr));
   quickAddDailyBtn.addEventListener('click', () => openAddEventModalForDate(selectedDateStr));
-  mobileFabBtn.addEventListener('click', () => openAddEventModalForDate(selectedDateStr));
 
   closeEventModalBtn.addEventListener('click', closeEventModal);
   cancelEventBtn.addEventListener('click', closeEventModal);
@@ -417,6 +464,14 @@ function setupEventListeners() {
     navigator.clipboard.writeText(icalUrlInput.value);
     alert('✅ คัดลอกลิงก์ iCal Subscription เรียบร้อยแล้ว! สามารถนำไป Paste ใน Apple Calendar / Google Calendar ได้เลย');
   });
+
+  // Right toolbar handlers
+  rtMembersBtn.addEventListener('click', () => leftSidebar.classList.toggle('collapsed'));
+  rtIcalBtn.addEventListener('click', () => {
+    updateIcalModalUrl();
+    icalModal.classList.remove('hidden');
+  });
+  rtAddBtn.addEventListener('click', () => openAddEventModalForDate(selectedDateStr));
 }
 
 function openAddEventModalForDate(dateStr) {
