@@ -78,18 +78,20 @@ CREATE POLICY "Allow public insert access on events" ON public.events FOR INSERT
 CREATE POLICY "Allow public update access on events" ON public.events FOR UPDATE USING (true);
 CREATE POLICY "Allow public delete access on events" ON public.events FOR DELETE USING (true);
 
--- 3. Seed Real Team Members from TimeTree Calendar 'งาน ส/21'
-INSERT INTO public.members (id, name, color, avatar, email)
+-- 3. Seed Real & Virtual Team Members
+INSERT INTO public.members (id, name, color, avatar, email, member_type)
 VALUES 
-  ('mem_woooddy', 'WoooddY', '#10B981', '🎖️', 'woooddy@unit21.com'),
-  ('mem_supanut', 'Supanut Tongnumwon', '#3B82F6', '👨‍✈️', 'supanut@unit21.com'),
-  ('mem_manudnot', 'manudnot', '#8B5CF6', '👨‍💻', 'manudnot@unit21.com'),
-  ('mem_june', 'June', '#EC4899', '👩‍💼', 'june@unit21.com'),
-  ('mem_thanatat', 'Thanatat Parnsaeng', '#F59E0B', '👨‍🔬', 'thanatat@unit21.com'),
-  ('mem_phak_ek', 'ผก.เอก', '#EF4444', '👮‍♂️', 'ek@unit21.com'),
-  ('mem_keng', 'มว.เก่ง', '#06B6D4', '👨‍✈️', 'keng@unit21.com'),
-  ('mem_tum', 'มว.ตั้ม', '#84CC16', '👨‍✈️', 'tum@unit21.com')
-ON CONFLICT (id) DO NOTHING;
+  ('mem_manudnot', 'Not', '#8B5CF6', '👨‍💻', 'wtgmso123@gmail.com', 'real'),
+  ('mem_third', 'Third', '#0EA5E9', '👨‍✈️', '', 'real'),
+  ('mem_june', 'June', '#EC4899', '👩‍💼', '', 'real'),
+  ('mem_thanatat', 'Top', '#F59E0B', '👨‍🔬', '', 'real'),
+  ('mem_phak_ek', 'เอก', '#EF4444', '👮‍♂️', '', 'real'),
+  ('mem_keng', 'เก่ง', '#06B6D4', '👨‍✈️', '', 'real'),
+  ('mem_tum', 'ตั้ม', '#84CC16', '👨‍✈️', '', 'real'),
+  ('mem_woooddy', 'WoooddY', '#10B981', '🎖️', '', 'real'),
+  ('mem_wm', 'เวรหมาย', '#64748B', '🤖', '', 'virtual')
+ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email;
+
 
 -- 4. Seed All 84 Extracted TimeTree Events (From 27/12/2024 Onwards)
 INSERT INTO public.events (id, title, start_time, end_time, category, member_ids, alarm_minutes, location)

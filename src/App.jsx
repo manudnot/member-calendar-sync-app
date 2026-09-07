@@ -17,15 +17,15 @@ import { supabase } from './utils/supabase';
 
 // INITIAL REAL & VIRTUAL TIMETREE MEMBERS (9 MEMBERS WITH INITIALS & COLOR TOKENS)
 const INITIAL_MEMBERS = [
-  { id: 'mem_manudnot', name: 'Not', initials: 'NO', color: '#8b5cf6', pin_code: '1234', member_type: 'real', email: 'signal21onduty@gmail.com' },
-  { id: 'mem_third', name: 'Third', initials: 'TH', color: '#0ea5e9', pin_code: '1234', member_type: 'real', email: 'third@unit21.com' },
-  { id: 'mem_june', name: 'June', initials: 'JU', color: '#ec4899', member_type: 'real', email: 'june@unit21.com' },
-  { id: 'mem_thanatat', name: 'Top', initials: 'TO', color: '#f59e0b', member_type: 'real', email: 'top@unit21.com' },
-  { id: 'mem_phak_ek', name: 'เอก', initials: 'PE', color: '#ef4444', member_type: 'real', email: 'ek@unit21.com' },
-  { id: 'mem_keng', name: 'เก่ง', initials: 'KG', color: '#06b6d4', member_type: 'real', email: 'keng@unit21.com' },
-  { id: 'mem_tum', name: 'ตั้ม', initials: 'TM', color: '#84cc16', member_type: 'real', email: 'tum@unit21.com' },
-  { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', color: '#10b981', member_type: 'real', email: 'woooddy@unit21.com' },
-  { id: 'mem_wm', name: 'เวรหมาย', initials: 'WM', color: '#64748b', member_type: 'virtual' }
+  { id: 'mem_manudnot', name: 'Not', initials: 'NO', color: '#8b5cf6', pin_code: '1234', member_type: 'real', email: 'wtgmso123@gmail.com' },
+  { id: 'mem_third', name: 'Third', initials: 'TH', color: '#0ea5e9', pin_code: '1234', member_type: 'real', email: '' },
+  { id: 'mem_june', name: 'June', initials: 'JU', color: '#ec4899', member_type: 'real', email: '' },
+  { id: 'mem_thanatat', name: 'Top', initials: 'TO', color: '#f59e0b', member_type: 'real', email: '' },
+  { id: 'mem_phak_ek', name: 'เอก', initials: 'PE', color: '#ef4444', member_type: 'real', email: '' },
+  { id: 'mem_keng', name: 'เก่ง', initials: 'KG', color: '#06b6d4', member_type: 'real', email: '' },
+  { id: 'mem_tum', name: 'ตั้ม', initials: 'TM', color: '#84cc16', member_type: 'real', email: '' },
+  { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', color: '#10b981', member_type: 'real', email: '' },
+  { id: 'mem_wm', name: 'เวรหมาย', initials: 'WM', color: '#64748b', member_type: 'virtual', email: '' }
 ];
 
 
@@ -70,11 +70,23 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Clean up stale mockup @unit21.com emails
+          return parsed.map(m => {
+            if (m.id === 'mem_manudnot') {
+              return { ...m, email: 'wtgmso123@gmail.com' };
+            }
+            if (m.email && m.email.includes('@unit21.com')) {
+              return { ...m, email: '' };
+            }
+            return m;
+          });
+        }
       } catch (e) {}
     }
     return INITIAL_MEMBERS;
   });
+
 
   const [events, setEvents] = useState(() => {
     const saved = localStorage.getItem('member_calendar_events');
