@@ -18,18 +18,7 @@ export default function MonthGrid({
 
   const getMemberById = (mId) => members.find(m => m.id === mId);
 
-  const getFilteredEventsForDate = (dateStr) => {
-    if (!dateStr) return [];
-    return events.filter(evt => {
-      if (!isEventOnDate(evt, dateStr)) return false;
-      if (!Array.isArray(evt.member_ids)) return false;
-
-      // Event is visible if ANY of its assigned member IDs is in visibleMemberIds
-      return evt.member_ids.some(mId => visibleMemberIds.includes(mId));
-    });
-  };
-
-  // Days grid generation
+  // 1. Generate flat grid cells (Previous, Current, Next month)
   const gridCells = [];
 
   // Previous month overflow days
@@ -42,7 +31,7 @@ export default function MonthGrid({
       dayNum,
       isOtherMonth: true,
       dateStr,
-      events: getFilteredEventsForDate(dateStr)
+      dayOfWeek: prevDateObj.getDay()
     });
   }
 
@@ -59,8 +48,7 @@ export default function MonthGrid({
       dateStr,
       dayOfWeek,
       isToday: dateStr === todayStr,
-      isSelected: dateStr === selectedDateStr,
-      events: getFilteredEventsForDate(dateStr)
+      isSelected: dateStr === selectedDateStr
     });
   }
 
@@ -75,15 +63,26 @@ export default function MonthGrid({
       dayNum: day,
       isOtherMonth: true,
       dateStr,
-      events: getFilteredEventsForDate(dateStr)
+      dayOfWeek: nextDateObj.getDay()
     });
   }
 
+  // 2. Divide grid cells into 7-day Week Rows
+  const weeks = [];
+  for (let i = 0; i < gridCells.length; i += 7) {
+    weeks.push(gridCells.slice(i, i + 7));
+  }
+
+  // Filter visible events for assigned members
+  const visibleEvents = events.filter(evt => {
+    if (!Array.isArray(evt.member_ids)) return false;
+    return evt.member_ids.some(mId => visibleMemberIds.includes(mId));
+  });
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-dark-card border-b border-slate-200 dark:border-dark-border">
-      {/* Weekdays Header (Sunday Red, Saturday Blue) */}
-      <div className="grid grid-cols-7 border-b border-slate-200 dark:border-dark-border bg-slate-50/50 dark:bg-dark-bg/50">
+      {/* Weekdays Header */}
+      <div className="grid grid-cols-7 border-b border-slate-200 dark:border-dark-border bg-slate-50/50 dark:bg-dark-bg/50 shrink-0">
         <div className="py-2 text-center text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider">Sun</div>
         <div className="py-2 text-center text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">Mon</div>
         <div className="py-2 text-center text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">Tue</div>
@@ -93,112 +92,138 @@ export default function MonthGrid({
         <div className="py-2 text-center text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">Sat</div>
       </div>
 
-      {/* Month Days 7-Column Grid */}
-      <div className="grid grid-cols-7 auto-rows-fr flex-1 bg-slate-200 dark:bg-dark-border gap-px overflow-y-auto no-scrollbar">
-        {gridCells.map(cell => {
-          if (cell.isOtherMonth) {
-            const otherDayEvents = cell.events || [];
-            return (
-              <div
-                key={cell.key}
-                onClick={() => cell.dateStr && onSelectDate(cell.dateStr)}
-                className="bg-slate-50/40 dark:bg-dark-card/40 p-1.5 flex flex-col gap-1 select-none cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-800/20 transition-colors"
-              >
-                <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 font-mono">
-                  {cell.dayNum}
-                </span>
-                <div className="flex flex-col gap-1 overflow-hidden">
-                  {otherDayEvents.slice(0, 2).map(evt => (
-                    <div
-                      key={evt.id}
-                      onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                      className="px-1 py-0.5 rounded text-[10px] font-bold text-white truncate opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
-                      style={{ backgroundColor: evt.color || '#10b981' }}
-                      title={evt.title}
-                    >
-                      {evt.title}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          }
+      {/* 7-Column Week Rows Container */}
+      <div className="flex-1 grid grid-rows-5 lg:grid-rows-6 bg-slate-200 dark:bg-dark-border gap-px overflow-y-auto no-scrollbar">
+        {weeks.map((week, weekIdx) => {
+          // Calculate events present in this week
+          const weekEvents = [];
 
-          const dayEvents = cell.events || [];
+          visibleEvents.forEach(evt => {
+            let startCol = -1;
+            let endCol = -1;
+
+            week.forEach((cell, colIdx) => {
+              if (isEventOnDate(evt, cell.dateStr)) {
+                if (startCol === -1) startCol = colIdx;
+                endCol = colIdx;
+              }
+            });
+
+            if (startCol !== -1 && endCol !== -1) {
+              const evtStartDateStr = evt.start_time ? evt.start_time.split('T')[0] : '';
+              const evtEndDateStr = evt.end_time ? evt.end_time.split('T')[0] : evtStartDateStr;
+
+              const isStartOfEvent = week[startCol].dateStr === evtStartDateStr;
+              const isEndOfEvent = week[endCol].dateStr === evtEndDateStr;
+              const span = endCol - startCol + 1;
+
+              weekEvents.push({
+                evt,
+                startCol,
+                endCol,
+                span,
+                isStartOfEvent,
+                isEndOfEvent
+              });
+            }
+          });
+
+          // Sort week events: multi-day/all-day first, then by startCol, then longer span
+          weekEvents.sort((a, b) => {
+            const aAllDay = a.evt.all_day !== false || a.span > 1;
+            const bAllDay = b.evt.all_day !== false || b.span > 1;
+            if (aAllDay && !bAllDay) return -1;
+            if (!aAllDay && bAllDay) return 1;
+            if (a.startCol !== b.startCol) return a.startCol - b.startCol;
+            return b.span - a.span;
+          });
+
+          // Assign slotIndex to prevent overlaps in this week row
+          const slots = [];
+          const weekEventsWithSlots = weekEvents.map(item => {
+            let slotIndex = 0;
+            while (slots[slotIndex] && slots[slotIndex].some(col => col >= item.startCol && col <= item.endCol)) {
+              slotIndex++;
+            }
+            if (!slots[slotIndex]) slots[slotIndex] = [];
+            for (let c = item.startCol; c <= item.endCol; c++) {
+              slots[slotIndex].push(c);
+            }
+            return { ...item, slotIndex };
+          });
 
           return (
-            <div
-              key={cell.key}
-              onClick={() => onSelectDate(cell.dateStr)}
-              className={`bg-white dark:bg-dark-card p-1.5 flex flex-col gap-1.5 cursor-pointer transition-all duration-150 relative overflow-hidden group ${
-                cell.isSelected ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-50/30 dark:bg-emerald-950/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
-              }`}
-            >
-              {/* Day Number Header */}
-              <div className="flex items-center justify-between">
-                <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black font-mono transition-transform group-hover:scale-110 ${
-                    cell.isToday
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : cell.dayOfWeek === 0
-                      ? 'text-rose-600 dark:text-rose-400'
-                      : cell.dayOfWeek === 6
-                      ? 'text-blue-600 dark:text-blue-400'
-                      : 'text-slate-700 dark:text-slate-300'
-                  }`}
+            <div key={`week-${weekIdx}`} className="relative grid grid-cols-7 bg-slate-200 dark:bg-dark-border gap-px min-h-[90px] overflow-hidden">
+              
+              {/* Day Background Cells */}
+              {week.map(cell => (
+                <div
+                  key={cell.key}
+                  onClick={() => cell.dateStr && onSelectDate(cell.dateStr)}
+                  className={`bg-white dark:bg-dark-card p-1.5 flex flex-col justify-between cursor-pointer transition-all duration-150 relative select-none ${
+                    cell.isSelected
+                      ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-50/30 dark:bg-emerald-950/20'
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                  } ${cell.isOtherMonth ? 'bg-slate-50/60 dark:bg-dark-card/40' : ''}`}
                 >
-                  {cell.dayNum}
-                </span>
-              </div>
+                  <div className="flex items-center justify-between pointer-events-none">
+                    <span
+                      className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black font-mono ${
+                        cell.isToday
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : cell.isOtherMonth
+                          ? 'text-slate-300 dark:text-slate-600'
+                          : cell.dayOfWeek === 0
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : cell.dayOfWeek === 6
+                          ? 'text-blue-600 dark:text-blue-400'
+                          : 'text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      {cell.dayNum}
+                    </span>
+                  </div>
+                </div>
+              ))}
 
-              {/* Event List Pills inside Day Cell */}
-              <div className="flex flex-col gap-1 overflow-hidden max-h-[calc(100%-24px)]">
-                {dayEvents.slice(0, 3).map(evt => {
+              {/* Multi-Day Spanning Event Banners & Timed Pills Overlay */}
+              <div className="absolute inset-0 top-7 pointer-events-none grid grid-cols-7 gap-px p-0.5">
+                {weekEventsWithSlots.slice(0, 14).map(({ evt, startCol, span, isStartOfEvent, isEndOfEvent, slotIndex }) => {
                   const firstMem = getMemberById(evt.member_ids ? evt.member_ids[0] : null);
                   const evtColor = evt.color || (firstMem ? firstMem.color : '#10b981');
-                  const isAllDay = evt.all_day !== false;
+                  const isAllDay = evt.all_day !== false || span > 1;
 
-                  if (isAllDay) {
-                    // SOLID COLOR PILL FOR ALL-DAY EVENT
-                    return (
-                      <div
-                        key={evt.id}
-                        onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                        className="px-1.5 py-0.5 rounded-md text-[11px] font-bold text-white truncate shadow-sm transition-transform hover:scale-[1.02] cursor-pointer"
-                        style={{ backgroundColor: evtColor }}
-                        title={evt.title}
-                      >
-                        {evt.title}
-                      </div>
-                    );
-                  } else {
-                    // FADED LIGHT PILL WITH LEFT INDICATOR BAR FOR TIMED EVENT
-                    const timeStr = formatTimeShort(evt.start_time);
-                    return (
-                      <div
-                        key={evt.id}
-                        onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                        className="px-1.5 py-0.5 rounded-md text-[11px] font-bold truncate flex items-center gap-1 border-l-3 transition-transform hover:scale-[1.02] cursor-pointer"
-                        style={{
-                          backgroundColor: hexToRgba(evtColor, 0.15),
-                          borderColor: evtColor,
-                          color: evtColor
-                        }}
-                        title={`${timeStr} ${evt.title}`}
-                      >
-                        <span className="font-mono text-[10px] opacity-90">{timeStr}</span>
-                        <span className="truncate">{evt.title}</span>
-                      </div>
-                    );
-                  }
+                  // Compute grid column placement: 1-indexed in CSS Grid
+                  const gridColStart = startCol + 1;
+
+                  return (
+                    <div
+                      key={`${evt.id}-w${weekIdx}`}
+                      onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
+                      className={`pointer-events-auto h-5 px-2 text-[11px] font-bold flex items-center shadow-xs transition-transform hover:scale-[1.01] cursor-pointer truncate z-10 ${
+                        isStartOfEvent ? 'rounded-l-md' : 'rounded-l-none'
+                      } ${
+                        isEndOfEvent ? 'rounded-r-md' : 'rounded-r-none'
+                      }`}
+                      style={{
+                        gridColumnStart: gridColStart,
+                        gridColumnEnd: `span ${span}`,
+                        marginTop: `${slotIndex * 24}px`,
+                        backgroundColor: isAllDay ? evtColor : hexToRgba(evtColor, 0.18),
+                        color: isAllDay ? '#ffffff' : evtColor,
+                        borderLeft: !isAllDay && isStartOfEvent ? `3px solid ${evtColor}` : undefined
+                      }}
+                      title={`${evt.title}${!isAllDay ? ` (${formatTimeShort(evt.start_time)})` : ''}`}
+                    >
+                      {!isAllDay && isStartOfEvent && (
+                        <span className="font-mono text-[10px] mr-1 opacity-90">{formatTimeShort(evt.start_time)}</span>
+                      )}
+                      <span className="truncate">{evt.title}</span>
+                    </div>
+                  );
                 })}
-
-                {dayEvents.length > 3 && (
-                  <div className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-center font-mono">
-                    +{dayEvents.length - 3} งาน
-                  </div>
-                )}
               </div>
+
             </div>
           );
         })}
