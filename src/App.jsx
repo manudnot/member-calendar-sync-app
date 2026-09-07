@@ -15,18 +15,19 @@ import ForgotPinModal from './components/Modals/ForgotPinModal';
 import { formatDateKey } from './utils/helpers';
 import { supabase } from './utils/supabase';
 
-// INITIAL REAL & VIRTUAL TIMETREE MEMBERS (9 MEMBERS WITH INITIALS & COLOR TOKENS)
+// INITIAL TEAM MEMBERS (9 MEMBERS: MEMBERS & VIRTUAL MEMBERS)
 const INITIAL_MEMBERS = [
-  { id: 'mem_manudnot', name: 'Not', initials: 'NO', color: '#8b5cf6', pin_code: '1234', member_type: 'real', email: 'wtgmso123@gmail.com' },
-  { id: 'mem_third', name: 'Third', initials: 'TH', color: '#0ea5e9', pin_code: '1234', member_type: 'real', email: '' },
-  { id: 'mem_june', name: 'June', initials: 'JU', color: '#ec4899', member_type: 'real', email: '' },
-  { id: 'mem_thanatat', name: 'Top', initials: 'TO', color: '#f59e0b', member_type: 'real', email: '' },
-  { id: 'mem_phak_ek', name: 'เอก', initials: 'PE', color: '#ef4444', member_type: 'real', email: '' },
-  { id: 'mem_keng', name: 'เก่ง', initials: 'KG', color: '#06b6d4', member_type: 'real', email: '' },
-  { id: 'mem_tum', name: 'ตั้ม', initials: 'TM', color: '#84cc16', member_type: 'real', email: '' },
-  { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', color: '#10b981', member_type: 'real', email: '' },
+  { id: 'mem_manudnot', name: 'Not', initials: 'NO', color: '#8b5cf6', pin_code: '1234', member_type: 'member', email: 'wtgmso123@gmail.com' },
+  { id: 'mem_third', name: 'Third', initials: 'TH', color: '#0ea5e9', pin_code: '1234', member_type: 'member', email: '' },
+  { id: 'mem_june', name: 'June', initials: 'JU', color: '#ec4899', member_type: 'member', email: '' },
+  { id: 'mem_thanatat', name: 'Top', initials: 'TO', color: '#f59e0b', member_type: 'member', email: '' },
+  { id: 'mem_phak_ek', name: 'เอก', initials: 'PE', color: '#ef4444', member_type: 'member', email: '' },
+  { id: 'mem_keng', name: 'เก่ง', initials: 'KG', color: '#06b6d4', member_type: 'member', email: '' },
+  { id: 'mem_tum', name: 'ตั้ม', initials: 'TM', color: '#84cc16', member_type: 'member', email: '' },
+  { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', color: '#10b981', member_type: 'member', email: '' },
   { id: 'mem_wm', name: 'เวรหมาย', initials: 'WM', color: '#64748b', member_type: 'virtual', email: '' }
 ];
+
 
 
 const INITIAL_EVENTS = [
