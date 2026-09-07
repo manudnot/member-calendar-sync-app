@@ -42,4 +42,10 @@
 ### Version 4.1 - Sorted Member List (Active Top, Resigned Bottom)
 - **Member Order Sorting**: Implemented automatic sorting in `MemberManagementModal.jsx` to place active members at the top and soft-deleted/resigned members at the bottom while strictly maintaining their original addition order within each group.
 - **Git Commit**: `536cbf4` pushed to `manudnot/member-calendar-sync-app` main branch.
-- **Verification**: `npm run build` completed cleanly in 1.99s.
+
+### Version 4.2 - Dynamic Repeat Options & Multiple Notifications Management
+- **Dynamic Date Labels**: Implemented `getRepeatOptionsForDate` to dynamically generate day-specific options (*Saturday each week*, *1st Saturday each month*, *Every month on the 5*) based on event start date.
+- **Custom Repeat Panel**: Integrated Custom Repeat sub-panel for custom interval (repeat every N day/week/month/year) and custom end conditions (*Never*, *On Date*, *After N Occurrences*).
+- **Multiple Notifications Triggers**: Added support for adding multiple notification reminders (`+ Add notification`) with custom values and unit selectors (*min before*, *hour before*, *day before*, *week before*).
+- **Git Commit**: `a3cac21` pushed to `manudnot/member-calendar-sync-app` main branch.
+- **Verification**: `npm run build` completed cleanly in 1.76s.

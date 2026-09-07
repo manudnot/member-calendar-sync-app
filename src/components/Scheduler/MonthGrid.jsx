@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatDateKey, formatTimeShort, hexToRgba } from '../../utils/helpers';
+import { formatDateKey, formatTimeShort, hexToRgba, isEventOnDate } from '../../utils/helpers';
 
 export default function MonthGrid({
   currentYear,
@@ -19,9 +19,9 @@ export default function MonthGrid({
   const getMemberById = (mId) => members.find(m => m.id === mId);
 
   const getFilteredEventsForDate = (dateStr) => {
+    if (!dateStr) return [];
     return events.filter(evt => {
-      const evtDateStr = formatDateKey(new Date(evt.start_time));
-      if (evtDateStr !== dateStr) return false;
+      if (!isEventOnDate(evt, dateStr)) return false;
       if (!Array.isArray(evt.member_ids)) return false;
 
       // Event is visible if ANY of its assigned member IDs is in visibleMemberIds
@@ -35,11 +35,14 @@ export default function MonthGrid({
   // Previous month overflow days
   for (let i = firstDayIndex; i > 0; i--) {
     const dayNum = prevMonthDays - i + 1;
+    const prevDateObj = new Date(currentYear, currentMonth - 1, dayNum);
+    const dateStr = formatDateKey(prevDateObj);
     gridCells.push({
       key: `prev-${dayNum}`,
       dayNum,
       isOtherMonth: true,
-      dateStr: ''
+      dateStr,
+      events: getFilteredEventsForDate(dateStr)
     });
   }
 
@@ -61,6 +64,22 @@ export default function MonthGrid({
     });
   }
 
+  // Next month trailing days to complete 35 or 42 grid cells
+  const totalSlots = gridCells.length > 35 ? 42 : 35;
+  const nextMonthDaysCount = totalSlots - gridCells.length;
+  for (let day = 1; day <= nextMonthDaysCount; day++) {
+    const nextDateObj = new Date(currentYear, currentMonth + 1, day);
+    const dateStr = formatDateKey(nextDateObj);
+    gridCells.push({
+      key: `next-${day}`,
+      dayNum: day,
+      isOtherMonth: true,
+      dateStr,
+      events: getFilteredEventsForDate(dateStr)
+    });
+  }
+
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-dark-card border-b border-slate-200 dark:border-dark-border">
       {/* Weekdays Header (Sunday Red, Saturday Blue) */}
@@ -78,11 +97,29 @@ export default function MonthGrid({
       <div className="grid grid-cols-7 auto-rows-fr flex-1 bg-slate-200 dark:bg-dark-border gap-px overflow-y-auto no-scrollbar">
         {gridCells.map(cell => {
           if (cell.isOtherMonth) {
+            const otherDayEvents = cell.events || [];
             return (
-              <div key={cell.key} className="bg-slate-50/40 dark:bg-dark-card/40 p-1.5 flex flex-col gap-1 select-none">
-                <span className="text-[11px] font-bold text-slate-300 dark:text-slate-600 font-mono">
+              <div
+                key={cell.key}
+                onClick={() => cell.dateStr && onSelectDate(cell.dateStr)}
+                className="bg-slate-50/40 dark:bg-dark-card/40 p-1.5 flex flex-col gap-1 select-none cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-800/20 transition-colors"
+              >
+                <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 font-mono">
                   {cell.dayNum}
                 </span>
+                <div className="flex flex-col gap-1 overflow-hidden">
+                  {otherDayEvents.slice(0, 2).map(evt => (
+                    <div
+                      key={evt.id}
+                      onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
+                      className="px-1 py-0.5 rounded text-[10px] font-bold text-white truncate opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
+                      style={{ backgroundColor: evt.color || '#10b981' }}
+                      title={evt.title}
+                    >
+                      {evt.title}
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           }

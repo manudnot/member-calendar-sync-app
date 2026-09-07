@@ -33,3 +33,18 @@ export function hexToRgba(hex, alpha) {
   const num = parseInt(c, 16);
   return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
 }
+
+export function isEventOnDate(evt, targetDateStr) {
+  if (!evt || !evt.start_time || !targetDateStr) return false;
+
+  const sDateStr = evt.start_time.includes('T')
+    ? evt.start_time.split('T')[0]
+    : formatDateKey(new Date(evt.start_time));
+
+  const eDateStr = evt.end_time
+    ? (evt.end_time.includes('T') ? evt.end_time.split('T')[0] : formatDateKey(new Date(evt.end_time)))
+    : sDateStr;
+
+  return targetDateStr >= sDateStr && targetDateStr <= eDateStr;
+}
+

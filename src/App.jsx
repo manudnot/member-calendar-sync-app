@@ -49,8 +49,11 @@ export default function App() {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [selectedDateStr, setSelectedDateStr] = useState(formatDateKey(new Date()));
   const [viewMode, setViewMode] = useState('monthly');
-  const [theme, setTheme] = useState('light'); // 'light' | 'dark' | 'system'
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('member_calendar_theme') || 'light';
+  }); // 'light' | 'dark' | 'system'
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
 
   const [members, setMembers] = useState(() => {
     const saved = localStorage.getItem('member_calendar_members');
@@ -95,6 +98,7 @@ export default function App() {
   // Theme manager
   useEffect(() => {
     const root = document.documentElement;
+    localStorage.setItem('member_calendar_theme', theme);
     if (theme === 'dark') {
       root.classList.add('dark');
     } else if (theme === 'light') {
@@ -107,6 +111,7 @@ export default function App() {
       }
     }
   }, [theme]);
+
 
   // Load & Sync between LocalStorage and Supabase on mount
   useEffect(() => {

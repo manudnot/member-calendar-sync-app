@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, Edit3, Trash2, Clock, MapPin, Link as LinkIcon, CheckCircle2 } from 'lucide-react';
-import { THAI_MONTHS, formatTimeShort } from '../../utils/helpers';
+import { THAI_MONTHS, formatTimeShort, isEventOnDate } from '../../utils/helpers';
 
 export default function DailyAgenda({
   selectedDateStr,
@@ -17,13 +17,13 @@ export default function DailyAgenda({
   const getMemberById = (mId) => members.find(m => m.id === mId);
 
   const dayEvents = events.filter(evt => {
-    const evtDateStr = new Date(evt.start_time).toISOString().split('T')[0];
-    if (evtDateStr !== selectedDateStr) return false;
+    if (!isEventOnDate(evt, selectedDateStr)) return false;
     if (!Array.isArray(evt.member_ids)) return false;
 
     // Filter by visible members
     return evt.member_ids.some(mId => visibleMemberIds.includes(mId));
   });
+
 
   return (
     <div className="h-60 bg-white dark:bg-dark-card border-t-2 border-emerald-500 flex flex-col shadow-lg shrink-0 glass-panel">

@@ -52,7 +52,6 @@ export default function MissionModal({
   onSaveEvent,
   initialDateStr
 }) {
-  const [activeTab, setActiveTab] = useState('event'); // 'event' | 'memo'
   const [title, setTitle] = useState('');
   const [allDay, setAllDay] = useState(true);
   const [startDate, setStartDate] = useState('');
@@ -61,6 +60,7 @@ export default function MissionModal({
   const [endTime, setEndTime] = useState('10:00');
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [color, setColor] = useState('#10b981');
+
   
   // Repeat States
   const [repeat, setRepeat] = useState('none');
@@ -219,34 +219,15 @@ export default function MissionModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
       <div className="relative w-full max-w-md bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-2xl shadow-2xl overflow-hidden glass-panel max-h-[95vh] flex flex-col">
         
-        {/* Modal Header with Sliding Event vs Memo Tabs */}
+        {/* Modal Header */}
         <div className="p-4 border-b border-slate-200 dark:border-dark-border flex items-center justify-between bg-slate-50/50 dark:bg-dark-bg/50">
-          <div className="flex items-center gap-1 bg-slate-200 dark:bg-dark-bg p-1 rounded-xl">
-            <button
-              type="button"
-              onClick={() => setActiveTab('event')}
-              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-black rounded-lg transition-all ${
-                activeTab === 'event'
-                  ? 'bg-white dark:bg-dark-card text-emerald-600 dark:text-emerald-400 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              Event
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('memo')}
-              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-black rounded-lg transition-all ${
-                activeTab === 'memo'
-                  ? 'bg-white dark:bg-dark-card text-emerald-600 dark:text-emerald-400 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              Memo
-            </button>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+              <Calendar className="w-4 h-4" />
+            </div>
+            <h2 className="text-sm font-black text-slate-800 dark:text-slate-100">
+              {editingEvent ? 'แก้ไขกิจกรรม / งาน' : 'เพิ่มกิจกรรม / งานใหม่'}
+            </h2>
           </div>
 
           <button
@@ -371,9 +352,8 @@ export default function MissionModal({
             </div>
 
             <div className="p-2.5 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl flex flex-wrap gap-2">
-              {members.filter(m => (!m.is_archived && m.status !== 'resigned') || selectedMembers.includes(m.id)).map(mem => {
+              {members.filter(m => !m.is_archived && m.status !== 'resigned' && m.is_active !== false).map(mem => {
                 const isChecked = selectedMembers.includes(mem.id);
-                const isResigned = mem.is_archived || mem.status === 'resigned';
 
                 return (
                   <button
@@ -384,7 +364,7 @@ export default function MissionModal({
                       isChecked
                         ? 'bg-white dark:bg-dark-card border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 shadow-xs'
                         : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600'
-                    } ${isResigned ? 'opacity-70 border-dashed border-rose-400/60' : ''}`}
+                    }`}
                   >
                     <span
                       className="w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] font-mono font-black shrink-0"
@@ -392,7 +372,7 @@ export default function MissionModal({
                     >
                       {mem.initials || mem.name.substring(0, 2).toUpperCase()}
                     </span>
-                    <span>{mem.name} {isResigned && '(ลาออก)'}</span>
+                    <span>{mem.name}</span>
                     {isChecked && <Check className="w-3 h-3 text-emerald-600" />}
                   </button>
                 );
