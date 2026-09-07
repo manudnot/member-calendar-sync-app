@@ -247,8 +247,13 @@ export default function App() {
     setToast({ message: `รีเซ็ตรหัส PIN ใหม่สำหรับคุณ ${mem ? mem.name : ''} สำเร็จแล้ว!`, type: 'success' });
   };
 
-  const handleSaveNewPin = async (memberId, pinCode, enableBiometrics) => {
-    const updatedMembers = members.map(m => m.id === memberId ? { ...m, pin_code: pinCode } : m);
+  const handleSaveNewPin = async (memberId, pinCode, enableBiometrics, userEmail = '') => {
+    const updatedMembers = members.map(m => m.id === memberId ? {
+      ...m,
+      pin_code: pinCode,
+      email: userEmail || m.email
+    } : m);
+
 
     setMembers(updatedMembers);
     localStorage.setItem('member_calendar_members', JSON.stringify(updatedMembers));

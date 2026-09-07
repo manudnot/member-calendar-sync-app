@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, KeyRound, ShieldCheck, Fingerprint, Check, AlertCircle, Sparkles } from 'lucide-react';
+import { User, KeyRound, ShieldCheck, Fingerprint, Check, AlertCircle, Sparkles, Mail, Send, CheckCircle } from 'lucide-react';
 
 export default function FirstTimeUserModal({
   isOpen,
@@ -9,28 +9,70 @@ export default function FirstTimeUserModal({
   onOpenForgotPin
 }) {
   const [selectedMember, setSelectedMember] = useState(null);
+  const [userEmail, setUserEmail] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [otpInput, setOtpInput] = useState('');
   const [pinInput, setPinInput] = useState(['', '', '', '']);
   const [confirmPinInput, setConfirmPinInput] = useState(['', '', '', '']);
-  const [step, setStep] = useState('select_user'); // 'select_user' | 'enter_pin' | 'setup_pin'
+  const [step, setStep] = useState('select_user'); // 'select_user' | 'enter_pin' | 'send_otp' | 'verify_otp' | 'setup_pin'
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [enableBiometrics, setEnableBiometrics] = useState(true);
 
   if (!isOpen) return null;
 
   const activeMembers = members.filter(m => !m.is_archived && m.status !== 'resigned' && m.member_type !== 'virtual');
 
-
   const handleChooseMember = (member) => {
     setSelectedMember(member);
+    setUserEmail(member.email || '');
     setErrorMsg('');
+    setSuccessMsg('');
     setPinInput(['', '', '', '']);
     setConfirmPinInput(['', '', '', '']);
+    setOtpInput('');
 
     if (member.pin_code) {
       setStep('enter_pin');
     } else {
-      setStep('setup_pin');
+      setStep('send_otp');
     }
+  };
+
+  const handleSendOtpForSetup = (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    const cleanEmail = userEmail.trim().toLowerCase();
+    if (!cleanEmail) {
+      setErrorMsg('กรุณาระบุ Email สำหรับรับรหัส OTP');
+      return;
+    }
+
+    setIsSendingOtp(true);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtp(code);
+
+    setTimeout(() => {
+      setIsSendingOtp(false);
+      setStep('verify_otp');
+      setSuccessMsg(`ระบบได้ส่งรหัส OTP 6 หลัก จาก signal21onduty@gmail.com ไปยัง ${cleanEmail} แล้ว (รหัสทดสอบ: ${code})`);
+    }, 1000);
+  };
+
+  const handleVerifyOtpForSetup = (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    if (otpInput.trim() !== generatedOtp) {
+      setErrorMsg('รหัส OTP ไม่ถูกต้อง กรุณาตรวจสอบจาก Email ของคุณอีกครั้ง');
+      return;
+    }
+
+    setStep('setup_pin');
+    setSuccessMsg('ยืนยันตัวตนทาง Email สำเร็จ! กรุณาตั้งรหัส PIN 4 หลักประจำตัว');
   };
 
   const handleDigitChange = (val, idx, isConfirm = false) => {
@@ -100,7 +142,7 @@ export default function FirstTimeUserModal({
       return;
     }
 
-    onSaveNewPin(selectedMember.id, p1, enableBiometrics);
+    onSaveNewPin(selectedMember.id, p1, enableBiometrics, userEmail);
   };
 
   return (
@@ -118,6 +160,8 @@ export default function FirstTimeUserModal({
           <p className="text-xs font-semibold text-emerald-100">
             {step === 'select_user' && 'กรุณาเลือกชื่อของคุณเพื่อเปิดใช้งานระบบประจำเครื่องนี้'}
             {step === 'enter_pin' && `กรอกรหัส PIN 4 หลักเพื่อยืนยันตัวตนในนาม ${selectedMember?.name}`}
+            {step === 'send_otp' && `ยืนยัน Email เพื่อรับรหัส OTP สำหรับคุณ ${selectedMember?.name}`}
+            {step === 'verify_otp' && `กรอกรหัส OTP 6 หลักจาก Email เพื่อเปิดสิทธิ์การตั้ง PIN`}
             {step === 'setup_pin' && `ตั้งรหัส PIN 4 หลักใหม่สำหรับคุณ ${selectedMember?.name}`}
           </p>
         </div>
@@ -127,6 +171,13 @@ export default function FirstTimeUserModal({
             <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl flex items-center gap-2 text-rose-600 dark:text-rose-400 text-xs font-bold animate-shake">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-center gap-2 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+              <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
+              <span>{successMsg}</span>
             </div>
           )}
 
@@ -156,7 +207,7 @@ export default function FirstTimeUserModal({
                           {mem.name}
                         </span>
                         <span className="text-[10px] font-semibold text-slate-400">
-                          {mem.pin_code ? '🔒 ตั้งรหัส PIN แล้ว' : '✨ ยังไม่ได้ตั้งรหัส PIN'}
+                          {mem.pin_code ? '🔒 ตั้งรหัส PIN แล้ว' : '✉️ ยืนยัน OTP Email เพื่อตั้ง PIN'}
                         </span>
                       </div>
                     </div>
@@ -170,9 +221,9 @@ export default function FirstTimeUserModal({
             </div>
           )}
 
-          {/* STEP 2A: Enter Existing PIN */}
+          {/* STEP 2: Enter Existing PIN */}
           {step === 'enter_pin' && (
-            <form onSubmit={handleVerifyExistingPin} className="flex flex-col gap-5 py-2">
+            <form onSubmit={handleVerifyExistingPin} className="flex flex-col gap-4 py-2">
               <div className="flex items-center justify-center gap-2">
                 <span
                   className="w-10 h-10 rounded-2xl text-white flex items-center justify-center font-mono font-black text-sm shadow-sm"
@@ -215,7 +266,6 @@ export default function FirstTimeUserModal({
                 )}
               </div>
 
-
               {/* Biometrics Switch */}
               <div className="p-3 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-2xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -250,7 +300,95 @@ export default function FirstTimeUserModal({
             </form>
           )}
 
-          {/* STEP 2B: Setup New PIN */}
+          {/* STEP 3A: Send Email OTP First */}
+          {step === 'send_otp' && (
+            <form onSubmit={handleSendOtpForSetup} className="flex flex-col gap-4 py-2">
+              <div className="flex items-center justify-center gap-2">
+                <span
+                  className="w-10 h-10 rounded-2xl text-white flex items-center justify-center font-mono font-black text-sm shadow-sm"
+                  style={{ backgroundColor: selectedMember?.color }}
+                >
+                  {selectedMember?.initials}
+                </span>
+                <span className="text-sm font-black text-slate-800 dark:text-slate-100">
+                  {selectedMember?.name}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-1.5 text-left">
+                <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                  <Mail className="w-4 h-4 text-emerald-600" /> Email สำหรับรับรหัส OTP 6 หลัก:
+                </label>
+                <input
+                  type="email"
+                  placeholder="เช่น signal21onduty@gmail.com"
+                  className="input-field font-mono text-xs"
+                  value={userEmail}
+                  onChange={(e) => setUserEmail(e.target.value)}
+                  required
+                />
+                <span className="text-[10px] text-slate-400">
+                  * รหัส OTP จะถูกส่งจาก <strong className="text-emerald-600">signal21onduty@gmail.com</strong>
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setStep('select_user')}
+                  className="btn-secondary flex-1 text-xs py-2.5"
+                >
+                  ย้อนกลับ
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSendingOtp}
+                  className="btn-primary flex-1 text-xs py-2.5 flex items-center justify-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{isSendingOtp ? 'กำลังส่ง OTP...' : 'ส่ง OTP 6 หลัก'}</span>
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* STEP 3B: Verify 6-Digit OTP */}
+          {step === 'verify_otp' && (
+            <form onSubmit={handleVerifyOtpForSetup} className="flex flex-col gap-4 py-2">
+              <div className="flex flex-col gap-1.5 text-center">
+                <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                  กรอกรหัส OTP 6 หลักที่ได้รับจาก Email:
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  className="input-field text-center font-mono font-black text-xl tracking-widest py-2"
+                  placeholder="123456"
+                  value={otpInput}
+                  onChange={(e) => setOtpInput(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setStep('send_otp')}
+                  className="btn-secondary flex-1 text-xs py-2.5"
+                >
+                  ย้อนกลับ
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary flex-1 text-xs py-2.5"
+                >
+                  ยืนยัน OTP
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* STEP 4: Setup New 4-Digit PIN */}
           {step === 'setup_pin' && (
             <form onSubmit={handleCreateNewPin} className="flex flex-col gap-4 py-1">
               <div className="flex items-center justify-center gap-2">
