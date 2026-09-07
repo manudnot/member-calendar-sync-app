@@ -52,9 +52,31 @@ export default function App() {
   const [theme, setTheme] = useState('light'); // 'light' | 'dark' | 'system'
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const [members, setMembers] = useState(INITIAL_MEMBERS);
-  const [events, setEvents] = useState(INITIAL_EVENTS);
-  const [visibleMemberIds, setVisibleMemberIds] = useState(INITIAL_MEMBERS.map(m => m.id));
+  const [members, setMembers] = useState(() => {
+    const saved = localStorage.getItem('member_calendar_members');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_MEMBERS;
+  });
+
+  const [events, setEvents] = useState(() => {
+    const saved = localStorage.getItem('member_calendar_events');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_EVENTS;
+  });
+
+  const [visibleMemberIds, setVisibleMemberIds] = useState(() => {
+    return members.map(m => m.id);
+  });
 
   // Modals state
   const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
@@ -69,7 +91,6 @@ export default function App() {
     setMemberToEdit(member);
     setIsMemberManagementOpen(true);
   };
-
 
   // Theme manager
   useEffect(() => {
@@ -87,7 +108,7 @@ export default function App() {
     }
   }, [theme]);
 
-  // Load from Supabase on mount (Filtering out any mock names)
+  // Load from Supabase on mount (and sync to LocalStorage)
   useEffect(() => {
     async function fetchData() {
       if (supabase) {
@@ -98,11 +119,19 @@ export default function App() {
               !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
             );
             setMembers(cleanSupaMembers);
+            localStorage.setItem('member_calendar_members', JSON.stringify(cleanSupaMembers));
             setVisibleMemberIds(cleanSupaMembers.map(m => m.id));
+          } else {
+            await supabase.from('members').upsert(INITIAL_MEMBERS);
           }
 
           const { data: supaEvents } = await supabase.from('events').select('*');
-          if (supaEvents && supaEvents.length > 0) setEvents(supaEvents);
+          if (supaEvents && supaEvents.length > 0) {
+            setEvents(supaEvents);
+            localStorage.setItem('member_calendar_events', JSON.stringify(supaEvents));
+          } else {
+            await supabase.from('events').upsert(INITIAL_EVENTS);
+          }
         } catch (err) {
           console.warn('Supabase fetch notice:', err);
         }
@@ -134,12 +163,14 @@ export default function App() {
   };
 
   const handleAddMember = async (newMember) => {
-    setMembers([...members, newMember]);
+    const updated = [...members, newMember];
+    setMembers(updated);
+    localStorage.setItem('member_calendar_members', JSON.stringify(updated));
     setVisibleMemberIds([...visibleMemberIds, newMember.id]);
 
     if (supabase) {
       try {
-        await supabase.from('members').insert([newMember]);
+        await supabase.from('members').upsert([newMember]);
       } catch (e) {
         console.warn('Supabase insert member warning:', e);
       }
@@ -149,11 +180,13 @@ export default function App() {
   };
 
   const handleUpdateMember = async (updatedMember) => {
-    setMembers(members.map(m => m.id === updatedMember.id ? updatedMember : m));
+    const updated = members.map(m => m.id === updatedMember.id ? updatedMember : m);
+    setMembers(updated);
+    localStorage.setItem('member_calendar_members', JSON.stringify(updated));
 
     if (supabase) {
       try {
-        await supabase.from('members').update(updatedMember).eq('id', updatedMember.id);
+        await supabase.from('members').upsert([updatedMember]);
       } catch (e) {
         console.warn('Supabase update member warning:', e);
       }
@@ -165,7 +198,9 @@ export default function App() {
   const handleDeleteMember = async (memberId) => {
     if (!window.confirm('คุณต้องการลบสมาชิกท่านนี้ใช่หรือไม่?')) return;
 
-    setMembers(members.filter(m => m.id !== memberId));
+    const updated = members.filter(m => m.id !== memberId);
+    setMembers(updated);
+    localStorage.setItem('member_calendar_members', JSON.stringify(updated));
     setVisibleMemberIds(visibleMemberIds.filter(id => id !== memberId));
 
     if (supabase) {
@@ -224,28 +259,41 @@ export default function App() {
 
   const handleSaveEvent = async (eventPayload) => {
     const exists = events.some(e => e.id === eventPayload.id);
+    let updated;
 
     if (exists) {
-      setEvents(events.map(e => e.id === eventPayload.id ? eventPayload : e));
-      if (supabase) {
-        try { await supabase.from('events').update(eventPayload).eq('id', eventPayload.id); } catch(e){}
-      }
+      updated = events.map(e => e.id === eventPayload.id ? eventPayload : e);
       setToast({ message: 'แก้ไขกิจกรรมสำเร็จแล้ว!', type: 'success' });
     } else {
-      setEvents([...events, eventPayload]);
-      if (supabase) {
-        try { await supabase.from('events').insert([eventPayload]); } catch(e){}
-      }
+      updated = [...events, eventPayload];
       setToast({ message: 'สร้างกิจกรรมใหม่สำเร็จแล้ว!', type: 'success' });
+    }
+
+    setEvents(updated);
+    localStorage.setItem('member_calendar_events', JSON.stringify(updated));
+
+    if (supabase) {
+      try {
+        await supabase.from('events').upsert([eventPayload]);
+      } catch(e) {
+        console.warn('Supabase upsert event warning:', e);
+      }
     }
   };
 
   const handleDeleteEvent = async (eventId) => {
     if (!window.confirm('คุณต้องการลบกิจกรรมนี้ใช่หรือไม่?')) return;
 
-    setEvents(events.filter(e => e.id !== eventId));
+    const updated = events.filter(e => e.id !== eventId);
+    setEvents(updated);
+    localStorage.setItem('member_calendar_events', JSON.stringify(updated));
+
     if (supabase) {
-      try { await supabase.from('events').delete().eq('id', eventId); } catch(e){}
+      try {
+        await supabase.from('events').delete().eq('id', eventId);
+      } catch(e) {
+        console.warn('Supabase delete event warning:', e);
+      }
     }
     setToast({ message: 'ลบกิจกรรมเรียบร้อยแล้ว', type: 'info' });
   };

@@ -16,4 +16,9 @@
 ### Version 3.6 - Toggle Select All / Deselect All Members
 - **Interactive Toggle**: Updated sidebar member filter button to toggle between "เลือกทั้งหมด" (Select All) and "ยกเลิกเลือกทั้งหมด" (Deselect All) dynamically.
 - **Git Commit**: `6895225` pushed to `manudnot/member-calendar-sync-app` main branch.
-- **Verification**: `npm run build` completed cleanly in 1.93s.
+
+### Version 3.7 - Strict Layout & Duty-Roster Spec Alignment
+- **Removed Sidebar Edit Button**: Removed edit button from Left Sidebar as editing members is strictly managed via the Right Toolbar Member Management drawer (`👥`).
+- **Removed Modal Visibility Switch**: Removed duplicate toggle switches from `MemberManagementModal.jsx` so opening/closing member event visibility is handled exclusively via the Left Sidebar checkboxes.
+- **Git Commit**: `2810255` pushed to `manudnot/member-calendar-sync-app` main branch.
+- **Verification**: `npm run build` completed cleanly in 1.55s.
