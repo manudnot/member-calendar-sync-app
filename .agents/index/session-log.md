@@ -26,4 +26,9 @@
 - **Instant LocalStorage Persistence**: Initialized state and saved member/event CRUD mutations directly to `localStorage` (`member_calendar_members` and `member_calendar_events`) so edited names & colors survive F5 refreshes instantly.
 - **Supabase Upsert Sync**: Replaced `.update()` with `.upsert()` for both members and events to guarantee database rows are created or updated automatically on cloud sync.
 - **Git Commit**: `8b6d791` pushed to `manudnot/member-calendar-sync-app` main branch.
+
+### Version 3.9 - Permanent Fix for F5 Overwrite (Client-First LocalStorage Sync)
+- **Root Cause Fix**: Identified that initial `useEffect` fetch from Supabase was unconditionally overwriting `localStorage` with old database rows on page reload (F5).
+- **Client-First Sync**: Updated `fetchData()` on mount to check if `localStorage` contains user edits. If so, it preserves local edits (`Champ`, custom colors) and pushes them to Supabase via `.upsert(localMembers)`, preventing any reset upon F5.
+- **Git Commit**: `1c53164` pushed to `manudnot/member-calendar-sync-app` main branch.
 - **Verification**: `npm run build` completed cleanly in 1.53s.

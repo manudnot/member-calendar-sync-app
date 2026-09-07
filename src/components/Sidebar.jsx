@@ -13,8 +13,10 @@ export default function Sidebar({
     return events.filter(e => Array.isArray(e.member_ids) && e.member_ids.includes(memberId)).length;
   };
 
-  // Filter out any mock names if present
+  // Filter out any mock names and archived/resigned members
   const cleanMembers = members.filter(m =>
+    !m.is_archived &&
+    m.status !== 'resigned' &&
     !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
   );
 

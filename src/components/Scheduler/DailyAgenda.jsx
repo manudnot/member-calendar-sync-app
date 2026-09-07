@@ -105,18 +105,27 @@ export default function DailyAgenda({
                     )}
 
                     {/* Member Initials Avatar Badges */}
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {Array.isArray(evt.member_ids) && evt.member_ids.map(mId => {
                         const m = getMemberById(mId);
                         if (!m) return null;
+                        const isResigned = m.is_archived || m.status === 'resigned';
+
                         return (
                           <span
                             key={mId}
-                            className="w-5 h-5 rounded-full text-white flex items-center justify-center font-mono font-black text-[9px] shadow-xs"
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-white font-mono font-black text-[9px] shadow-xs ${
+                              isResigned ? 'opacity-70 ring-1 ring-rose-400/50' : ''
+                            }`}
                             style={{ backgroundColor: m.color }}
-                            title={m.name}
+                            title={isResigned ? `${m.name} (พ้นสภาพ / ลาออก)` : m.name}
                           >
-                            {m.initials || m.name.substring(0, 2).toUpperCase()}
+                            <span>{m.initials || m.name.substring(0, 2).toUpperCase()}</span>
+                            {isResigned && (
+                              <span className="text-[8px] font-sans font-extrabold px-1 rounded bg-rose-950/60 text-rose-200">
+                                ลาออก
+                              </span>
+                            )}
                           </span>
                         );
                       })}

@@ -271,7 +271,10 @@ export default function MissionModal({
               </label>
               <button
                 type="button"
-                onClick={handleSelectAllMembers}
+                onClick={() => {
+                  const activeIds = members.filter(m => !m.is_archived && m.status !== 'resigned').map(m => m.id);
+                  setSelectedMembers(activeIds);
+                }}
                 className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
               >
                 เลือกทุกคน
@@ -279,8 +282,10 @@ export default function MissionModal({
             </div>
 
             <div className="p-2.5 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl flex flex-wrap gap-2">
-              {members.map(mem => {
+              {members.filter(m => !m.is_archived && m.status !== 'resigned' || selectedMembers.includes(m.id)).map(mem => {
                 const isChecked = selectedMembers.includes(mem.id);
+                const isResigned = mem.is_archived || mem.status === 'resigned';
+
                 return (
                   <button
                     type="button"
@@ -290,7 +295,7 @@ export default function MissionModal({
                       isChecked
                         ? 'bg-white dark:bg-dark-card border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 shadow-xs'
                         : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600'
-                    }`}
+                    } ${isResigned ? 'opacity-70 border-dashed border-rose-400/60' : ''}`}
                   >
                     <span
                       className="w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] font-mono font-black"
@@ -298,7 +303,7 @@ export default function MissionModal({
                     >
                       {mem.initials || mem.name.substring(0, 2).toUpperCase()}
                     </span>
-                    <span>{mem.name}</span>
+                    <span>{mem.name} {isResigned && '(ลาออก)'}</span>
                     {isChecked && <Check className="w-3 h-3 text-emerald-600" />}
                   </button>
                 );

@@ -220,8 +220,38 @@ export default function App() {
     setToast({ message: `แก้ไขข้อมูลสมาชิก ${updatedMember.name} สำเร็จ!`, type: 'success' });
   };
 
+  const handleToggleArchiveMember = async (memberId) => {
+    const targetMember = members.find(m => m.id === memberId);
+    if (!targetMember) return;
+
+    const nextArchived = !targetMember.is_archived;
+    const updatedMember = {
+      ...targetMember,
+      is_archived: nextArchived,
+      status: nextArchived ? 'resigned' : 'active'
+    };
+
+    const updated = members.map(m => m.id === memberId ? updatedMember : m);
+    setMembers(updated);
+    localStorage.setItem('member_calendar_members', JSON.stringify(updated));
+
+    if (supabase) {
+      try {
+        await supabase.from('members').upsert([updatedMember]);
+      } catch (e) {
+        console.warn('Supabase toggle archive member warning:', e);
+      }
+    }
+
+    if (nextArchived) {
+      setToast({ message: `แจ้งลาออกสมาชิก ${targetMember.name} เรียบร้อยแล้ว (ประวัติงานเดิมยังคงอยู่)`, type: 'info' });
+    } else {
+      setToast({ message: `คืนสภาพสมาชิก ${targetMember.name} สำเร็จ!`, type: 'success' });
+    }
+  };
+
   const handleDeleteMember = async (memberId) => {
-    if (!window.confirm('คุณต้องการลบสมาชิกท่านนี้ใช่หรือไม่?')) return;
+    if (!window.confirm('คุณต้องการลบสมาชิกท่านนี้แบบถาวรใช่หรือไม่?')) return;
 
     const updated = members.filter(m => m.id !== memberId);
     setMembers(updated);
@@ -410,6 +440,7 @@ export default function App() {
         onAddMember={handleAddMember}
         onUpdateMember={handleUpdateMember}
         onDeleteMember={handleDeleteMember}
+        onToggleArchiveMember={handleToggleArchiveMember}
         memberToEdit={memberToEdit}
       />
 

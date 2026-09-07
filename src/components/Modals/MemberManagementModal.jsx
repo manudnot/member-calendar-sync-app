@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Plus, Trash2, Edit3, Check, User } from 'lucide-react';
+import { X, Search, Plus, Trash2, Edit3, Check, User, UserX, UserCheck } from 'lucide-react';
 
 const PRESET_COLORS = [
   '#10b981', // Emerald
@@ -21,6 +21,7 @@ export default function MemberManagementModal({
   onAddMember,
   onUpdateMember,
   onDeleteMember,
+  onToggleArchiveMember,
   memberToEdit = null
 }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,7 +68,9 @@ export default function MemberManagementModal({
 
     if (editingMemberId) {
       // Update Member
+      const existingMem = members.find(m => m.id === editingMemberId);
       const updatedMember = {
+        ...existingMem,
         id: editingMemberId,
         name: memberName.trim(),
         initials,
@@ -80,7 +83,8 @@ export default function MemberManagementModal({
         id: `mem_${Date.now()}`,
         name: memberName.trim(),
         initials,
-        color: memberColor
+        color: memberColor,
+        is_archived: false
       };
       onAddMember(newMember);
     }
@@ -101,7 +105,7 @@ export default function MemberManagementModal({
           <div className="flex items-center gap-2">
             <User className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <h3 className="text-base font-black text-slate-800 dark:text-slate-100">
-              จัดการรายชื่อและสีประจำตัวสมาชิก
+              จัดการรายชื่อและสถานะสมาชิก
             </h3>
           </div>
 
@@ -151,7 +155,7 @@ export default function MemberManagementModal({
               </div>
               <input
                 type="text"
-                placeholder="ระบุชื่อสมาชิก (เช่น WoooddY, ผก.เอก)"
+                placeholder="ระบุชื่อสมาชิก (เช่น Champ, WoooddY)"
                 className="input-field text-xs flex-1"
                 value={memberName}
                 onChange={(e) => setMemberName(e.target.value)}
@@ -230,10 +234,16 @@ export default function MemberManagementModal({
           {/* Member List Items */}
           <div className="flex flex-col gap-2">
             {filteredMembers.map(mem => {
+              const isArchived = mem.is_archived || mem.status === 'resigned';
+
               return (
                 <div
                   key={mem.id}
-                  className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl hover:border-slate-300 dark:hover:border-slate-700 transition-all"
+                  className={`flex items-center justify-between p-2.5 border rounded-xl transition-all ${
+                    isArchived
+                      ? 'bg-slate-100/60 dark:bg-dark-bg/30 border-slate-300 dark:border-slate-800 opacity-70'
+                      : 'bg-slate-50 dark:bg-dark-bg/60 border-slate-200 dark:border-dark-border hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -243,12 +253,32 @@ export default function MemberManagementModal({
                       {mem.initials || mem.name.substring(0, 2).toUpperCase()}
                     </div>
 
-                    <span className="text-xs font-black text-slate-800 dark:text-slate-100">
-                      {mem.name}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className={`text-xs font-black ${isArchived ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>
+                        {mem.name}
+                      </span>
+                      {isArchived && (
+                        <span className="text-[10px] font-bold text-rose-500">
+                          (ลาออกแล้ว / Soft Deleted)
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    {/* Toggle Soft Delete / Archive Button */}
+                    <button
+                      onClick={() => onToggleArchiveMember(mem.id)}
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                        isArchived
+                          ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100'
+                          : 'text-amber-600 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100'
+                      }`}
+                      title={isArchived ? 'คืนสภาพสมาชิก' : 'แจ้งลาออก (Soft Delete - เก็บประวัติงานเดิม)'}
+                    >
+                      {isArchived ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
+                    </button>
+
                     {/* Edit Member Button */}
                     <button
                       onClick={() => handleOpenEdit(mem)}
@@ -262,7 +292,7 @@ export default function MemberManagementModal({
                     <button
                       onClick={() => onDeleteMember(mem.id)}
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
-                      title="ลบสมาชิก"
+                      title="ลบสมาชิกแบบถาวร"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -278,4 +308,5 @@ export default function MemberManagementModal({
     </div>
   );
 }
+
 
