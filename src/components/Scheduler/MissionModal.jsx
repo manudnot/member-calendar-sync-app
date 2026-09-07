@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Check, Users } from 'lucide-react';
+import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Check, Users, Plus, Trash2 } from 'lucide-react';
 
 const COLOR_PALETTE = [
   { hex: '#10b981', name: 'Emerald green' },
@@ -11,6 +11,38 @@ const COLOR_PALETTE = [
   { hex: '#795548', name: 'Brown' },
   { hex: '#009688', name: 'Teal' }
 ];
+
+function getRepeatOptionsForDate(dateStr) {
+  const d = dateStr ? new Date(dateStr) : new Date();
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const ordinals = ['1st', '2nd', '3rd', '4th', '5th'];
+
+  const dayName = dayNames[d.getDay()] || 'Saturday';
+  const dayNum = d.getDate();
+  const weekOrdinalIndex = Math.floor((dayNum - 1) / 7);
+  const weekOrdinal = ordinals[weekOrdinalIndex] || `${weekOrdinalIndex + 1}th`;
+
+  return [
+    { value: 'none', label: 'Not Repeating' },
+    { value: 'daily', label: 'Daily' },
+    { value: 'weekly', label: `${dayName} each week` },
+    { value: 'weekdays', label: 'Weekdays (Mon-Fri)' },
+    { value: 'monthly_nth_day', label: `${weekOrdinal} ${dayName} each month` },
+    { value: 'monthly_date', label: `Every month on the ${dayNum}` },
+    { value: 'yearly', label: 'Yearly' },
+    { value: 'custom', label: 'Custom' }
+  ];
+}
+
+function getAlarmMinutesFromNotif(notif) {
+  const val = Number(notif.value) || 0;
+  if (!notif.unit) return val;
+  if (notif.unit.includes('min')) return val;
+  if (notif.unit.includes('hour')) return val * 60;
+  if (notif.unit.includes('day')) return val * 1440;
+  if (notif.unit.includes('week')) return val * 10080;
+  return val;
+}
 
 export default function MissionModal({
   isOpen,
@@ -29,8 +61,20 @@ export default function MissionModal({
   const [endTime, setEndTime] = useState('10:00');
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [color, setColor] = useState('#10b981');
+  
+  // Repeat States
   const [repeat, setRepeat] = useState('none');
-  const [alarmMinutes, setAlarmMinutes] = useState(15);
+  const [customInterval, setCustomInterval] = useState(1);
+  const [customUnit, setCustomUnit] = useState('week');
+  const [customEndsMode, setCustomEndsMode] = useState('never'); // 'never' | 'on' | 'after'
+  const [customEndsOnDate, setCustomEndsOnDate] = useState('');
+  const [customEndsOccurrences, setCustomEndsOccurrences] = useState(10);
+
+  // Notification States
+  const [notifications, setNotifications] = useState([
+    { id: 'notif_1', value: 15, unit: 'min before' }
+  ]);
+
   const [location, setLocation] = useState('');
   const [url, setUrl] = useState('');
   const [description, setDescription] = useState('');
@@ -43,6 +87,7 @@ export default function MissionModal({
       const eKey = editingEvent.end_time ? editingEvent.end_time.split('T')[0] : sKey;
       setStartDate(sKey);
       setEndDate(eKey);
+      setCustomEndsOnDate(eKey);
 
       if (editingEvent.start_time && editingEvent.start_time.includes('T')) {
         const timePart = editingEvent.start_time.split('T')[1].substring(0, 5);
@@ -56,21 +101,41 @@ export default function MissionModal({
       setSelectedMembers(Array.isArray(editingEvent.member_ids) ? editingEvent.member_ids : []);
       setColor(editingEvent.color || '#10b981');
       setRepeat(editingEvent.repeat || 'none');
-      setAlarmMinutes(editingEvent.alarm_minutes || 15);
+
+      if (editingEvent.custom_repeat) {
+        setCustomInterval(editingEvent.custom_repeat.interval || 1);
+        setCustomUnit(editingEvent.custom_repeat.unit || 'week');
+        setCustomEndsMode(editingEvent.custom_repeat.ends_mode || 'never');
+        setCustomEndsOnDate(editingEvent.custom_repeat.ends_on || eKey);
+        setCustomEndsOccurrences(editingEvent.custom_repeat.ends_occurrences || 10);
+      }
+
+      if (Array.isArray(editingEvent.notifications) && editingEvent.notifications.length > 0) {
+        setNotifications(editingEvent.notifications);
+      } else if (editingEvent.alarm_minutes !== undefined) {
+        setNotifications([{ id: 'notif_1', value: editingEvent.alarm_minutes || 15, unit: 'min before' }]);
+      }
+
       setLocation(editingEvent.location || '');
       setUrl(editingEvent.url || '');
       setDescription(editingEvent.description || '');
     } else {
+      const defaultDate = initialDateStr || new Date().toISOString().split('T')[0];
       setTitle('');
       setAllDay(true);
-      setStartDate(initialDateStr || new Date().toISOString().split('T')[0]);
-      setEndDate(initialDateStr || new Date().toISOString().split('T')[0]);
+      setStartDate(defaultDate);
+      setEndDate(defaultDate);
+      setCustomEndsOnDate(defaultDate);
       setStartTime('09:00');
       setEndTime('10:00');
       setSelectedMembers(members.length > 0 ? [members[0].id] : []);
       setColor('#10b981');
       setRepeat('none');
-      setAlarmMinutes(15);
+      setCustomInterval(1);
+      setCustomUnit('week');
+      setCustomEndsMode('never');
+      setCustomEndsOccurrences(10);
+      setNotifications([{ id: 'notif_1', value: 15, unit: 'min before' }]);
       setLocation('');
       setUrl('');
       setDescription('');
@@ -78,6 +143,8 @@ export default function MissionModal({
   }, [editingEvent, initialDateStr, members, isOpen]);
 
   if (!isOpen) return null;
+
+  const repeatOptions = getRepeatOptionsForDate(startDate);
 
   const handleToggleMember = (memId) => {
     if (selectedMembers.includes(memId)) {
@@ -87,8 +154,19 @@ export default function MissionModal({
     }
   };
 
-  const handleSelectAllMembers = () => {
-    setSelectedMembers(members.map(m => m.id));
+  const handleAddNotification = () => {
+    setNotifications([
+      ...notifications,
+      { id: `notif_${Date.now()}`, value: 1, unit: 'hour before' }
+    ]);
+  };
+
+  const handleRemoveNotification = (notifId) => {
+    setNotifications(notifications.filter(n => n.id !== notifId));
+  };
+
+  const handleUpdateNotification = (notifId, field, value) => {
+    setNotifications(notifications.map(n => n.id === notifId ? { ...n, [field]: value } : n));
   };
 
   const handleSubmit = (e) => {
@@ -107,6 +185,8 @@ export default function MissionModal({
     const startIso = new Date(`${startDate}T${allDay ? '09:00' : startTime}:00`).toISOString();
     const endIso = new Date(`${endDate}T${allDay ? '10:00' : endTime}:00`).toISOString();
 
+    const primaryAlarmMinutes = notifications.length > 0 ? getAlarmMinutesFromNotif(notifications[0]) : 15;
+
     const payload = {
       id: editingEvent ? editingEvent.id : `evt_${Date.now()}`,
       title,
@@ -115,7 +195,15 @@ export default function MissionModal({
       all_day: allDay,
       color,
       repeat,
-      alarm_minutes: Number(alarmMinutes),
+      custom_repeat: repeat === 'custom' ? {
+        interval: customInterval,
+        unit: customUnit,
+        ends_mode: customEndsMode,
+        ends_on: customEndsOnDate,
+        ends_occurrences: customEndsOccurrences
+      } : null,
+      notifications,
+      alarm_minutes: primaryAlarmMinutes,
       location,
       url,
       description,
@@ -162,8 +250,9 @@ export default function MissionModal({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -179,7 +268,7 @@ export default function MissionModal({
             </label>
             <input
               type="text"
-              className="input-field"
+              className="input-field text-xs"
               placeholder="เช่น ประชุมสรุปงานประจำสัปดาห์"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -211,7 +300,7 @@ export default function MissionModal({
               </label>
               <input
                 type="date"
-                className="input-field font-mono"
+                className="input-field font-mono text-xs"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 required
@@ -225,7 +314,7 @@ export default function MissionModal({
                 </label>
                 <input
                   type="time"
-                  className="input-field font-mono"
+                  className="input-field font-mono text-xs"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                 />
@@ -241,7 +330,7 @@ export default function MissionModal({
               </label>
               <input
                 type="date"
-                className="input-field font-mono"
+                className="input-field font-mono text-xs"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 required
@@ -255,7 +344,7 @@ export default function MissionModal({
                 </label>
                 <input
                   type="time"
-                  className="input-field font-mono"
+                  className="input-field font-mono text-xs"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
                 />
@@ -275,14 +364,14 @@ export default function MissionModal({
                   const activeIds = members.filter(m => !m.is_archived && m.status !== 'resigned').map(m => m.id);
                   setSelectedMembers(activeIds);
                 }}
-                className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
               >
                 เลือกทุกคน
               </button>
             </div>
 
             <div className="p-2.5 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl flex flex-wrap gap-2">
-              {members.filter(m => !m.is_archived && m.status !== 'resigned' || selectedMembers.includes(m.id)).map(mem => {
+              {members.filter(m => (!m.is_archived && m.status !== 'resigned') || selectedMembers.includes(m.id)).map(mem => {
                 const isChecked = selectedMembers.includes(mem.id);
                 const isResigned = mem.is_archived || mem.status === 'resigned';
 
@@ -291,14 +380,14 @@ export default function MissionModal({
                     type="button"
                     key={mem.id}
                     onClick={() => handleToggleMember(mem.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all border ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                       isChecked
                         ? 'bg-white dark:bg-dark-card border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 shadow-xs'
                         : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600'
                     } ${isResigned ? 'opacity-70 border-dashed border-rose-400/60' : ''}`}
                   >
                     <span
-                      className="w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] font-mono font-black"
+                      className="w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] font-mono font-black shrink-0"
                       style={{ backgroundColor: mem.color }}
                     >
                       {mem.initials || mem.name.substring(0, 2).toUpperCase()}
@@ -311,7 +400,7 @@ export default function MissionModal({
             </div>
           </div>
 
-          {/* Color Palette Selector (DutyRoster Palette Style) */}
+          {/* Color Palette Selector */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
               Label Color (เลือกสีของงาน)
@@ -323,7 +412,7 @@ export default function MissionModal({
                   key={item.hex}
                   onClick={() => setColor(item.hex)}
                   style={{ backgroundColor: item.hex }}
-                  className={`w-6 h-6 rounded-full border transition-all ${
+                  className={`w-6 h-6 rounded-full border transition-all cursor-pointer ${
                     color === item.hex
                       ? 'ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-slate-900 border-white scale-110 shadow-md'
                       : 'border-transparent hover:scale-105 opacity-85'
@@ -334,39 +423,165 @@ export default function MissionModal({
             </div>
           </div>
 
-          {/* Repeat & Remind */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
+          {/* Repeat Section */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+              <Repeat className="w-3.5 h-3.5 text-emerald-600" /> Repeat (การทำซ้ำ)
+            </label>
+            <select
+              className="input-field text-xs cursor-pointer"
+              value={repeat}
+              onChange={(e) => setRepeat(e.target.value)}
+            >
+              {repeatOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Custom Repeat Panel */}
+            {repeat === 'custom' && (
+              <div className="p-3 bg-slate-50 dark:bg-dark-bg/80 border border-slate-200 dark:border-dark-border rounded-xl flex flex-col gap-3 text-xs animate-fade-in">
+                {/* Repeat every */}
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-slate-700 dark:text-slate-300 shrink-0">Repeat every</span>
+                  <input
+                    type="number"
+                    min="1"
+                    className="input-field w-16 text-center font-mono py-1 text-xs"
+                    value={customInterval}
+                    onChange={(e) => setCustomInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                  />
+                  <select
+                    className="input-field py-1 text-xs cursor-pointer"
+                    value={customUnit}
+                    onChange={(e) => setCustomUnit(e.target.value)}
+                  >
+                    <option value="day">day</option>
+                    <option value="week">week</option>
+                    <option value="month">month</option>
+                    <option value="year">year</option>
+                  </select>
+                </div>
+
+                {/* Ends section */}
+                <div className="flex flex-col gap-2 border-t border-slate-200 dark:border-dark-border pt-2.5">
+                  <span className="font-extrabold text-slate-700 dark:text-slate-300">Ends</span>
+
+                  {/* Never */}
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="customEndsMode"
+                      checked={customEndsMode === 'never'}
+                      onChange={() => setCustomEndsMode('never')}
+                      className="accent-emerald-600 cursor-pointer"
+                    />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Never</span>
+                  </label>
+
+                  {/* On Date */}
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                      <input
+                        type="radio"
+                        name="customEndsMode"
+                        checked={customEndsMode === 'on'}
+                        onChange={() => setCustomEndsMode('on')}
+                        className="accent-emerald-600 cursor-pointer"
+                      />
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">On</span>
+                    </label>
+                    {customEndsMode === 'on' && (
+                      <input
+                        type="date"
+                        className="input-field py-1 text-xs font-mono"
+                        value={customEndsOnDate}
+                        onChange={(e) => setCustomEndsOnDate(e.target.value)}
+                      />
+                    )}
+                  </div>
+
+                  {/* After Occurrences */}
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                      <input
+                        type="radio"
+                        name="customEndsMode"
+                        checked={customEndsMode === 'after'}
+                        onChange={() => setCustomEndsMode('after')}
+                        className="accent-emerald-600 cursor-pointer"
+                      />
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">After</span>
+                    </label>
+                    {customEndsMode === 'after' && (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          min="1"
+                          className="input-field w-16 text-center font-mono py-1 text-xs"
+                          value={customEndsOccurrences}
+                          onChange={(e) => setCustomEndsOccurrences(Math.max(1, parseInt(e.target.value) || 1))}
+                        />
+                        <span className="text-slate-500 font-semibold">Occurrences</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Multiple Notifications Section */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
               <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                <Repeat className="w-3.5 h-3.5 text-emerald-600" /> Repeat
+                <Bell className="w-3.5 h-3.5 text-emerald-600" /> Notification (การแจ้งเตือน)
               </label>
-              <select
-                className="input-field"
-                value={repeat}
-                onChange={(e) => setRepeat(e.target.value)}
+              <button
+                type="button"
+                onClick={handleAddNotification}
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer flex items-center gap-1"
               >
-                <option value="none">Not Repeating</option>
-                <option value="daily">Daily (ทุกวัน)</option>
-                <option value="weekly">Weekly (ทุกสัปดาห์)</option>
-                <option value="monthly">Monthly (ทุกเดือน)</option>
-              </select>
+                <Plus className="w-3 h-3" />
+                <span>Add notification</span>
+              </button>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                <Bell className="w-3.5 h-3.5 text-emerald-600" /> Remind
-              </label>
-              <select
-                className="input-field"
-                value={alarmMinutes}
-                onChange={(e) => setAlarmMinutes(e.target.value)}
-              >
-                <option value="15">⏰ เตือน 15 นาที</option>
-                <option value="30">⏰ เตือน 30 นาที</option>
-                <option value="60">⏰ เตือน 1 ชั่วโมง</option>
-                <option value="1440">⏰ เตือน 1 วัน</option>
-                <option value="0">❌ ไม่แจ้งเตือน</option>
-              </select>
+            <div className="flex flex-col gap-2">
+              {notifications.map((notif, idx) => (
+                <div key={notif.id || idx} className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl">
+                  <input
+                    type="number"
+                    min="1"
+                    className="input-field w-16 text-center font-mono py-1 text-xs"
+                    value={notif.value}
+                    onChange={(e) => handleUpdateNotification(notif.id, 'value', Math.max(1, parseInt(e.target.value) || 1))}
+                  />
+                  <select
+                    className="input-field flex-1 py-1 text-xs cursor-pointer"
+                    value={notif.unit}
+                    onChange={(e) => handleUpdateNotification(notif.id, 'unit', e.target.value)}
+                  >
+                    <option value="min before">min before</option>
+                    <option value="hour before">hour before</option>
+                    <option value="day before">day before</option>
+                    <option value="week before">week before</option>
+                  </select>
+
+                  {notifications.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveNotification(notif.id)}
+                      className="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                      title="ลบการแจ้งเตือนนี้"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -378,7 +593,7 @@ export default function MissionModal({
               </label>
               <input
                 type="text"
-                className="input-field"
+                className="input-field text-xs"
                 placeholder="Add location"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
@@ -391,7 +606,7 @@ export default function MissionModal({
               </label>
               <input
                 type="url"
-                className="input-field"
+                className="input-field text-xs"
                 placeholder="Add URL (https://...)"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
@@ -406,7 +621,7 @@ export default function MissionModal({
             </label>
             <textarea
               rows={2}
-              className="input-field"
+              className="input-field text-xs"
               placeholder="Add a note..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -418,13 +633,13 @@ export default function MissionModal({
             <button
               type="button"
               onClick={onClose}
-              className="btn-secondary py-2 px-4"
+              className="btn-secondary py-2 px-4 text-xs"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
-              className="btn-primary py-2 px-5"
+              className="btn-primary py-2 px-5 text-xs"
             >
               {editingEvent ? 'บันทึกแก้ไข' : 'สร้างกิจกรรม'}
             </button>

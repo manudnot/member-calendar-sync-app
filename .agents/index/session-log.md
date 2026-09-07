@@ -38,4 +38,8 @@
 - **Future Selection Filtering**: Filtered out soft-deleted members from `Sidebar.jsx` and `MissionModal.jsx` so resigned members cannot be assigned to future events.
 - **Restore Capability**: Added `UserCheck` (คืนสภาพสมาชิก) action in `MemberManagementModal.jsx` to easily un-archive members.
 - **Git Commit**: `e7ef4f0` pushed to `manudnot/member-calendar-sync-app` main branch.
-- **Verification**: `npm run build` completed cleanly in 1.59s.
+
+### Version 4.1 - Sorted Member List (Active Top, Resigned Bottom)
+- **Member Order Sorting**: Implemented automatic sorting in `MemberManagementModal.jsx` to place active members at the top and soft-deleted/resigned members at the bottom while strictly maintaining their original addition order within each group.
+- **Git Commit**: `536cbf4` pushed to `manudnot/member-calendar-sync-app` main branch.
+- **Verification**: `npm run build` completed cleanly in 1.99s.
