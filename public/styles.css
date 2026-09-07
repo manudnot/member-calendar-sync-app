@@ -504,11 +504,11 @@ body {
   color: #ffffff !important;
 }
 
-/* Event List Pills inside Day Cell */
+/* Event List Pills inside Day Cell (ALL-DAY VS TIMED STYLING) */
 .day-events-container {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   overflow: hidden;
   max-height: calc(100% - 24px);
 }
@@ -521,21 +521,39 @@ body {
   border-radius: 4px;
   font-size: 0.72rem;
   font-weight: 600;
-  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.1s ease;
 }
 
 .event-pill:hover {
-  opacity: 0.85;
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+/* ALL-DAY EVENT PILL: SOLID BACKGROUND (สีทึบ) */
+.event-pill.all-day {
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* TIMED EVENT PILL: FADED LIGHT BACKGROUND + COLORED LEFT BORDER (สีจาง) */
+.event-pill.timed {
+  background-color: var(--event-bg-light, rgba(18, 184, 134, 0.12));
+  color: var(--event-color, #12b886) !important;
+  border-left: 3px solid var(--event-color, #12b886);
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
 }
 
 .event-pill-time {
-  font-size: 0.68rem;
-  opacity: 0.9;
+  font-size: 0.65rem;
+  font-weight: 700;
+  opacity: 0.85;
+  margin-right: 2px;
 }
 
 /* ==============================================================================
@@ -581,9 +599,16 @@ body {
   padding: 10px 14px;
   background: #ffffff;
   border: 1px solid var(--border-light);
-  border-left: 4px solid var(--timetree-primary);
+  border-left: 5px solid var(--timetree-primary);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.agenda-event-item:hover {
+  transform: translateX(4px);
+  background: var(--timetree-primary-light);
 }
 
 .agenda-event-left {
@@ -604,6 +629,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .agenda-member-badges {
@@ -689,7 +715,7 @@ body {
 }
 
 /* ==============================================================================
-   6. MODAL DRAWERS (TimeTree Style)
+   6. MODAL DRAWERS & FORM ELEMENTS (TIMETREE STYLING)
    ============================================================================== */
 .modal-overlay {
   position: fixed;
@@ -715,7 +741,7 @@ body {
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 520px;
-  max-height: 90vh;
+  max-height: 95vh;
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
@@ -729,23 +755,44 @@ body {
 }
 
 .modal-card-header {
-  padding: 16px 20px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: #ffffff;
 }
 
-.modal-card-header h3 {
-  font-size: 1.1rem;
+/* Form Tab Switcher (Event vs Memo) */
+.form-tab-switcher {
+  display: flex;
+  background: #f1f3f5;
+  padding: 3px;
+  border-radius: 20px;
+}
+
+.form-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 4px 16px;
+  font-size: 0.85rem;
   font-weight: 700;
-  color: var(--text-main);
+  color: var(--text-sub);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.form-tab-btn.active {
+  background: #ffffff;
+  color: var(--timetree-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .modal-close-btn {
   border: none;
   background: transparent;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   color: var(--text-muted);
   cursor: pointer;
 }
@@ -755,13 +802,17 @@ body {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .form-group-tt {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.form-group-tt.hidden {
+  display: none !important;
 }
 
 .form-group-tt label {
@@ -793,6 +844,60 @@ body {
   gap: 12px;
 }
 
+/* ALL-DAY TOGGLE SWITCH (iOS / TimeTree Style) */
+.toggle-row-tt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+}
+
+.switch-tt {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.switch-tt input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider-tt {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: .2s;
+  border-radius: 24px;
+}
+
+.slider-tt:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .2s;
+  border-radius: 50%;
+}
+
+input:checked + .slider-tt {
+  background-color: var(--timetree-primary);
+}
+
+input:checked + .slider-tt:before {
+  transform: translateX(20px);
+}
+
+/* MEMBER CHECKBOX GRID */
 .member-checkbox-grid {
   display: flex;
   flex-wrap: wrap;
@@ -814,6 +919,37 @@ body {
   font-size: 0.82rem;
   cursor: pointer;
   user-select: none;
+}
+
+/* COLOR PALETTE SELECTOR (Duty-Roster & TimeTree Style) */
+.color-palette-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+}
+
+.color-option-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.color-option-btn:hover {
+  transform: scale(1.15);
+}
+
+.color-option-btn.active {
+  transform: scale(1.2);
+  outline: 3px solid var(--timetree-primary);
+  outline-offset: 2px;
 }
 
 .modal-card-footer {

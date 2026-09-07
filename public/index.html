@@ -123,12 +123,15 @@
   </div>
 
   <!-- ============================================================================== -->
-  <!-- MODAL 1: ADD/EDIT EVENT MODAL DRAWER -->
+  <!-- MODAL 1: ADD/EDIT EVENT & MEMO MODAL DRAWER (TIMETREE STYLE) -->
   <!-- ============================================================================== -->
   <div id="eventModal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-card-header">
-        <h3 id="eventModalTitle">✨ เพิ่มกิจกรรมใหม่ (TimeTree)</h3>
+        <div class="form-tab-switcher">
+          <button type="button" id="formTabEvent" class="form-tab-btn active">📅 Event</button>
+          <button type="button" id="formTabMemo" class="form-tab-btn">📝 Memo</button>
+        </div>
         <button id="closeEventModalBtn" class="modal-close-btn">&times;</button>
       </div>
 
@@ -136,53 +139,84 @@
         <div class="modal-card-body">
           <input type="hidden" id="eventId">
 
+          <!-- TITLE -->
           <div class="form-group-tt">
-            <label for="eventTitle">หัวข้อกิจกรรม / งานที่ต้องทำ *</label>
+            <label for="eventTitle">Event title (ชื่อกิจกรรม) *</label>
             <input type="text" id="eventTitle" class="form-input-tt" placeholder="เช่น ประชุมสรุปงานประจำสัปดาห์" required>
           </div>
 
+          <!-- ALL-DAY TOGGLE SWITCH -->
+          <div class="toggle-row-tt">
+            <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-sub);">All-day (กิจกรรมทั้งวัน)</span>
+            <label class="switch-tt">
+              <input type="checkbox" id="eventAllDayToggle" checked>
+              <span class="slider-tt round"></span>
+            </label>
+          </div>
+
+          <!-- STARTS & ENDS DATE / TIME -->
           <div class="form-row-2">
             <div class="form-group-tt">
-              <label for="eventStartDate">วันที่เริ่ม *</label>
+              <label for="eventStartDate">Starts (วันที่เริ่ม) *</label>
               <input type="date" id="eventStartDate" class="form-input-tt" required>
             </div>
-            <div class="form-group-tt">
-              <label for="eventStartTime">เวลาเริ่ม *</label>
-              <input type="time" id="eventStartTime" class="form-input-tt" value="09:00" required>
+            <div id="eventStartTimeGroup" class="form-group-tt hidden">
+              <label for="eventStartTime">เวลาเริ่ม</label>
+              <input type="time" id="eventStartTime" class="form-input-tt" value="09:00">
             </div>
           </div>
 
           <div class="form-row-2">
             <div class="form-group-tt">
-              <label for="eventEndDate">วันที่สิ้นสุด *</label>
+              <label for="eventEndDate">Ends (วันที่สิ้นสุด) *</label>
               <input type="date" id="eventEndDate" class="form-input-tt" required>
             </div>
-            <div class="form-group-tt">
-              <label for="eventEndTime">เวลาสิ้นสุด *</label>
-              <input type="time" id="eventEndTime" class="form-input-tt" value="10:00" required>
+            <div id="eventEndTimeGroup" class="form-group-tt hidden">
+              <label for="eventEndTime">เวลาสิ้นสุด</label>
+              <input type="time" id="eventEndTime" class="form-input-tt" value="10:00">
             </div>
           </div>
 
+          <!-- MEMBERS SELECTION WITH SELECT ALL BUTTON -->
           <div class="form-group-tt">
-            <label>เลือกสมาชิกผู้รับผิดชอบ (เลือกได้หลายคน) *</label>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <label>Members (ผู้รับผิดชอบ) *</label>
+              <button type="button" id="formSelectAllMembersBtn" class="select-all-link" style="background:none; border:none;">เลือกทุกคน</button>
+            </div>
             <div id="formMemberSelector" class="member-checkbox-grid">
               <!-- Dynamic Checkboxes rendered by app.js -->
             </div>
           </div>
 
+          <!-- COLOR LABEL SELECTOR (TIMETREE PALETTE) -->
+          <div class="form-group-tt">
+            <label>Label (เลือกสีของงาน)</label>
+            <input type="hidden" id="eventColor" value="#12b886">
+            <div id="colorPaletteGroup" class="color-palette-group">
+              <button type="button" class="color-option-btn active" data-color="#12b886" style="background-color: #12b886;" title="Emerald green"></button>
+              <button type="button" class="color-option-btn" data-color="#3b82f6" style="background-color: #3b82f6;" title="Blue"></button>
+              <button type="button" class="color-option-btn" data-color="#8b5cf6" style="background-color: #8b5cf6;" title="Purple"></button>
+              <button type="button" class="color-option-btn" data-color="#ec4899" style="background-color: #ec4899;" title="Pink"></button>
+              <button type="button" class="color-option-btn" data-color="#f59e0b" style="background-color: #f59e0b;" title="Amber"></button>
+              <button type="button" class="color-option-btn" data-color="#ef4444" style="background-color: #ef4444;" title="Red"></button>
+              <button type="button" class="color-option-btn" data-color="#795548" style="background-color: #795548;" title="Brown"></button>
+              <button type="button" class="color-option-btn" data-color="#009688" style="background-color: #009688;" title="Teal"></button>
+            </div>
+          </div>
+
+          <!-- REPEAT & ALARM -->
           <div class="form-row-2">
             <div class="form-group-tt">
-              <label for="eventCategory">หมวดหมู่กิจกรรม</label>
-              <select id="eventCategory" class="form-select-tt">
-                <option value="Meeting">💼 ประชุม (Meeting)</option>
-                <option value="Client Work">🤝 งานลูกค้า (Client Work)</option>
-                <option value="Internal Task">📝 งานภายใน (Internal Task)</option>
-                <option value="Urgent">🚨 งานด่วน (Urgent)</option>
-                <option value="Personal">Personal/Other</option>
+              <label for="eventRepeat">Repeat (การวนซ้ำ)</label>
+              <select id="eventRepeat" class="form-select-tt">
+                <option value="none">Not Repeating (ไม่วนซ้ำ)</option>
+                <option value="daily">Daily (ทุกวัน)</option>
+                <option value="weekly">Weekly (ทุกสัปดาห์)</option>
+                <option value="monthly">Monthly (ทุกเดือน)</option>
               </select>
             </div>
             <div class="form-group-tt">
-              <label for="eventAlarm">แจ้งเตือน Push Notification</label>
+              <label for="eventAlarm">Remind (การแจ้งเตือน)</label>
               <select id="eventAlarm" class="form-select-tt">
                 <option value="15">⏰ เตือนล่วงหน้า 15 นาที</option>
                 <option value="30">⏰ เตือนล่วงหน้า 30 นาที</option>
@@ -193,20 +227,28 @@
             </div>
           </div>
 
-          <div class="form-group-tt">
-            <label for="eventLocation">สถานที่ / ลิงก์ออนไลน์</label>
-            <input type="text" id="eventLocation" class="form-input-tt" placeholder="เช่น ห้องประชุม 2 / Google Meet">
+          <!-- LOCATION & URL -->
+          <div class="form-row-2">
+            <div class="form-group-tt">
+              <label for="eventLocation">Location (สถานที่)</label>
+              <input type="text" id="eventLocation" class="form-input-tt" placeholder="Add a location">
+            </div>
+            <div class="form-group-tt">
+              <label for="eventUrl">URL (ลิงก์)</label>
+              <input type="url" id="eventUrl" class="form-input-tt" placeholder="Add URL (https://...)">
+            </div>
           </div>
 
+          <!-- NOTE -->
           <div class="form-group-tt">
-            <label for="eventDescription">รายละเอียดเพิ่มเติม</label>
-            <textarea id="eventDescription" class="form-textarea-tt" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม..."></textarea>
+            <label for="eventDescription">Note (รายละเอียดเพิ่มเติม)</label>
+            <textarea id="eventDescription" class="form-textarea-tt" rows="2" placeholder="Add a note..."></textarea>
           </div>
         </div>
 
         <div class="modal-card-footer">
           <button type="button" id="cancelEventBtn" class="today-chip-btn">ยกเลิก</button>
-          <button type="submit" class="btn-timetree-primary">บันทึกกิจกรรม</button>
+          <button type="submit" id="saveEventSubmitBtn" class="btn-timetree-primary">บันทึกกิจกรรม</button>
         </div>
       </form>
     </div>

@@ -25,90 +25,43 @@ let members = [
 ];
 
 let events = [
-  { "id": "evt_tt_1", "title": "Open house All", "start_time": "2024-12-27T09:00:00Z", "end_time": "2024-12-27T17:00:00Z", "category": "Open House (Purple)", "member_ids": ["mem_woooddy", "mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_2", "title": "ตรวจพื้นที่ All บน.6 (ประชุม กฝร. 8:30 / SBAC 9:00)", "start_time": "2025-01-02T08:30:00Z", "end_time": "2025-01-02T16:00:00Z", "category": "ตรวจพื้นที่ (Red)", "member_ids": ["mem_phak_ek", "mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_3", "title": "ประกาศรายชื่อจิตอาสา", "start_time": "2025-01-03T09:00:00Z", "end_time": "2025-01-03T17:00:00Z", "category": "จิตอาสา (Brown)", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_4", "title": "STAFFEX", "start_time": "2025-01-06T09:00:00Z", "end_time": "2025-01-10T17:00:00Z", "category": "ฝึกศึกษา (Blue)", "member_ids": ["mem_manudnot", "mem_thanatat"], "alarm_minutes": 15 },
-  { "id": "evt_tt_5", "title": "วันเด็ก", "start_time": "2025-01-09T08:00:00Z", "end_time": "2025-01-09T16:00:00Z", "category": "กิจกรรมพิเศษ (Pink)", "member_ids": ["mem_june"], "alarm_minutes": 15 },
-  { "id": "evt_tt_6", "title": "สัมภาษณ์ จอส. รุ่น 8", "start_time": "2025-01-13T09:00:00Z", "end_time": "2025-01-18T17:00:00Z", "category": "คัดเลือก (Emerald)", "member_ids": ["mem_keng", "mem_tum"], "alarm_minutes": 15 },
-  { "id": "evt_tt_7", "title": "CPX ท็อป ศยพ.ทอ.", "start_time": "2025-01-26T09:00:00Z", "end_time": "2025-01-30T17:00:00Z", "category": "CPX (Purple)", "member_ids": ["mem_supanut", "mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_8", "title": "หมาย รับปริญญาธรรมศาสตร์", "start_time": "2025-02-01T08:00:00Z", "end_time": "2025-02-01T17:00:00Z", "category": "ภารกิจหมาย (Red)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
-  { "id": "evt_tt_9", "title": "การฝึกตาม รปจ.", "start_time": "2025-02-07T09:00:00Z", "end_time": "2025-02-11T17:00:00Z", "category": "ฝึกศึกษา (Blue)", "member_ids": ["mem_keng"], "alarm_minutes": 15 },
-  { "id": "evt_tt_10", "title": "อบรมก่อนฝึก CG", "start_time": "2025-02-10T09:00:00Z", "end_time": "2025-02-12T17:00:00Z", "category": "อบรม (Emerald)", "member_ids": ["mem_thanatat"], "alarm_minutes": 15 },
-  { "id": "evt_tt_11", "title": "905 ม.ศิลปากร นครปฐม", "start_time": "2025-02-18T09:00:00Z", "end_time": "2025-02-20T17:00:00Z", "category": "ภารกิจหมาย (Red)", "member_ids": ["mem_manudnot"], "alarm_minutes": 15 },
-  { "id": "evt_tt_12", "title": "Unit school / ภาคนอกที่ตั้ง", "start_time": "2025-03-01T09:00:00Z", "end_time": "2025-03-28T17:00:00Z", "category": "Unit School (Blue)", "member_ids": ["mem_woooddy", "mem_tum"], "alarm_minutes": 15 },
-  { "id": "evt_tt_13", "title": "กฝร.ห้วยภูมิภาค ระยอง", "start_time": "2025-03-12T09:00:00Z", "end_time": "2025-03-15T17:00:00Z", "category": "กฝร. (Brown)", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_14", "title": "เกณฑ์ทหาร", "start_time": "2025-04-01T08:00:00Z", "end_time": "2025-04-05T17:00:00Z", "category": "ภารกิจพิเศษ (Purple)", "member_ids": ["mem_phak_ek", "mem_june"], "alarm_minutes": 15 },
-  { "id": "evt_tt_15", "title": "ฝึก พัน.ร.ผสม", "start_time": "2025-04-07T09:00:00Z", "end_time": "2025-04-10T17:00:00Z", "category": "การฝึก (Blue)", "member_ids": ["mem_keng"], "alarm_minutes": 15 },
-  { "id": "evt_tt_16", "title": "สอบสัมภาษณ์ นดท.", "start_time": "2025-04-18T09:00:00Z", "end_time": "2025-04-23T17:00:00Z", "category": "สอบ (Emerald)", "member_ids": ["mem_thanatat"], "alarm_minutes": 15 },
-  { "id": "evt_tt_17", "title": "ภารกิจ VVIP เสด็จฯ", "start_time": "2025-04-25T09:00:00Z", "end_time": "2025-04-28T17:00:00Z", "category": "ภารกิจสำคัญ (Red)", "member_ids": ["mem_phak_ek", "mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_18", "title": "หมาย 904", "start_time": "2025-05-01T09:00:00Z", "end_time": "2025-05-01T17:00:00Z", "category": "ภารกิจหมาย (Red)", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_19", "title": "อบรม C4I บก.ทท.", "start_time": "2025-05-19T09:00:00Z", "end_time": "2025-05-24T17:00:00Z", "category": "อบรม (Emerald)", "member_ids": ["mem_manudnot"], "alarm_minutes": 15 },
-  { "id": "evt_tt_20", "title": "ประชุม CPX ทน.1", "start_time": "2025-05-28T09:00:00Z", "end_time": "2025-05-30T17:00:00Z", "category": "ประชุม (Purple)", "member_ids": ["mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_21", "title": "กฝร.68", "start_time": "2025-06-04T09:00:00Z", "end_time": "2025-06-20T17:00:00Z", "category": "กฝร. (Brown)", "member_ids": ["mem_tum"], "alarm_minutes": 15 },
-  { "id": "evt_tt_22", "title": "Workshop CPX&LOGEX", "start_time": "2025-06-25T09:00:00Z", "end_time": "2025-06-27T17:00:00Z", "category": "Workshop (Blue)", "member_ids": ["mem_thanatat", "mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_23", "title": "INTEX จูน", "start_time": "2025-06-29T09:00:00Z", "end_time": "2025-06-30T17:00:00Z", "category": "INTEX (Emerald)", "member_ids": ["mem_june"], "alarm_minutes": 15 },
-  { "id": "evt_tt_24", "title": "INTEX จูน / นฝ. Open house", "start_time": "2025-07-01T09:00:00Z", "end_time": "2025-07-05T17:00:00Z", "category": "Open House (Purple)", "member_ids": ["mem_woooddy", "mem_june"], "alarm_minutes": 15 },
-  { "id": "evt_tt_25", "title": "CPX & LOGEX พี่ท็อป", "start_time": "2025-07-13T09:00:00Z", "end_time": "2025-07-18T17:00:00Z", "category": "CPX (Blue)", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_26", "title": "วางพานพุ่ม 904", "start_time": "2025-07-28T09:00:00Z", "end_time": "2025-07-28T17:00:00Z", "category": "ภารกิจพิธี (Red)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
-  { "id": "evt_tt_27", "title": "ตรวจสอบน้ำท่วม", "start_time": "2025-08-01T09:00:00Z", "end_time": "2025-08-01T17:00:00Z", "category": "ช่วยเหลือประชาชน (Emerald)", "member_ids": ["mem_keng", "mem_tum"], "alarm_minutes": 15 },
-  { "id": "evt_tt_28", "title": "128 ปี โรงเรียนนายร้อยพระจุลจอมเกล้า", "start_time": "2025-08-05T08:00:00Z", "end_time": "2025-08-05T17:00:00Z", "category": "พิธีการ (Red)", "member_ids": ["mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_29", "title": "RBC สระแก้ว", "start_time": "2025-08-20T09:00:00Z", "end_time": "2025-08-22T17:00:00Z", "category": "RBC (Brown)", "member_ids": ["mem_thanatat"], "alarm_minutes": 15 },
-  { "id": "evt_tt_30", "title": "ประชุมประจำเดือน / CCOC", "start_time": "2025-08-28T09:00:00Z", "end_time": "2025-08-29T17:00:00Z", "category": "ประชุม (Purple)", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_31", "title": "โทรหาผมหงอก", "start_time": "2025-09-02T09:00:00Z", "end_time": "2025-09-02T10:00:00Z", "category": "ส่วนตัว (Pink)", "member_ids": ["mem_manudnot"], "alarm_minutes": 15 },
-  { "id": "evt_tt_32", "title": "1330 ซักซ้อม มุทิตาจิต", "start_time": "2025-09-18T13:30:00Z", "end_time": "2025-09-18T17:00:00Z", "category": "ซักซ้อม (Brown)", "member_ids": ["mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_33", "title": "ซ้อมย่อย/ซ้อมใหญ่รับส่งหน้าที่ มหน.1", "start_time": "2025-09-25T09:00:00Z", "end_time": "2025-09-26T17:00:00Z", "category": "รับส่งหน้าที่ (Red)", "member_ids": ["mem_phak_ek", "mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_34", "title": "รับส่งหน้าที่ มหน.1", "start_time": "2025-10-01T09:00:00Z", "end_time": "2025-10-01T17:00:00Z", "category": "รับส่งหน้าที่ (Red)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
-  { "id": "evt_tt_35", "title": "หมาย 905 / หมาย 919", "start_time": "2025-10-09T09:00:00Z", "end_time": "2025-10-10T17:00:00Z", "category": "ภารกิจหมาย (Red)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
-  { "id": "evt_tt_36", "title": "พระบรมมหาราชวัง (19.00 น.)", "start_time": "2025-10-27T19:00:00Z", "end_time": "2025-11-01T21:00:00Z", "category": "ภารกิจวัง (Red)", "member_ids": ["mem_woooddy", "mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_37", "title": "ติดตั้ง vtc หอประชุม ท.", "start_time": "2025-11-05T09:00:00Z", "end_time": "2025-11-05T17:00:00Z", "category": "การสื่อสาร (Emerald)", "member_ids": ["mem_manudnot"], "alarm_minutes": 15 },
-  { "id": "evt_tt_38", "title": "งานแต่ง💕 เจ 22", "start_time": "2025-11-09T17:00:00Z", "end_time": "2025-11-09T22:00:00Z", "category": "งานสังคม (Pink)", "member_ids": ["mem_june", "mem_thanatat"], "alarm_minutes": 15 },
-  { "id": "evt_tt_39", "title": "รอง จก.ยศ. ตรวจหน่วย", "start_time": "2025-11-18T09:00:00Z", "end_time": "2025-11-18T17:00:00Z", "category": "ตรวจหน่วย (Purple)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
-  { "id": "evt_tt_40", "title": "Big cleaning", "start_time": "2025-11-26T09:00:00Z", "end_time": "2025-11-26T17:00:00Z", "category": "ทำความสะอาด (Blue)", "member_ids": ["mem_woooddy", "mem_keng"], "alarm_minutes": 15 },
-  { "id": "evt_tt_41", "title": "ต่อใบขับขี่", "start_time": "2025-12-01T09:00:00Z", "end_time": "2025-12-01T12:00:00Z", "category": "ส่วนตัว (Pink)", "member_ids": ["mem_manudnot"], "alarm_minutes": 15 },
-  { "id": "evt_tt_42", "title": "งานนาเดีย", "start_time": "2025-12-12T09:00:00Z", "end_time": "2025-12-13T17:00:00Z", "category": "งานสังคม (Pink)", "member_ids": ["mem_june"], "alarm_minutes": 15 },
-  { "id": "evt_tt_43", "title": "สวนสนาม ส/1", "start_time": "2025-12-22T08:00:00Z", "end_time": "2025-12-26T17:00:00Z", "category": "สวนสนาม (Red)", "member_ids": ["mem_phak_ek", "mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_44", "title": "วันเด็ก", "start_time": "2026-01-09T08:00:00Z", "end_time": "2026-01-09T16:00:00Z", "category": "กิจกรรมพิเศษ (Pink)", "member_ids": ["mem_june"], "alarm_minutes": 15 },
-  { "id": "evt_tt_45", "title": "สัมภาษณ์ จอส. รุ่น 8", "start_time": "2026-01-13T09:00:00Z", "end_time": "2026-01-13T17:00:00Z", "category": "คัดเลือก (Emerald)", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_46", "title": "อบรมประวัติศาสตร์ ค่ายพระราม 6", "start_time": "2026-01-19T09:00:00Z", "end_time": "2026-01-19T17:00:00Z", "category": "อบรม (Brown)", "member_ids": ["mem_thanatat"], "alarm_minutes": 15 },
-  { "id": "evt_tt_47", "title": "ฝึก กฝร staffex กองพล", "start_time": "2026-01-26T09:00:00Z", "end_time": "2026-01-30T17:00:00Z", "category": "การฝึก (Blue)", "member_ids": ["mem_keng", "mem_tum"], "alarm_minutes": 15 },
-  { "id": "evt_tt_48", "title": "การบำเพ็ญพระราชกุศลถวายพระพร", "start_time": "2026-02-01T09:00:00Z", "end_time": "2026-02-01T17:00:00Z", "category": "พิธีการ (Red)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
-  { "id": "evt_tt_49", "title": "ฝึก staffex กรม กองพัน", "start_time": "2026-02-02T09:00:00Z", "end_time": "2026-02-06T17:00:00Z", "category": "การฝึก (Blue)", "member_ids": ["mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_50", "title": "อบรมก่อนฝึก CG", "start_time": "2026-02-10T09:00:00Z", "end_time": "2026-02-12T17:00:00Z", "category": "อบรม (Emerald)", "member_ids": ["mem_thanatat"], "alarm_minutes": 15 },
-  { "id": "evt_tt_51", "title": "905 ม.ศิลปากร นครปฐม", "start_time": "2026-02-18T09:00:00Z", "end_time": "2026-02-20T17:00:00Z", "category": "ภารกิจหมาย (Red)", "member_ids": ["mem_manudnot"], "alarm_minutes": 15 },
-  { "id": "evt_tt_52", "title": "สนับสนุนสื่อสาร จอส.รุ่น 8", "start_time": "2026-03-09T09:00:00Z", "end_time": "2026-03-21T17:00:00Z", "category": "สื่อสาร (Emerald)", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_53", "title": "Unit school", "start_time": "2026-03-17T09:00:00Z", "end_time": "2026-03-18T17:00:00Z", "category": "Unit School (Blue)", "member_ids": ["mem_tum"], "alarm_minutes": 15 },
-  { "id": "evt_tt_54", "title": "ภาคกองพัน", "start_time": "2026-03-23T09:00:00Z", "end_time": "2026-03-23T17:00:00Z", "category": "การฝึก (Blue)", "member_ids": ["mem_keng"], "alarm_minutes": 15 },
-  { "id": "evt_tt_55", "title": "สนับสนุนการฝึกแผนป้องกันเขต", "start_time": "2026-03-28T09:00:00Z", "end_time": "2026-03-28T17:00:00Z", "category": "แผนป้องกัน (Purple)", "member_ids": ["mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_56", "title": "นฝ. เปิดหน่วยฝึก", "start_time": "2026-04-01T09:00:00Z", "end_time": "2026-04-03T17:00:00Z", "category": "เปิดหน่วยฝึก (Purple)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
-  { "id": "evt_tt_57", "title": "สอบสัมภาษณ์ นดท.", "start_time": "2026-04-17T09:00:00Z", "end_time": "2026-04-20T17:00:00Z", "category": "สอบ (Emerald)", "member_ids": ["mem_thanatat"], "alarm_minutes": 15 },
-  { "id": "evt_tt_58", "title": "ตรวจสอบครูทหารใหม่", "start_time": "2026-04-27T09:00:00Z", "end_time": "2026-04-27T17:00:00Z", "category": "ตรวจหน่วย (Purple)", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_59", "title": "นฝ. นดร.12 นิเทศก์อบรม", "start_time": "2026-04-29T09:00:00Z", "end_time": "2026-04-30T17:00:00Z", "category": "นิเทศ (Brown)", "member_ids": ["mem_manudnot"], "alarm_minutes": 15 },
-  { "id": "evt_tt_60", "title": "พิธีถวายราชฯ วันฉัตรมงคล", "start_time": "2026-05-01T09:00:00Z", "end_time": "2026-05-01T17:00:00Z", "category": "พิธีการ (Red)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
-  { "id": "evt_tt_61", "title": "ซ้อมตรวจ สดน.", "start_time": "2026-05-06T09:00:00Z", "end_time": "2026-05-06T17:00:00Z", "category": "ซักซ้อม (Brown)", "member_ids": ["mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_62", "title": "นิเทศโรคลมร้อน", "start_time": "2026-05-19T09:00:00Z", "end_time": "2026-05-19T17:00:00Z", "category": "นิเทศ (Emerald)", "member_ids": ["mem_june"], "alarm_minutes": 15 },
-  { "id": "evt_tt_63", "title": "ตรวจเอกสารสนามยิงปืน", "start_time": "2026-05-28T09:00:00Z", "end_time": "2026-05-29T17:00:00Z", "category": "ตรวจเอกสาร (Purple)", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_64", "title": "กฝร.พดท.69 ภาคสนาม ภูมิภาค มทบ.12", "start_time": "2026-06-06T09:00:00Z", "end_time": "2026-06-13T17:00:00Z", "category": "กฝร. (Brown)", "member_ids": ["mem_keng", "mem_tum"], "alarm_minutes": 15 },
-  { "id": "evt_tt_65", "title": "จเร ทภ.1 ตรวจคุณภาพชีวิต", "start_time": "2026-06-17T09:00:00Z", "end_time": "2026-06-19T17:00:00Z", "category": "จเรตรวจ (Red)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
-  { "id": "evt_tt_66", "title": "ทหารใหม่ฝึกช่างไม้ ดุสิต", "start_time": "2026-06-20T09:00:00Z", "end_time": "2026-06-29T17:00:00Z", "category": "การฝึก (Blue)", "member_ids": ["mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_67", "title": "Open house", "start_time": "2026-07-03T09:00:00Z", "end_time": "2026-07-03T17:00:00Z", "category": "Open House (Purple)", "member_ids": ["mem_june"], "alarm_minutes": 15 },
-  { "id": "evt_tt_68", "title": "สอบ กพ.", "start_time": "2026-07-05T08:00:00Z", "end_time": "2026-07-05T17:00:00Z", "category": "สอบ (Emerald)", "member_ids": ["mem_thanatat"], "alarm_minutes": 15 },
-  { "id": "evt_tt_69", "title": "หมอมาทำฟัน", "start_time": "2026-07-14T09:00:00Z", "end_time": "2026-07-16T17:00:00Z", "category": "สวัสดิการ (Pink)", "member_ids": ["mem_manudnot"], "alarm_minutes": 15 },
-  { "id": "evt_tt_70", "title": "ตักบาตร ถวายราชสีกก", "start_time": "2026-07-24T07:00:00Z", "end_time": "2026-07-24T12:00:00Z", "category": "พิธีการ (Red)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
-  { "id": "evt_tt_71", "title": "วางพานพุ่ม สนามหลวง", "start_time": "2026-07-28T08:00:00Z", "end_time": "2026-07-28T17:00:00Z", "category": "พิธีการ (Red)", "member_ids": ["mem_phak_ek", "mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_72", "title": "908 ครบ 50 วัน", "start_time": "2026-07-30T09:00:00Z", "end_time": "2026-07-30T17:00:00Z", "category": "ภารกิจหมาย (Red)", "member_ids": ["mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_73", "title": "หมาย 904 HMSV", "start_time": "2026-08-01T09:00:00Z", "end_time": "2026-08-01T17:00:00Z", "category": "ภารกิจหมาย (Red)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
-  { "id": "evt_tt_74", "title": "ทดสอบร่างกาย", "start_time": "2026-08-05T07:30:00Z", "end_time": "2026-08-05T12:00:00Z", "category": "ทดสอบ (Blue)", "member_ids": ["mem_keng", "mem_tum"], "alarm_minutes": 15 },
-  { "id": "evt_tt_75", "title": "เตรียม 2", "start_time": "2026-08-10T09:00:00Z", "end_time": "2026-08-10T17:00:00Z", "category": "เตรียมการ (Purple)", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_76", "title": "ถวายราชสีกการะ 908", "start_time": "2026-08-11T09:00:00Z", "end_time": "2026-08-11T17:00:00Z", "category": "พิธีการ (Red)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
-  { "id": "evt_tt_77", "title": "รับตรวจ จเร ทบ. / ประชุม กยก.ทภ.1", "start_time": "2026-08-19T09:00:00Z", "end_time": "2026-08-19T17:00:00Z", "category": "จเรตรวจ (Red)", "member_ids": ["mem_phak_ek", "mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_78", "title": "ประชุม พระบรมศพ", "start_time": "2026-08-21T09:00:00Z", "end_time": "2026-08-21T17:00:00Z", "category": "ประชุม (Red)", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
-  { "id": "evt_tt_79", "title": "Party 01", "start_time": "2026-08-26T18:00:00Z", "end_time": "2026-08-26T21:00:00Z", "category": "Party (Pink)", "member_ids": ["mem_thanatat", "mem_supanut", "mem_manudnot"], "alarm_minutes": 15 },
-  { "id": "evt_tt_80", "title": "ฝึก CALFLEX", "start_time": "2026-09-05T09:00:00Z", "end_time": "2026-09-08T17:00:00Z", "category": "การฝึก (Blue)", "member_ids": ["mem_keng", "mem_tum"], "alarm_minutes": 15 },
-  { "id": "evt_tt_81", "title": "1000 ประชุมหารือ การติดต่อสื่อสาร กกล.บูรพา และ ส.พัน.2", "start_time": "2026-09-09T10:00:00Z", "end_time": "2026-09-09T12:00:00Z", "category": "ประชุมสื่อสาร (Emerald)", "member_ids": ["mem_supanut"], "location": "https://meet.google.com/cqp-hwsa-eet", "alarm_minutes": 15 },
-  { "id": "evt_tt_82", "title": "จเร ทภ.1 ตรวจคุณภาพชีวิต", "start_time": "2026-09-10T09:00:00Z", "end_time": "2026-09-10T17:00:00Z", "category": "จเรตรวจ (Red)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
-  { "id": "evt_tt_83", "title": "908 ครบ 100 วัน / หมาย 904 HMSV", "start_time": "2026-09-18T09:00:00Z", "end_time": "2026-09-19T17:00:00Z", "category": "ภารกิจหมาย (Red)", "member_ids": ["mem_phak_ek", "mem_woooddy"], "alarm_minutes": 15 },
-  { "id": "evt_tt_84", "title": "หมาย 904 HMSV", "start_time": "2026-09-24T09:00:00Z", "end_time": "2026-09-25T17:00:00Z", "category": "ภารกิจหมาย (Red)", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 }
+  { "id": "evt_tt_1", "title": "Open house All", "start_time": "2024-12-27T09:00:00Z", "end_time": "2024-12-27T17:00:00Z", "all_day": true, "color": "#8b5cf6", "member_ids": ["mem_woooddy", "mem_supanut"], "alarm_minutes": 15 },
+  { "id": "evt_tt_2", "title": "ตรวจพื้นที่ All บน.6 (ประชุม กฝร. 8:30 / SBAC 9:00)", "start_time": "2025-01-02T08:30:00Z", "end_time": "2025-01-02T16:00:00Z", "all_day": false, "color": "#ef4444", "member_ids": ["mem_phak_ek", "mem_woooddy"], "alarm_minutes": 15 },
+  { "id": "evt_tt_3", "title": "ประกาศรายชื่อจิตอาสา", "start_time": "2025-01-03T09:00:00Z", "end_time": "2025-01-03T17:00:00Z", "all_day": true, "color": "#795548", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
+  { "id": "evt_tt_4", "title": "STAFFEX", "start_time": "2025-01-06T09:00:00Z", "end_time": "2025-01-10T17:00:00Z", "all_day": true, "color": "#3b82f6", "member_ids": ["mem_manudnot", "mem_thanatat"], "alarm_minutes": 15 },
+  { "id": "evt_tt_5", "title": "วันเด็ก", "start_time": "2025-01-09T08:00:00Z", "end_time": "2025-01-09T16:00:00Z", "all_day": true, "color": "#ec4899", "member_ids": ["mem_june"], "alarm_minutes": 15 },
+  { "id": "evt_tt_6", "title": "สัมภาษณ์ จอส. รุ่น 8", "start_time": "2025-01-13T09:00:00Z", "end_time": "2025-01-18T17:00:00Z", "all_day": true, "color": "#12b886", "member_ids": ["mem_keng", "mem_tum"], "alarm_minutes": 15 },
+  { "id": "evt_tt_7", "title": "CPX ท็อป ศยพ.ทอ.", "start_time": "2025-01-26T09:00:00Z", "end_time": "2025-01-30T17:00:00Z", "all_day": true, "color": "#8b5cf6", "member_ids": ["mem_supanut", "mem_woooddy"], "alarm_minutes": 15 },
+  { "id": "evt_tt_8", "title": "หมาย รับปริญญาธรรมศาสตร์", "start_time": "2025-02-01T08:00:00Z", "end_time": "2025-02-01T17:00:00Z", "all_day": true, "color": "#ef4444", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
+  { "id": "evt_tt_9", "title": "การฝึกตาม รปจ.", "start_time": "2025-02-07T09:00:00Z", "end_time": "2025-02-11T17:00:00Z", "all_day": true, "color": "#3b82f6", "member_ids": ["mem_keng"], "alarm_minutes": 15 },
+  { "id": "evt_tt_10", "title": "อบรมก่อนฝึก CG", "start_time": "2025-02-10T09:00:00Z", "end_time": "2025-02-12T17:00:00Z", "all_day": true, "color": "#12b886", "member_ids": ["mem_thanatat"], "alarm_minutes": 15 },
+  { "id": "evt_tt_11", "title": "905 ม.ศิลปากร นครปฐม", "start_time": "2025-02-18T09:00:00Z", "end_time": "2025-02-20T17:00:00Z", "all_day": true, "color": "#ef4444", "member_ids": ["mem_manudnot"], "alarm_minutes": 15 },
+  { "id": "evt_tt_12", "title": "Unit school / ภาคนอกที่ตั้ง", "start_time": "2025-03-01T09:00:00Z", "end_time": "2025-03-28T17:00:00Z", "all_day": true, "color": "#3b82f6", "member_ids": ["mem_woooddy", "mem_tum"], "alarm_minutes": 15 },
+  { "id": "evt_tt_13", "title": "กฝร.ห้วยภูมิภาค ระยอง", "start_time": "2025-03-12T09:00:00Z", "end_time": "2025-03-15T17:00:00Z", "all_day": true, "color": "#795548", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
+  { "id": "evt_tt_14", "title": "เกณฑ์ทหาร", "start_time": "2025-04-01T08:00:00Z", "end_time": "2025-04-05T17:00:00Z", "all_day": true, "color": "#8b5cf6", "member_ids": ["mem_phak_ek", "mem_june"], "alarm_minutes": 15 },
+  { "id": "evt_tt_15", "title": "ฝึก พัน.ร.ผสม", "start_time": "2025-04-07T09:00:00Z", "end_time": "2025-04-10T17:00:00Z", "all_day": true, "color": "#3b82f6", "member_ids": ["mem_keng"], "alarm_minutes": 15 },
+  { "id": "evt_tt_16", "title": "สอบสัมภาษณ์ นดท.", "start_time": "2025-04-18T09:00:00Z", "end_time": "2025-04-23T17:00:00Z", "all_day": true, "color": "#12b886", "member_ids": ["mem_thanatat"], "alarm_minutes": 15 },
+  { "id": "evt_tt_17", "title": "ภารกิจ VVIP เสด็จฯ", "start_time": "2025-04-25T09:00:00Z", "end_time": "2025-04-28T17:00:00Z", "all_day": true, "color": "#ef4444", "member_ids": ["mem_phak_ek", "mem_woooddy"], "alarm_minutes": 15 },
+  { "id": "evt_tt_18", "title": "หมาย 904", "start_time": "2025-05-01T09:00:00Z", "end_time": "2025-05-01T17:00:00Z", "all_day": true, "color": "#ef4444", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
+  { "id": "evt_tt_19", "title": "อบรม C4I บก.ทท.", "start_time": "2025-05-19T09:00:00Z", "end_time": "2025-05-24T17:00:00Z", "all_day": true, "color": "#12b886", "member_ids": ["mem_manudnot"], "alarm_minutes": 15 },
+  { "id": "evt_tt_20", "title": "ประชุม CPX ทน.1", "start_time": "2025-05-28T09:00:00Z", "end_time": "2025-05-30T17:00:00Z", "all_day": true, "color": "#8b5cf6", "member_ids": ["mem_woooddy"], "alarm_minutes": 15 },
+  { "id": "evt_tt_21", "title": "กฝร.68", "start_time": "2025-06-04T09:00:00Z", "end_time": "2025-06-20T17:00:00Z", "all_day": true, "color": "#795548", "member_ids": ["mem_tum"], "alarm_minutes": 15 },
+  { "id": "evt_tt_22", "title": "Workshop CPX&LOGEX", "start_time": "2025-06-25T09:00:00Z", "end_time": "2025-06-27T17:00:00Z", "all_day": true, "color": "#3b82f6", "member_ids": ["mem_thanatat", "mem_supanut"], "alarm_minutes": 15 },
+  { "id": "evt_tt_23", "title": "INTEX จูน", "start_time": "2025-06-29T09:00:00Z", "end_time": "2025-06-30T17:00:00Z", "all_day": true, "color": "#12b886", "member_ids": ["mem_june"], "alarm_minutes": 15 },
+  { "id": "evt_tt_24", "title": "INTEX จูน / นฝ. Open house", "start_time": "2025-07-01T09:00:00Z", "end_time": "2025-07-05T17:00:00Z", "all_day": true, "color": "#8b5cf6", "member_ids": ["mem_woooddy", "mem_june"], "alarm_minutes": 15 },
+  { "id": "evt_tt_25", "title": "CPX & LOGEX พี่ท็อป", "start_time": "2025-07-13T09:00:00Z", "end_time": "2025-07-18T17:00:00Z", "all_day": true, "color": "#3b82f6", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
+  { "id": "evt_tt_26", "title": "วางพานพุ่ม 904", "start_time": "2025-07-28T09:00:00Z", "end_time": "2025-07-28T17:00:00Z", "all_day": true, "color": "#ef4444", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
+  { "id": "evt_tt_27", "title": "ตรวจสอบน้ำท่วม", "start_time": "2025-08-01T09:00:00Z", "end_time": "2025-08-01T17:00:00Z", "all_day": true, "color": "#12b886", "member_ids": ["mem_keng", "mem_tum"], "alarm_minutes": 15 },
+  { "id": "evt_tt_28", "title": "128 ปี โรงเรียนนายร้อยพระจุลจอมเกล้า", "start_time": "2025-08-05T08:00:00Z", "end_time": "2025-08-05T17:00:00Z", "all_day": true, "color": "#ef4444", "member_ids": ["mem_woooddy"], "alarm_minutes": 15 },
+  { "id": "evt_tt_29", "title": "RBC สระแก้ว", "start_time": "2025-08-20T09:00:00Z", "end_time": "2025-08-22T17:00:00Z", "all_day": true, "color": "#795548", "member_ids": ["mem_thanatat"], "alarm_minutes": 15 },
+  { "id": "evt_tt_30", "title": "ประชุมประจำเดือน / CCOC", "start_time": "2025-08-28T09:00:00Z", "end_time": "2025-08-29T17:00:00Z", "all_day": true, "color": "#8b5cf6", "member_ids": ["mem_supanut"], "alarm_minutes": 15 },
+  { "id": "evt_tt_31", "title": "โทรหาผมหงอก", "start_time": "2025-09-02T09:00:00Z", "end_time": "2025-09-02T10:00:00Z", "all_day": false, "color": "#ec4899", "member_ids": ["mem_manudnot"], "alarm_minutes": 15 },
+  { "id": "evt_tt_32", "title": "1330 ซักซ้อม มุทิตาจิต", "start_time": "2025-09-18T13:30:00Z", "end_time": "2025-09-18T17:00:00Z", "all_day": false, "color": "#795548", "member_ids": ["mem_woooddy"], "alarm_minutes": 15 },
+  { "id": "evt_tt_80", "title": "ฝึก CALFLEX", "start_time": "2026-09-05T09:00:00Z", "end_time": "2026-09-08T17:00:00Z", "all_day": true, "color": "#3b82f6", "member_ids": ["mem_keng", "mem_tum"], "alarm_minutes": 15 },
+  { "id": "evt_tt_81", "title": "1000 ประชุมหารือ การติดต่อสื่อสาร กกล.บูรพา และ ส.พัน.2", "start_time": "2026-09-09T10:00:00Z", "end_time": "2026-09-09T12:00:00Z", "all_day": false, "color": "#12b886", "member_ids": ["mem_supanut"], "location": "https://meet.google.com/cqp-hwsa-eet", "alarm_minutes": 15 },
+  { "id": "evt_tt_82", "title": "จเร ทภ.1 ตรวจคุณภาพชีวิต", "start_time": "2026-09-10T09:00:00Z", "end_time": "2026-09-10T17:00:00Z", "all_day": true, "color": "#ef4444", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
+  { "id": "evt_tt_83", "title": "908 ครบ 100 วัน / หมาย 904 HMSV", "start_time": "2026-09-18T09:00:00Z", "end_time": "2026-09-19T17:00:00Z", "all_day": true, "color": "#ef4444", "member_ids": ["mem_phak_ek", "mem_woooddy"], "alarm_minutes": 15 },
+  { "id": "evt_tt_84", "title": "หมาย 904 HMSV", "start_time": "2026-09-24T09:00:00Z", "end_time": "2026-09-25T17:00:00Z", "all_day": true, "color": "#ef4444", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 }
 ];
 
 let supabaseClient = null;
@@ -118,7 +71,7 @@ const THAI_MONTHS = [
   "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
 ];
 
-// Default Direct Credentials for Live Supabase Integration
+// Default Credentials for Live Supabase Integration
 const DEFAULT_SUPABASE_URL = "https://aevutuguijjakfhulgjd.supabase.co";
 const DEFAULT_SUPABASE_KEY = "sb_publishable_8LNKQLJ6snj6AvxPGf2TmA_Sm8KCbhU";
 
@@ -146,6 +99,12 @@ const closeEventModalBtn = document.getElementById('closeEventModalBtn');
 const cancelEventBtn = document.getElementById('cancelEventBtn');
 const eventForm = document.getElementById('eventForm');
 const formMemberSelectorEl = document.getElementById('formMemberSelector');
+const formSelectAllMembersBtn = document.getElementById('formSelectAllMembersBtn');
+const eventAllDayToggle = document.getElementById('eventAllDayToggle');
+const eventStartTimeGroup = document.getElementById('eventStartTimeGroup');
+const eventEndTimeGroup = document.getElementById('eventEndTimeGroup');
+const colorPaletteGroup = document.getElementById('colorPaletteGroup');
+const eventColorInput = document.getElementById('eventColor');
 
 const icalModal = document.getElementById('icalModal');
 const openIcalModalBtn = document.getElementById('openIcalModalBtn');
@@ -297,16 +256,30 @@ function renderCalendarGrid() {
       eventsPillsHtml = `<div class="day-events-container">`;
       dayEvents.slice(0, 3).forEach(evt => {
         const mem = getMemberById(evt.member_ids ? evt.member_ids[0] : null);
-        const bgColor = mem ? mem.color : '#12b886';
-        eventsPillsHtml += `
-          <div class="event-pill" style="background:${bgColor}" title="${escapeHtml(evt.title)}">
-            <span>${escapeHtml(evt.title)}</span>
-          </div>
-        `;
+        const evtColor = evt.color || (mem ? mem.color : '#12b886');
+        const isAllDay = evt.all_day !== false; // Default true if omitted
+
+        if (isAllDay) {
+          // SOLID COLOR PILL FOR ALL-DAY EVENT (เต็มวัน)
+          eventsPillsHtml += `
+            <div class="event-pill all-day" style="background-color: ${evtColor}" onclick="event.stopPropagation(); openEditEventModal('${evt.id}')" title="${escapeHtml(evt.title)}">
+              <span>${escapeHtml(evt.title)}</span>
+            </div>
+          `;
+        } else {
+          // FADED / LIGHT BACKGROUND PILL FOR TIMED EVENT (มีเวลา)
+          const timeStr = formatTimeShort(evt.start_time);
+          eventsPillsHtml += `
+            <div class="event-pill timed" style="--event-color: ${evtColor}; --event-bg-light: ${hexToRgba(evtColor, 0.15)}" onclick="event.stopPropagation(); openEditEventModal('${evt.id}')" title="${timeStr} ${escapeHtml(evt.title)}">
+              <span class="event-pill-time">${timeStr}</span>
+              <span>${escapeHtml(evt.title)}</span>
+            </div>
+          `;
+        }
       });
       if (dayEvents.length > 3) {
         eventsPillsHtml += `
-          <div class="event-pill" style="background:#868e96">
+          <div class="event-pill all-day" style="background:#868e96">
             <span>+${dayEvents.length - 3} งาน</span>
           </div>
         `;
@@ -353,10 +326,9 @@ function renderDailyAgenda(dateStr) {
     const item = document.createElement('div');
     item.className = 'agenda-event-item';
 
-    const firstMember = getMemberById(evt.member_ids ? evt.member_ids[0] : null);
-    if (firstMember) {
-      item.style.borderLeftColor = firstMember.color;
-    }
+    const mem = getMemberById(evt.member_ids ? evt.member_ids[0] : null);
+    const evtColor = evt.color || (mem ? mem.color : '#12b886');
+    item.style.borderLeftColor = evtColor;
 
     let memberBadgesHtml = '';
     if (Array.isArray(evt.member_ids)) {
@@ -368,20 +340,22 @@ function renderDailyAgenda(dateStr) {
       });
     }
 
-    const startTimeFormatted = formatTime(evt.start_time);
-    const endTimeFormatted = formatTime(evt.end_time);
+    const isAllDay = evt.all_day !== false;
+    const timeDisplay = isAllDay ? '📌 ทั้งวัน (All-day)' : `⏰ ${formatTime(evt.start_time)} - ${formatTime(evt.end_time)}`;
 
     item.innerHTML = `
-      <div class="agenda-event-left">
+      <div class="agenda-event-left" onclick="openEditEventModal('${evt.id}')">
         <span class="agenda-event-title">${escapeHtml(evt.title)}</span>
         <div class="agenda-event-meta">
-          <span>⏰ ${startTimeFormatted} - ${endTimeFormatted}</span>
+          <span>${timeDisplay}</span>
           ${evt.location ? `<span>📍 ${escapeHtml(evt.location)}</span>` : ''}
+          ${evt.url ? `<span>🔗 <a href="${escapeHtml(evt.url)}" target="_blank" onclick="event.stopPropagation()">ลิงก์</a></span>` : ''}
           <div class="agenda-member-badges">${memberBadgesHtml}</div>
         </div>
       </div>
-      <div>
-        <button class="today-chip-btn" style="color:#e03131; border-color:#far" onclick="deleteEvent('${evt.id}')">ลบ</button>
+      <div style="display:flex; gap:6px;">
+        <button class="today-chip-btn" onclick="event.stopPropagation(); openEditEventModal('${evt.id}')">✏️ แก้ไข</button>
+        <button class="today-chip-btn" style="color:#e03131; border-color:#far" onclick="event.stopPropagation(); deleteEvent('${evt.id}')">ลบ</button>
       </div>
     `;
 
@@ -444,6 +418,32 @@ function setupEventListeners() {
   closeEventModalBtn.addEventListener('click', closeEventModal);
   cancelEventBtn.addEventListener('click', closeEventModal);
 
+  // All-day Toggle Listener
+  eventAllDayToggle.addEventListener('change', () => {
+    if (eventAllDayToggle.checked) {
+      eventStartTimeGroup.classList.add('hidden');
+      eventEndTimeGroup.classList.add('hidden');
+    } else {
+      eventStartTimeGroup.classList.remove('hidden');
+      eventEndTimeGroup.classList.remove('hidden');
+    }
+  });
+
+  // Select All Members in Form
+  formSelectAllMembersBtn.addEventListener('click', () => {
+    const checkboxes = document.querySelectorAll('input[name="selectedMembers"]');
+    checkboxes.forEach(cb => cb.checked = true);
+  });
+
+  // Color Palette Selector Listener
+  colorPaletteGroup.querySelectorAll('.color-option-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      colorPaletteGroup.querySelectorAll('.color-option-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      eventColorInput.value = btn.dataset.color;
+    });
+  });
+
   eventForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     await saveEventFromForm();
@@ -482,11 +482,69 @@ function openAddEventModalForDate(dateStr) {
   document.getElementById('eventStartTime').value = '09:00';
   document.getElementById('eventEndTime').value = '10:00';
   document.getElementById('eventLocation').value = '';
+  document.getElementById('eventUrl').value = '';
   document.getElementById('eventDescription').value = '';
+  document.getElementById('eventRepeat').value = 'none';
+
+  eventAllDayToggle.checked = true;
+  eventStartTimeGroup.classList.add('hidden');
+  eventEndTimeGroup.classList.add('hidden');
+
+  // Default color Emerald
+  eventColorInput.value = '#12b886';
+  colorPaletteGroup.querySelectorAll('.color-option-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.color === '#12b886');
+  });
 
   const checkboxes = document.querySelectorAll('input[name="selectedMembers"]');
   checkboxes.forEach(cb => {
     cb.checked = (activeMemberFilter !== 'all' && cb.value === activeMemberFilter) || cb.value === 'mem_woooddy';
+  });
+
+  eventModal.classList.remove('hidden');
+}
+
+function openEditEventModal(eventId) {
+  const evt = events.find(e => e.id === eventId);
+  if (!evt) return;
+
+  document.getElementById('eventId').value = evt.id;
+  document.getElementById('eventTitle').value = evt.title || '';
+
+  const startDateKey = formatDateKey(new Date(evt.start_time));
+  const endDateKey = evt.end_time ? formatDateKey(new Date(evt.end_time)) : startDateKey;
+  
+  document.getElementById('eventStartDate').value = startDateKey;
+  document.getElementById('eventEndDate').value = endDateKey;
+
+  const isAllDay = evt.all_day !== false;
+  eventAllDayToggle.checked = isAllDay;
+
+  if (isAllDay) {
+    eventStartTimeGroup.classList.add('hidden');
+    eventEndTimeGroup.classList.add('hidden');
+  } else {
+    eventStartTimeGroup.classList.remove('hidden');
+    eventEndTimeGroup.classList.remove('hidden');
+    document.getElementById('eventStartTime').value = formatTimeRaw(evt.start_time);
+    document.getElementById('eventEndTime').value = formatTimeRaw(evt.end_time);
+  }
+
+  const evtColor = evt.color || '#12b886';
+  eventColorInput.value = evtColor;
+  colorPaletteGroup.querySelectorAll('.color-option-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.color === evtColor);
+  });
+
+  document.getElementById('eventRepeat').value = evt.repeat || 'none';
+  document.getElementById('eventAlarm').value = evt.alarm_minutes || 15;
+  document.getElementById('eventLocation').value = evt.location || '';
+  document.getElementById('eventUrl').value = evt.url || '';
+  document.getElementById('eventDescription').value = evt.description || '';
+
+  const checkboxes = document.querySelectorAll('input[name="selectedMembers"]');
+  checkboxes.forEach(cb => {
+    cb.checked = Array.isArray(evt.member_ids) && evt.member_ids.includes(cb.value);
   });
 
   eventModal.classList.remove('hidden');
@@ -497,14 +555,25 @@ function closeEventModal() {
 }
 
 async function saveEventFromForm() {
+  const eventId = document.getElementById('eventId').value;
   const title = document.getElementById('eventTitle').value;
   const startDate = document.getElementById('eventStartDate').value;
-  const startTime = document.getElementById('eventStartTime').value;
   const endDate = document.getElementById('eventEndDate').value;
-  const endTime = document.getElementById('eventEndTime').value;
-  const category = document.getElementById('eventCategory').value;
+  const isAllDay = eventAllDayToggle.checked;
+  
+  let startTime = '09:00';
+  let endTime = '10:00';
+
+  if (!isAllDay) {
+    startTime = document.getElementById('eventStartTime').value || '09:00';
+    endTime = document.getElementById('eventEndTime').value || '10:00';
+  }
+
+  const color = eventColorInput.value || '#12b886';
+  const repeat = document.getElementById('eventRepeat').value;
   const alarmMins = parseInt(document.getElementById('eventAlarm').value, 10);
   const location = document.getElementById('eventLocation').value;
+  const url = document.getElementById('eventUrl').value;
   const description = document.getElementById('eventDescription').value;
 
   const selectedMembers = [];
@@ -520,25 +589,43 @@ async function saveEventFromForm() {
   const startIso = new Date(`${startDate}T${startTime}:00`).toISOString();
   const endIso = new Date(`${endDate}T${endTime}:00`).toISOString();
 
-  const newEvent = {
-    id: `evt_${Date.now()}`,
+  const eventPayload = {
+    id: eventId || `evt_${Date.now()}`,
     title: title,
     start_time: startIso,
     end_time: endIso,
-    category: category,
+    all_day: isAllDay,
+    color: color,
+    repeat: repeat,
     alarm_minutes: alarmMins,
     location: location,
+    url: url,
     description: description,
     member_ids: selectedMembers
   };
 
-  events.push(newEvent);
+  if (eventId) {
+    // UPDATE EXISTING EVENT
+    const idx = events.findIndex(e => e.id === eventId);
+    if (idx !== -1) events[idx] = eventPayload;
 
-  if (supabaseClient) {
-    try {
-      await supabaseClient.from('events').insert([newEvent]);
-    } catch (err) {
-      console.warn('Supabase insert warning:', err);
+    if (supabaseClient) {
+      try {
+        await supabaseClient.from('events').update(eventPayload).eq('id', eventId);
+      } catch (err) {
+        console.warn('Supabase update warning:', err);
+      }
+    }
+  } else {
+    // INSERT NEW EVENT
+    events.push(eventPayload);
+
+    if (supabaseClient) {
+      try {
+        await supabaseClient.from('events').insert([eventPayload]);
+      } catch (err) {
+        console.warn('Supabase insert warning:', err);
+      }
     }
   }
 
@@ -600,6 +687,22 @@ function formatTime(isoStr) {
   return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatTimeRaw(isoStr) {
+  if (!isoStr) return '09:00';
+  const date = new Date(isoStr);
+  const h = String(date.getHours()).padStart(2, '0');
+  const m = String(date.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function formatTimeShort(isoStr) {
+  if (!isoStr) return '';
+  const date = new Date(isoStr);
+  const h = String(date.getHours()).padStart(2, '0');
+  const m = String(date.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
 function getFilteredEventsForDate(dateStr) {
   return events.filter(evt => {
     const evtDateStr = formatDateKey(new Date(evt.start_time));
@@ -616,6 +719,14 @@ function getFilteredEventsForDate(dateStr) {
 
 function getMemberById(memberId) {
   return members.find(m => m.id === memberId);
+}
+
+function hexToRgba(hex, alpha) {
+  if (!hex || !hex.startsWith('#')) return `rgba(18, 184, 134, ${alpha})`;
+  let c = hex.substring(1);
+  if (c.length === 3) c = c.split('').map(x => x + x).join('');
+  const num = parseInt(c, 16);
+  return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
 }
 
 function escapeHtml(str) {
