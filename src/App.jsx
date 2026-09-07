@@ -131,6 +131,20 @@ export default function App() {
     setToast({ message: `เพิ่มสมาชิก ${newMember.name} สำเร็จ!`, type: 'success' });
   };
 
+  const handleUpdateMember = async (updatedMember) => {
+    setMembers(members.map(m => m.id === updatedMember.id ? updatedMember : m));
+
+    if (supabase) {
+      try {
+        await supabase.from('members').update(updatedMember).eq('id', updatedMember.id);
+      } catch (e) {
+        console.warn('Supabase update member warning:', e);
+      }
+    }
+
+    setToast({ message: `แก้ไขข้อมูลสมาชิก ${updatedMember.name} สำเร็จ!`, type: 'success' });
+  };
+
   const handleDeleteMember = async (memberId) => {
     if (!window.confirm('คุณต้องการลบสมาชิกท่านนี้ใช่หรือไม่?')) return;
 
@@ -304,6 +318,7 @@ export default function App() {
         onClose={() => setIsMemberManagementOpen(false)}
         members={members}
         onAddMember={handleAddMember}
+        onUpdateMember={handleUpdateMember}
         onDeleteMember={handleDeleteMember}
         visibleMemberIds={visibleMemberIds}
         onToggleMemberVisibility={handleToggleMemberVisibility}

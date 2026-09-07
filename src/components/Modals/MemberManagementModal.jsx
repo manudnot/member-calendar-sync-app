@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
-import { X, Search, Plus, Trash2, Check } from 'lucide-react';
+import { X, Search, Plus, Trash2, Edit3, Check } from 'lucide-react';
 
 export default function MemberManagementModal({
   isOpen,
   onClose,
   members,
   onAddMember,
+  onUpdateMember,
   onDeleteMember,
   visibleMemberIds,
   onToggleMemberVisibility
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newMemberName, setNewMemberName] = useState('');
-  const [newMemberColor, setNewMemberColor] = useState('#10b981');
+  const [showForm, setShowForm] = useState(false);
+  const [editingMemberId, setEditingMemberId] = useState(null);
+  const [memberName, setMemberName] = useState('');
+  const [memberColor, setMemberColor] = useState('#10b981');
 
   if (!isOpen) return null;
 
@@ -22,21 +24,49 @@ export default function MemberManagementModal({
     !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
   );
 
-  const handleAddSubmit = (e) => {
+  const handleOpenAdd = () => {
+    setEditingMemberId(null);
+    setMemberName('');
+    setMemberColor('#10b981');
+    setShowForm(true);
+  };
+
+  const handleOpenEdit = (mem) => {
+    setEditingMemberId(mem.id);
+    setMemberName(mem.name);
+    setMemberColor(mem.color || '#10b981');
+    setShowForm(true);
+  };
+
+  const handleFormSubmit = (e) => {
     e.preventDefault();
-    if (!newMemberName.trim()) return;
+    if (!memberName.trim()) return;
 
-    const initials = newMemberName.trim().substring(0, 2).toUpperCase();
-    const newMember = {
-      id: `mem_${Date.now()}`,
-      name: newMemberName.trim(),
-      initials,
-      color: newMemberColor
-    };
+    const initials = memberName.trim().substring(0, 2).toUpperCase();
 
-    onAddMember(newMember);
-    setNewMemberName('');
-    setShowAddForm(false);
+    if (editingMemberId) {
+      // Update Member
+      const updatedMember = {
+        id: editingMemberId,
+        name: memberName.trim(),
+        initials,
+        color: memberColor
+      };
+      onUpdateMember(updatedMember);
+    } else {
+      // Add New Member
+      const newMember = {
+        id: `mem_${Date.now()}`,
+        name: memberName.trim(),
+        initials,
+        color: memberColor
+      };
+      onAddMember(newMember);
+    }
+
+    setMemberName('');
+    setEditingMemberId(null);
+    setShowForm(false);
   };
 
   return (
@@ -51,7 +81,7 @@ export default function MemberManagementModal({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowAddForm(!showAddForm)}
+              onClick={handleOpenAdd}
               className="btn-primary py-1 px-3 text-xs"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -66,22 +96,22 @@ export default function MemberManagementModal({
           </div>
         </div>
 
-        {/* Add Member Form (Toggled) */}
-        {showAddForm && (
-          <form onSubmit={handleAddSubmit} className="p-4 bg-slate-50 dark:bg-dark-bg/80 border-b border-slate-200 dark:border-dark-border flex flex-col gap-3">
+        {/* Add / Edit Member Form */}
+        {showForm && (
+          <form onSubmit={handleFormSubmit} className="p-4 bg-slate-50 dark:bg-dark-bg/80 border-b border-slate-200 dark:border-dark-border flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
-                เพิ่มสมาชิกใหม่
+                {editingMemberId ? '✏️ แก้ไขข้อมูลสมาชิก' : '➕ เพิ่มสมาชิกใหม่'}
               </span>
-              <button type="button" onClick={() => setShowAddForm(false)} className="text-xs text-slate-400">ยกเลิก</button>
+              <button type="button" onClick={() => setShowForm(false)} className="text-xs text-slate-400">ยกเลิก</button>
             </div>
 
             <input
               type="text"
               placeholder="ชื่อสมาชิก"
               className="input-field text-xs"
-              value={newMemberName}
-              onChange={(e) => setNewMemberName(e.target.value)}
+              value={memberName}
+              onChange={(e) => setMemberName(e.target.value)}
               required
             />
 
@@ -90,13 +120,13 @@ export default function MemberManagementModal({
               <input
                 type="color"
                 className="input-field text-xs h-9 cursor-pointer w-20"
-                value={newMemberColor}
-                onChange={(e) => setNewMemberColor(e.target.value)}
+                value={memberColor}
+                onChange={(e) => setMemberColor(e.target.value)}
               />
             </div>
 
             <button type="submit" className="btn-primary justify-center text-xs py-1.5">
-              บันทึกสมาชิก
+              {editingMemberId ? 'บันทึกการแก้ไข' : 'บันทึกสมาชิกใหม่'}
             </button>
           </form>
         )}
@@ -144,9 +174,9 @@ export default function MemberManagementModal({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     {/* Toggle Switch for Member Visibility */}
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label className="relative inline-flex items-center cursor-pointer mr-1">
                       <input
                         type="checkbox"
                         className="sr-only peer"
@@ -156,7 +186,16 @@ export default function MemberManagementModal({
                       <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
                     </label>
 
-                    {/* Delete Member Button (Enabled for ALL members) */}
+                    {/* Edit Member Button */}
+                    <button
+                      onClick={() => handleOpenEdit(mem)}
+                      className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition-colors"
+                      title="แก้ไขชื่อและสี"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+
+                    {/* Delete Member Button */}
                     <button
                       onClick={() => onDeleteMember(mem.id)}
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
