@@ -61,7 +61,6 @@ export default function Sidebar({
         <div className="flex flex-col gap-1.5">
           {cleanMembers.map(mem => {
             const isChecked = visibleMemberIds.includes(mem.id);
-            const count = getEventCountForMember(mem.id);
 
             return (
               <div
@@ -86,10 +85,6 @@ export default function Sidebar({
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono">
-                    {count}
-                  </span>
-                  
                   {/* Quick Edit Member Button */}
                   {onEditMember && (
                     <button
