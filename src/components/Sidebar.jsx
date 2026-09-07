@@ -4,18 +4,24 @@ import { Users, Check, Calendar as CalendarIcon } from 'lucide-react';
 export default function Sidebar({
   members,
   events,
-  activeMemberFilter,
-  setActiveMemberFilter,
+  visibleMemberIds,
+  onToggleMemberVisibility,
+  onSelectAllMembers,
   isOpen
 }) {
   const getEventCountForMember = (memberId) => {
     return events.filter(e => Array.isArray(e.member_ids) && e.member_ids.includes(memberId)).length;
   };
 
+  // Filter out any mock names if present
+  const cleanMembers = members.filter(m =>
+    !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
+  );
+
   return (
     <aside
-      className={`w-64 bg-white dark:bg-dark-card border-r border-slate-200 dark:border-dark-border flex flex-col transition-all duration-300 z-20 shrink-0 ${
-        isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-64'
+      className={`bg-white dark:bg-dark-card border-r border-slate-200 dark:border-dark-border flex flex-col transition-all duration-300 z-20 shrink-0 ${
+        isOpen ? 'w-64 opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
       }`}
     >
       {/* Calendar Identity Header */}
@@ -40,63 +46,40 @@ export default function Sidebar({
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5" />
-            สมาชิกทีม ({members.length})
+            สมาชิกทีม ({cleanMembers.length})
           </span>
           <button
-            onClick={() => setActiveMemberFilter('all')}
+            onClick={onSelectAllMembers}
             className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
           >
             เลือกทั้งหมด
           </button>
         </div>
 
-        {/* Member Filter Card Group */}
+        {/* Member Filter Checkbox List */}
         <div className="flex flex-col gap-1.5">
-          {/* All Members Option */}
-          <div
-            onClick={() => setActiveMemberFilter('all')}
-            className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all ${
-              activeMemberFilter === 'all'
-                ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 shadow-sm'
-                : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                ALL
-              </div>
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                สมาชิกทุกคน
-              </span>
-            </div>
-            {activeMemberFilter === 'all' && (
-              <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            )}
-          </div>
-
-          {/* Individual Member Options */}
-          {members.map(mem => {
-            const isSelected = activeMemberFilter === mem.id;
+          {cleanMembers.map(mem => {
+            const isChecked = visibleMemberIds.includes(mem.id);
             const count = getEventCountForMember(mem.id);
 
             return (
               <div
                 key={mem.id}
-                onClick={() => setActiveMemberFilter(isSelected ? 'all' : mem.id)}
-                className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all ${
-                  isSelected
-                    ? 'bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 shadow-sm'
-                    : 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent'
+                onClick={() => onToggleMemberVisibility(mem.id)}
+                className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all border ${
+                  isChecked
+                    ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50 shadow-xs'
+                    : 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border-transparent opacity-60'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <div
                     className="w-7 h-7 rounded-full text-white flex items-center justify-center font-black text-[11px] shadow-sm font-mono"
-                    style={{ backgroundColor: mem.color }}
+                    style={{ backgroundColor: mem.color || '#10b981' }}
                   >
                     {mem.initials || mem.name.substring(0, 2).toUpperCase()}
                   </div>
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                     {mem.name}
                   </span>
                 </div>
@@ -105,9 +88,14 @@ export default function Sidebar({
                   <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono">
                     {count}
                   </span>
-                  {isSelected && (
-                    <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  )}
+                  
+                  {/* Checkbox */}
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => {}} // Handled by parent div onClick
+                    className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 accent-emerald-600 cursor-pointer"
+                  />
                 </div>
               </div>
             );

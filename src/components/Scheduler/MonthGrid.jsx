@@ -8,7 +8,7 @@ export default function MonthGrid({
   onSelectDate,
   events,
   members,
-  activeMemberFilter,
+  visibleMemberIds,
   onEditEvent
 }) {
   const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
@@ -22,8 +22,10 @@ export default function MonthGrid({
     return events.filter(evt => {
       const evtDateStr = formatDateKey(new Date(evt.start_time));
       if (evtDateStr !== dateStr) return false;
-      if (activeMemberFilter === 'all') return true;
-      return Array.isArray(evt.member_ids) && evt.member_ids.includes(activeMemberFilter);
+      if (!Array.isArray(evt.member_ids)) return false;
+
+      // Event is visible if ANY of its assigned member IDs is in visibleMemberIds
+      return evt.member_ids.some(mId => visibleMemberIds.includes(mId));
     });
   };
 

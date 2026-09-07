@@ -1,13 +1,13 @@
 import React from 'react';
 import { Users, QrCode, Plus } from 'lucide-react';
 
-export default function RightToolbar({ onToggleSidebar, onOpenIcalModal, onOpenAddEvent }) {
+export default function RightToolbar({ onOpenMemberManagement, onOpenIcalModal, onOpenAddEvent }) {
   return (
-    <aside className="w-13 bg-white dark:bg-dark-card border-l border-slate-200 dark:border-dark-border flex flex-col items-center py-4 gap-4 shrink-0 hidden lg:flex">
+    <aside className="w-13 bg-white dark:bg-dark-card border-l border-slate-200 dark:border-dark-border flex flex-col items-center py-4 gap-4 shrink-0 hidden lg:flex glass-panel">
       <button
-        onClick={onToggleSidebar}
+        onClick={onOpenMemberManagement}
         className="p-2.5 rounded-xl text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none"
-        title="รายชื่อสมาชิก"
+        title="จัดการสมาชิก (Add/Edit Members)"
       >
         <Users className="w-5 h-5" />
       </button>

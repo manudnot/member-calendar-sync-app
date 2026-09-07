@@ -7,19 +7,20 @@ import MonthGrid from './components/Scheduler/MonthGrid';
 import DailyAgenda from './components/Scheduler/DailyAgenda';
 import MissionModal from './components/Scheduler/MissionModal';
 import IcalModal from './components/Modals/IcalModal';
+import MemberManagementModal from './components/Modals/MemberManagementModal';
 import { formatDateKey } from './utils/helpers';
 import { supabase } from './utils/supabase';
 
-// INITIAL REAL TIMETREE MEMBERS (8 MEMBERS WITH INITIALS & COLOR TOKENS)
+// INITIAL REAL TIMETREE MEMBERS (8 MEMBERS WITH ROLES & INITIALS)
 const INITIAL_MEMBERS = [
-  { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', color: '#10b981', email: 'woooddy@unit21.com' },
-  { id: 'mem_supanut', name: 'Supanut Tongnumwon', initials: 'SN', color: '#3b82f6', email: 'supanut@unit21.com' },
-  { id: 'mem_manudnot', name: 'manudnot', initials: 'MN', color: '#8b5cf6', email: 'manudnot@unit21.com' },
-  { id: 'mem_june', name: 'June', initials: 'JN', color: '#ec4899', email: 'june@unit21.com' },
-  { id: 'mem_thanatat', name: 'Thanatat Parnsaeng', initials: 'TT', color: '#f59e0b', email: 'thanatat@unit21.com' },
-  { id: 'mem_phak_ek', name: 'ผก.เอก', initials: 'PE', color: '#ef4444', email: 'ek@unit21.com' },
-  { id: 'mem_keng', name: 'มว.เก่ง', initials: 'KG', color: '#06b6d4', email: 'keng@unit21.com' },
-  { id: 'mem_tum', name: 'มว.ตั้ม', initials: 'TM', color: '#84cc16', email: 'tum@unit21.com' }
+  { id: 'mem_manudnot', name: 'manudnot', initials: 'MN', role: 'Me', color: '#8b5cf6', email: 'manudnot@unit21.com' },
+  { id: 'mem_thanatat', name: 'Thanatat Parnsaeng', initials: 'TT', role: 'Creator', color: '#f59e0b', email: 'thanatat@unit21.com' },
+  { id: 'mem_supanut', name: 'Supanut Tongnumwon', initials: 'SN', role: 'Member', color: '#3b82f6', email: 'supanut@unit21.com' },
+  { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', role: 'Member', color: '#10b981', email: 'woooddy@unit21.com' },
+  { id: 'mem_june', name: 'June', initials: 'JN', role: 'Member', color: '#ec4899', email: 'june@unit21.com' },
+  { id: 'mem_phak_ek', name: 'ผก.เอก', initials: 'PE', role: 'Virtual member', color: '#ef4444', email: 'ek@unit21.com' },
+  { id: 'mem_keng', name: 'มว.เก่ง', initials: 'KG', role: 'Virtual member', color: '#06b6d4', email: 'keng@unit21.com' },
+  { id: 'mem_tum', name: 'มว.ตั้ม', initials: 'TM', role: 'Virtual member', color: '#84cc16', email: 'tum@unit21.com' }
 ];
 
 const INITIAL_EVENTS = [
@@ -47,17 +48,19 @@ export default function App() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [selectedDateStr, setSelectedDateStr] = useState(formatDateKey(new Date()));
-  const [activeMemberFilter, setActiveMemberFilter] = useState('all');
   const [viewMode, setViewMode] = useState('monthly');
   const [theme, setTheme] = useState('light'); // 'light' | 'dark' | 'system'
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const [members, setMembers] = useState(INITIAL_MEMBERS);
   const [events, setEvents] = useState(INITIAL_EVENTS);
+  const [visibleMemberIds, setVisibleMemberIds] = useState(INITIAL_MEMBERS.map(m => m.id));
 
   // Modals state
   const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
   const [isIcalModalOpen, setIsIcalModalOpen] = useState(false);
+  const [isMemberManagementOpen, setIsMemberManagementOpen] = useState(false);
+
   const [editingEvent, setEditingEvent] = useState(null);
   const [toast, setToast] = useState(null);
 
@@ -69,7 +72,6 @@ export default function App() {
     } else if (theme === 'light') {
       root.classList.remove('dark');
     } else {
-      // system
       if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
         root.classList.add('dark');
       } else {
@@ -78,13 +80,19 @@ export default function App() {
     }
   }, [theme]);
 
-  // Load from Supabase on mount
+  // Load from Supabase on mount (Filtering out any mock names)
   useEffect(() => {
     async function fetchData() {
       if (supabase) {
         try {
           const { data: supaMembers } = await supabase.from('members').select('*');
-          if (supaMembers && supaMembers.length > 0) setMembers(supaMembers);
+          if (supaMembers && supaMembers.length > 0) {
+            const cleanSupaMembers = supaMembers.filter(m =>
+              !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
+            );
+            setMembers(cleanSupaMembers);
+            setVisibleMemberIds(cleanSupaMembers.map(m => m.id));
+          }
 
           const { data: supaEvents } = await supabase.from('events').select('*');
           if (supaEvents && supaEvents.length > 0) setEvents(supaEvents);
@@ -95,6 +103,50 @@ export default function App() {
     }
     fetchData();
   }, []);
+
+  const handleToggleMemberVisibility = (memberId) => {
+    if (visibleMemberIds.includes(memberId)) {
+      setVisibleMemberIds(visibleMemberIds.filter(id => id !== memberId));
+    } else {
+      setVisibleMemberIds([...visibleMemberIds, memberId]);
+    }
+  };
+
+  const handleSelectAllMembers = () => {
+    setVisibleMemberIds(members.map(m => m.id));
+  };
+
+  const handleAddMember = async (newMember) => {
+    setMembers([...members, newMember]);
+    setVisibleMemberIds([...visibleMemberIds, newMember.id]);
+
+    if (supabase) {
+      try {
+        await supabase.from('members').insert([newMember]);
+      } catch (e) {
+        console.warn('Supabase insert member warning:', e);
+      }
+    }
+
+    setToast({ message: `เพิ่มสมาชิก ${newMember.name} สำเร็จ!`, type: 'success' });
+  };
+
+  const handleDeleteMember = async (memberId) => {
+    if (!window.confirm('คุณต้องการลบสมาชิกท่านนี้ใช่หรือไม่?')) return;
+
+    setMembers(members.filter(m => m.id !== memberId));
+    setVisibleMemberIds(visibleMemberIds.filter(id => id !== memberId));
+
+    if (supabase) {
+      try {
+        await supabase.from('members').delete().eq('id', memberId);
+      } catch (e) {
+        console.warn('Supabase delete member warning:', e);
+      }
+    }
+
+    setToast({ message: 'ลบสมาชิกเรียบร้อยแล้ว', type: 'info' });
+  };
 
   const handlePrevMonth = () => {
     let m = currentMonth - 1;
@@ -193,8 +245,9 @@ export default function App() {
         <Sidebar
           members={members}
           events={events}
-          activeMemberFilter={activeMemberFilter}
-          setActiveMemberFilter={setActiveMemberFilter}
+          visibleMemberIds={visibleMemberIds}
+          onToggleMemberVisibility={handleToggleMemberVisibility}
+          onSelectAllMembers={handleSelectAllMembers}
           isOpen={isSidebarOpen}
         />
 
@@ -207,7 +260,7 @@ export default function App() {
             onSelectDate={setSelectedDateStr}
             events={events}
             members={members}
-            activeMemberFilter={activeMemberFilter}
+            visibleMemberIds={visibleMemberIds}
             onEditEvent={handleOpenEditEvent}
           />
 
@@ -215,7 +268,7 @@ export default function App() {
             selectedDateStr={selectedDateStr}
             events={events}
             members={members}
-            activeMemberFilter={activeMemberFilter}
+            visibleMemberIds={visibleMemberIds}
             onOpenAddEvent={handleOpenAddEvent}
             onEditEvent={handleOpenEditEvent}
             onDeleteEvent={handleDeleteEvent}
@@ -224,7 +277,7 @@ export default function App() {
 
         {/* Right Toolbar Actions */}
         <RightToolbar
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          onOpenMemberManagement={() => setIsMemberManagementOpen(true)}
           onOpenIcalModal={() => setIsIcalModalOpen(true)}
           onOpenAddEvent={() => handleOpenAddEvent(selectedDateStr)}
         />
@@ -244,6 +297,16 @@ export default function App() {
         isOpen={isIcalModalOpen}
         onClose={() => setIsIcalModalOpen(false)}
         members={members}
+      />
+
+      <MemberManagementModal
+        isOpen={isMemberManagementOpen}
+        onClose={() => setIsMemberManagementOpen(false)}
+        members={members}
+        onAddMember={handleAddMember}
+        onDeleteMember={handleDeleteMember}
+        visibleMemberIds={visibleMemberIds}
+        onToggleMemberVisibility={handleToggleMemberVisibility}
       />
 
       <Toast toast={toast} onClose={() => setToast(null)} />

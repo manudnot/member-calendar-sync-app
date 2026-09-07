@@ -2,12 +2,9 @@
 
 ## 📅 Session Log: 2026-09-07
 
-### Version 3.0 - Complete Refactor to Vite + React + TailwindCSS (Modular DutyRoster Architecture)
-- **Vite + React Conversion**: Rebuilt application into modular React components (`Header.jsx`, `Sidebar.jsx`, `RightToolbar.jsx`, `Toast.jsx`, `Scheduler/MonthGrid.jsx`, `Scheduler/DailyAgenda.jsx`, `Scheduler/MissionModal.jsx`, `Modals/IcalModal.jsx`).
-- **Design System Alignment**: Fully aligned with `/Users/macbookair/Library/CloudStorage/GoogleDrive-wtgmso123@gmail.com/ไดรฟ์ของฉัน/DutyRoster/dashboard`.
-- **Zero Cheap Emojis**: Replaced all emojis with Lucide SVG Icons (`lucide-react`) and Initials Avatars (`WD`, `SN`, `MN`, `JN`, `TT`, `PE`, `KG`, `TM`).
-- **Glassmorphism Panels (`.glass-panel`)**: Applied frosted glass UI (`backdrop-filter: blur(12px)`) across Header, Sidebars, and Drawers.
-- **Theme Switcher**: Added Header Theme Switcher (`Light` ☀️ | `Dark` 🌙 | `System` 💻).
-- **Event Pills**: Solid pill for all-day events vs faded light pill with solid left indicator line for timed events.
-- **Mission Modal Controls**: All-day toggle switch, circular Color Palette ring selector (`ring-2 ring-emerald-500 scale-110`), Select All Members button, and event edit/delete capability.
-- **Verification**: Executed `npm run build` using Vite 6.1 -> 1641 modules compiled with 0 errors!
+### Version 3.1 - Member Management Drawer, Checkbox Multi-Filtering & Clean Sidebar Collapse
+- **Mock Data Removal**: Filtered out all mock names ("สมชาย" etc.). Only 8 authentic members are preserved (`manudnot`, `Thanatat Parnsaeng`, `Supanut Tongnumwon`, `WoooddY`, `June`, `ผก.เอก`, `มว.เก่ง`, `มว.ตั้ม`).
+- **Sidebar Checkbox Multi-Filter**: Replaced single-select filter with explicit checkboxes (`visibleMemberIds`), allowing users to dynamically check/uncheck multiple members.
+- **Member Management Drawer (`MemberManagementModal.jsx`)**: Connected the `👥` button on `RightToolbar` to open a dedicated drawer matching the TimeTree/DutyRoster screenshot (Member List, Search box, Role pills (`Me`, `Creator`, `Virtual member`), `Add` button, and toggle switches).
+- **Sidebar Collapse Fix**: Fixed `Sidebar.jsx` CSS transition so clicking `☰` on `Header` toggles the sidebar on both desktop and mobile layouts (`w-0 opacity-0 overflow-hidden` when collapsed).
+- **Verification**: `npm run build` executed cleanly with 0 errors.

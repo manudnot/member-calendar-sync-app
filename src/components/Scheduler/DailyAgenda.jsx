@@ -6,7 +6,7 @@ export default function DailyAgenda({
   selectedDateStr,
   events,
   members,
-  activeMemberFilter,
+  visibleMemberIds,
   onOpenAddEvent,
   onEditEvent,
   onDeleteEvent
@@ -19,8 +19,10 @@ export default function DailyAgenda({
   const dayEvents = events.filter(evt => {
     const evtDateStr = new Date(evt.start_time).toISOString().split('T')[0];
     if (evtDateStr !== selectedDateStr) return false;
-    if (activeMemberFilter === 'all') return true;
-    return Array.isArray(evt.member_ids) && evt.member_ids.includes(activeMemberFilter);
+    if (!Array.isArray(evt.member_ids)) return false;
+
+    // Filter by visible members
+    return evt.member_ids.some(mId => visibleMemberIds.includes(mId));
   });
 
   return (
