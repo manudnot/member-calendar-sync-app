@@ -21,4 +21,9 @@
 - **Removed Sidebar Edit Button**: Removed edit button from Left Sidebar as editing members is strictly managed via the Right Toolbar Member Management drawer (`👥`).
 - **Removed Modal Visibility Switch**: Removed duplicate toggle switches from `MemberManagementModal.jsx` so opening/closing member event visibility is handled exclusively via the Left Sidebar checkboxes.
 - **Git Commit**: `2810255` pushed to `manudnot/member-calendar-sync-app` main branch.
-- **Verification**: `npm run build` completed cleanly in 1.55s.
+
+### Version 3.8 - F5 Page Refresh Persistence Fix (LocalStorage + Supabase Upsert)
+- **Instant LocalStorage Persistence**: Initialized state and saved member/event CRUD mutations directly to `localStorage` (`member_calendar_members` and `member_calendar_events`) so edited names & colors survive F5 refreshes instantly.
+- **Supabase Upsert Sync**: Replaced `.update()` with `.upsert()` for both members and events to guarantee database rows are created or updated automatically on cloud sync.
+- **Git Commit**: `8b6d791` pushed to `manudnot/member-calendar-sync-app` main branch.
+- **Verification**: `npm run build` completed cleanly in 1.53s.

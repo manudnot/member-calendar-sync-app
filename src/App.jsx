@@ -108,13 +108,33 @@ export default function App() {
     }
   }, [theme]);
 
-  // Load from Supabase on mount (and sync to LocalStorage)
+  // Load & Sync between LocalStorage and Supabase on mount
   useEffect(() => {
     async function fetchData() {
+      const savedMembersStr = localStorage.getItem('member_calendar_members');
+      const savedEventsStr = localStorage.getItem('member_calendar_events');
+      
+      let localMembers = null;
+      let localEvents = null;
+
+      try {
+        if (savedMembersStr) localMembers = JSON.parse(savedMembersStr);
+      } catch (e) {}
+
+      try {
+        if (savedEventsStr) localEvents = JSON.parse(savedEventsStr);
+      } catch (e) {}
+
       if (supabase) {
         try {
+          // Fetch members from Supabase
           const { data: supaMembers } = await supabase.from('members').select('*');
-          if (supaMembers && supaMembers.length > 0) {
+
+          if (localMembers && localMembers.length > 0) {
+            setMembers(localMembers);
+            setVisibleMemberIds(localMembers.map(m => m.id));
+            await supabase.from('members').upsert(localMembers);
+          } else if (supaMembers && supaMembers.length > 0) {
             const cleanSupaMembers = supaMembers.filter(m =>
               !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
             );
@@ -125,15 +145,20 @@ export default function App() {
             await supabase.from('members').upsert(INITIAL_MEMBERS);
           }
 
+          // Fetch events from Supabase
           const { data: supaEvents } = await supabase.from('events').select('*');
-          if (supaEvents && supaEvents.length > 0) {
+
+          if (localEvents && localEvents.length > 0) {
+            setEvents(localEvents);
+            await supabase.from('events').upsert(localEvents);
+          } else if (supaEvents && supaEvents.length > 0) {
             setEvents(supaEvents);
             localStorage.setItem('member_calendar_events', JSON.stringify(supaEvents));
           } else {
             await supabase.from('events').upsert(INITIAL_EVENTS);
           }
         } catch (err) {
-          console.warn('Supabase fetch notice:', err);
+          console.warn('Supabase sync notice:', err);
         }
       }
     }
