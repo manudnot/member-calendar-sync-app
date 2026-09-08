@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, History, Trash2, RotateCcw, Clock, PlusCircle, Edit3, ShieldAlert, CheckCircle } from 'lucide-react';
+import { X, History, Trash2, RotateCcw, Clock, PlusCircle, Edit3, User, UserCheck, UserX, KeyRound } from 'lucide-react';
 import { THAI_MONTHS, formatTimeShort } from '../../utils/helpers';
 
 export default function ActivityLogModal({
@@ -15,6 +15,9 @@ export default function ActivityLogModal({
   if (!isOpen) return null;
 
   const getMemberById = (mId) => members.find(m => m.id === mId);
+
+  // Sort logs reverse chronological order (Newest -> Oldest)
+  const sortedLogs = [...activityLogs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   const formatLogTime = (isoStr) => {
     if (!isoStr) return '';
@@ -50,6 +53,36 @@ export default function ActivityLogModal({
         return (
           <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 flex items-center gap-1">
             <RotateCcw className="w-3 h-3" /> กู้คืนกิจกรรม
+          </span>
+        );
+      case 'MEMBER_CREATE':
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 flex items-center gap-1">
+            <User className="w-3 h-3" /> เพิ่มสมาชิก
+          </span>
+        );
+      case 'MEMBER_UPDATE':
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 flex items-center gap-1">
+            <UserCheck className="w-3 h-3" /> แก้ไขสมาชิก/Email
+          </span>
+        );
+      case 'MEMBER_ARCHIVE':
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 flex items-center gap-1">
+            <UserX className="w-3 h-3" /> สมาชิกลาออก
+          </span>
+        );
+      case 'MEMBER_RESTORE':
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 flex items-center gap-1">
+            <UserCheck className="w-3 h-3" /> คืนสภาพสมาชิก
+          </span>
+        );
+      case 'PIN_UPDATE':
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 flex items-center gap-1">
+            <KeyRound className="w-3 h-3" /> ตั้งรหัส PIN
           </span>
         );
       default:
@@ -103,12 +136,12 @@ export default function ActivityLogModal({
           {/* TAB 1: Activity Audit Logs */}
           {activeTab === 'logs' && (
             <div className="flex flex-col gap-2.5">
-              {activityLogs.length === 0 ? (
+              {sortedLogs.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 dark:text-slate-500 font-bold text-xs">
                   ยังไม่มีประวัติการใช้งานบันทึกในระบบ
                 </div>
               ) : (
-                activityLogs.map(log => (
+                sortedLogs.map(log => (
                   <div
                     key={log.id}
                     className="p-3 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl flex flex-col gap-2 shadow-xs"

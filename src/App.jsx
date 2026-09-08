@@ -121,6 +121,7 @@ export default function App() {
   const [isFirstTimeModalOpen, setIsFirstTimeModalOpen] = useState(!activeUserId);
   const [isAuthPinModalOpen, setIsAuthPinModalOpen] = useState(false);
   const [isActivityLogModalOpen, setIsActivityLogModalOpen] = useState(false);
+  const [unreadActivityCount, setUnreadActivityCount] = useState(0);
   const [isForgotPinModalOpen, setIsForgotPinModalOpen] = useState(false);
 
   const [targetMemberForAuth, setTargetMemberForAuth] = useState(null);
@@ -196,7 +197,7 @@ export default function App() {
     const newLog = {
       id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       event_id: evt ? evt.id : null,
-      event_title: evt ? evt.title : 'กิจกรรม',
+      event_title: evt ? evt.title : (details || 'การจัดการระบบ'),
       action,
       actor_id: actor ? actor.id : 'unknown',
       actor_name: actor ? actor.name : 'ผู้ใช้งาน',
@@ -208,6 +209,7 @@ export default function App() {
     const updatedLogs = [newLog, ...activityLogs];
     setActivityLogs(updatedLogs);
     localStorage.setItem('member_calendar_activity_logs', JSON.stringify(updatedLogs));
+    setUnreadActivityCount(prev => prev + 1);
 
     if (supabase) {
       try {
@@ -241,6 +243,7 @@ export default function App() {
     }
 
     const mem = updatedMembers.find(m => m.id === memberId);
+    logActivity('PIN_UPDATE', null, `ตั้งรหัส PIN 4 หลักใหม่สำหรับคุณ ${mem ? mem.name : ''}`);
     setToast({ message: `รีเซ็ตรหัส PIN ใหม่สำหรับคุณ ${mem ? mem.name : ''} สำเร็จแล้ว!`, type: 'success' });
   };
 
@@ -267,6 +270,7 @@ export default function App() {
     }
 
     const mem = updatedMembers.find(m => m.id === memberId);
+    logActivity('PIN_UPDATE', null, `ตั้งรหัส PIN 4 หลักประจำเครื่องสำหรับคุณ ${mem ? mem.name : ''}`);
     setToast({ message: `ตั้งรหัส PIN และสลับตัวตนเป็นคุณ ${mem ? mem.name : ''} สำเร็จ!`, type: 'success' });
   };
 
@@ -310,6 +314,7 @@ export default function App() {
       }
     }
 
+    logActivity('MEMBER_CREATE', null, `เพิ่มสมาชิกใหม่: คุณ ${newMember.name} (${newMember.member_type === 'virtual' ? 'Virtual Member' : 'Member'})`);
     setToast({ message: `เพิ่มสมาชิก ${newMember.name} สำเร็จ!`, type: 'success' });
   };
 
@@ -326,6 +331,7 @@ export default function App() {
       }
     }
 
+    logActivity('MEMBER_UPDATE', null, `แก้ไขข้อมูลสมาชิก: คุณ ${updatedMember.name} (Email: ${updatedMember.email || 'ไม่ระบุ'})`);
     setToast({ message: `แก้ไขข้อมูลสมาชิก ${updatedMember.name} สำเร็จ!`, type: 'success' });
   };
 
@@ -353,8 +359,10 @@ export default function App() {
     }
 
     if (nextArchived) {
+      logActivity('MEMBER_ARCHIVE', null, `แจ้งลาออกสมาชิก: คุณ ${targetMember.name}`);
       setToast({ message: `แจ้งลาออกสมาชิก ${targetMember.name} เรียบร้อยแล้ว (ประวัติงานเดิมยังคงอยู่)`, type: 'info' });
     } else {
+      logActivity('MEMBER_RESTORE', null, `คืนสภาพสมาชิก: คุณ ${targetMember.name}`);
       setToast({ message: `คืนสภาพสมาชิก ${targetMember.name} สำเร็จ!`, type: 'success' });
     }
   };
@@ -362,6 +370,7 @@ export default function App() {
   const handleDeleteMember = async (memberId) => {
     if (!window.confirm('คุณต้องการลบสมาชิกท่านนี้แบบถาวรใช่หรือไม่?')) return;
 
+    const targetMember = members.find(m => m.id === memberId);
     const updated = members.filter(m => m.id !== memberId);
     setMembers(updated);
     localStorage.setItem('member_calendar_members', JSON.stringify(updated));
@@ -375,6 +384,7 @@ export default function App() {
       }
     }
 
+    logActivity('MEMBER_ARCHIVE', null, `ลบสมาชิกถาวร: คุณ ${targetMember ? targetMember.name : ''}`);
     setToast({ message: 'ลบสมาชิกเรียบร้อยแล้ว', type: 'info' });
   };
 
@@ -506,6 +516,11 @@ export default function App() {
   const activeEvents = events.filter(e => !e.is_deleted);
   const deletedEvents = events.filter(e => e.is_deleted);
 
+  const handleOpenActivityLogModal = () => {
+    setUnreadActivityCount(0);
+    setIsActivityLogModalOpen(true);
+  };
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-slate-100">
       
@@ -525,7 +540,8 @@ export default function App() {
         onOpenAddEvent={() => handleOpenAddEvent(selectedDateStr)}
         activeUser={activeUser}
         onOpenSwitchUserModal={handleSwitchUserClick}
-        onOpenActivityLogModal={() => setIsActivityLogModalOpen(true)}
+        onOpenActivityLogModal={handleOpenActivityLogModal}
+        unreadActivityCount={unreadActivityCount}
       />
 
       {/* 2. Three-Column Main Body Layout */}
@@ -569,8 +585,9 @@ export default function App() {
         <RightToolbar
           onOpenMemberManagement={() => { setMemberToEdit(null); setIsMemberManagementOpen(true); }}
           onOpenIcalModal={() => setIsIcalModalOpen(true)}
-          onOpenActivityLog={() => setIsActivityLogModalOpen(true)}
+          onOpenActivityLog={handleOpenActivityLogModal}
           onOpenAddEvent={() => handleOpenAddEvent(selectedDateStr)}
+          unreadActivityCount={unreadActivityCount}
         />
       </div>
 
