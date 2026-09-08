@@ -138,25 +138,19 @@ export default function MonthGrid({
             return b.span - a.span;
           });
 
-          // Separate multi-day banners vs single-day timed events
-          const multiDayBanners = weekEvents.filter(item => isAllDayEvent(item.evt) || item.span > 1);
-          
-          // Assign slotIndex for multi-day banners
+          // Assign slotIndex for ALL week events so there are ZERO gaps between items
           const slots = [];
-          const bannersWithSlots = multiDayBanners.map(item => {
+          const itemsWithSlots = weekEvents.map(item => {
             let slotIndex = 0;
-            while (slots[slotIndex] && slots[slotIndex].some(col => col >= item.startCol && col <= item.endCol)) {
+            while (slots[slotIndex] && slots[slotIndex].some((taken, c) => taken && c >= item.startCol && c <= item.endCol)) {
               slotIndex++;
             }
-            if (!slots[slotIndex]) slots[slotIndex] = [];
+            if (!slots[slotIndex]) slots[slotIndex] = Array(7).fill(false);
             for (let c = item.startCol; c <= item.endCol; c++) {
-              slots[slotIndex].push(c);
+              slots[slotIndex][c] = true;
             }
             return { ...item, slotIndex };
           });
-
-          const maxSlotsInWeek = slots.length;
-          const bannerAreaHeight = Math.min(maxSlotsInWeek * 22, 44); // Cap banner height to leave room for single-day items
 
           return (
             <div key={`week-${weekIdx}`} className="relative grid grid-cols-7 bg-slate-200 dark:bg-dark-border gap-px min-h-[90px] overflow-hidden">
@@ -164,17 +158,9 @@ export default function MonthGrid({
               {/* Day Background Cells with Full 4-Side Borders */}
               {week.map((cell, colIdx) => {
                 const dayAllEvents = visibleEvents.filter(e => isEventOnDate(e, cell.dateStr));
-                const daySingleEvents = dayAllEvents.filter(e => !isAllDayEvent(e) && (!e.end_time || e.start_time.split('T')[0] === e.end_time.split('T')[0]));
-                
-                // Count banners occupying this column
-                const colBannersCount = bannersWithSlots.filter(b => b.startCol <= colIdx && b.endCol >= colIdx).length;
                 const totalEventsOnDay = dayAllEvents.length;
-                
-                // Max visible items inside cell (banners + single-day bullets)
-                const maxVisibleCount = 3;
-                const singleEventsAllowed = Math.max(0, maxVisibleCount - colBannersCount);
-                const visibleSingleEvents = daySingleEvents.slice(0, singleEventsAllowed);
-                const overflowCount = totalEventsOnDay - (colBannersCount + visibleSingleEvents.length);
+                const visibleInCellCount = itemsWithSlots.filter(item => item.startCol <= colIdx && item.endCol >= colIdx && item.slotIndex < 3).length;
+                const overflowCount = totalEventsOnDay - visibleInCellCount;
 
                 return (
                   <div
@@ -204,32 +190,6 @@ export default function MonthGrid({
                       </span>
                     </div>
 
-                    {/* Single-Day Timed Bullet List (Underneath Banner Slot Area) */}
-                    <div
-                      className="flex flex-col gap-0.5 mt-1 overflow-hidden pointer-events-auto"
-                      style={{ marginTop: `${bannerAreaHeight + 22}px` }}
-                    >
-                      {visibleSingleEvents.map(evt => {
-                        const evtColor = getEventColor(evt, members);
-                        const timeText = formatTimeShort(evt.start_time);
-
-                        return (
-                          <div
-                            key={evt.id}
-                            onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                            className="flex items-center gap-1 text-[10px] font-semibold text-slate-700 dark:text-slate-200 truncate hover:opacity-80 transition-opacity"
-                            title={`${evt.title} (${timeText})`}
-                          >
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: evtColor }} />
-                            <span className="truncate">{evt.title}</span>
-                            {timeText && (
-                              <span className="text-[9px] font-mono text-slate-400 shrink-0 ml-auto">{timeText}</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
                     {/* Overflow "+N" Pill Badge (e.g. +2 on Day 7) */}
                     {overflowCount > 0 && (
                       <span
@@ -244,33 +204,62 @@ export default function MonthGrid({
                 );
               })}
 
-              {/* Multi-Day Spanning Event Banners Overlay */}
+              {/* Unified Event Banners & Timed Cards Overlay (Tight Stack without Gaps) */}
               <div className="absolute inset-0 top-6 pointer-events-none grid grid-cols-7 gap-px p-0.5">
-                {bannersWithSlots.slice(0, 8).map(({ evt, startCol, span, isStartOfEvent, isEndOfEvent, slotIndex }) => {
+                {itemsWithSlots.filter(item => item.slotIndex < 3).map(({ evt, startCol, span, isStartOfEvent, isEndOfEvent, slotIndex }) => {
                   const evtColor = getEventColor(evt, members);
                   const gridColStart = startCol + 1;
+                  const isAllDay = isAllDayEvent(evt) || span > 1;
+                  const timeText = formatTimeShort(evt.start_time);
 
-                  return (
-                    <div
-                      key={`${evt.id}-w${weekIdx}`}
-                      onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                      className={`pointer-events-auto h-5 px-2 text-[11px] font-bold flex items-center shadow-xs transition-transform hover:scale-[1.01] cursor-pointer truncate z-10 ${
-                        isStartOfEvent ? 'rounded-l-md' : 'rounded-r-none'
-                      } ${
-                        isEndOfEvent ? 'rounded-r-md' : 'rounded-r-none'
-                      }`}
-                      style={{
-                        gridColumnStart: gridColStart,
-                        gridColumnEnd: `span ${span}`,
-                        marginTop: `${slotIndex * 22}px`,
-                        backgroundColor: evtColor,
-                        color: '#ffffff'
-                      }}
-                      title={evt.title}
-                    >
-                      <span className="truncate">{evt.title}</span>
-                    </div>
-                  );
+                  if (isAllDay) {
+                    // All-Day Events: Solid background pill (TimeTree Style)
+                    return (
+                      <div
+                        key={`${evt.id}-w${weekIdx}`}
+                        onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
+                        className={`pointer-events-auto h-5 px-2 text-[11px] font-bold flex items-center shadow-xs transition-transform hover:scale-[1.01] cursor-pointer truncate z-10 ${
+                          isStartOfEvent ? 'rounded-l-md' : 'rounded-r-none'
+                        } ${
+                          isEndOfEvent ? 'rounded-r-md' : 'rounded-r-none'
+                        }`}
+                        style={{
+                          gridColumnStart: gridColStart,
+                          gridColumnEnd: `span ${span}`,
+                          marginTop: `${slotIndex * 22}px`,
+                          backgroundColor: evtColor,
+                          color: '#ffffff'
+                        }}
+                        title={evt.title}
+                      >
+                        <span className="truncate">{evt.title}</span>
+                      </div>
+                    );
+                  } else {
+                    // Timed Events: Light/Faded color background pill (TimeTree Style _1r1c5vl4)
+                    return (
+                      <div
+                        key={`${evt.id}-w${weekIdx}`}
+                        onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
+                        className={`pointer-events-auto h-5 px-1.5 text-[10px] font-semibold flex items-center gap-1 shadow-2xs transition-transform hover:scale-[1.01] cursor-pointer truncate z-10 rounded-md border-l-2`}
+                        style={{
+                          gridColumnStart: gridColStart,
+                          gridColumnEnd: `span ${span}`,
+                          marginTop: `${slotIndex * 22}px`,
+                          backgroundColor: hexToRgba(evtColor, 0.16),
+                          borderLeftColor: evtColor,
+                          color: 'inherit'
+                        }}
+                        title={`${evt.title} (${timeText})`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: evtColor }} />
+                        <span className="truncate font-bold text-slate-800 dark:text-slate-100">{evt.title}</span>
+                        {timeText && (
+                          <span className="ml-auto text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400 shrink-0">{timeText}</span>
+                        )}
+                      </div>
+                    );
+                  }
                 })}
               </div>
 
