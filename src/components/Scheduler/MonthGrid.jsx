@@ -205,7 +205,7 @@ export default function MonthGrid({
               })}
 
               {/* Unified Event Banners & Timed Cards Overlay (Tight Stack without Gaps) */}
-              <div className="absolute inset-0 top-6 pointer-events-none grid grid-cols-7 gap-px p-0.5">
+              <div className="absolute inset-0 top-[22px] pointer-events-none grid grid-cols-7 gap-px p-0.5">
                 {itemsWithSlots.filter(item => item.slotIndex < 3).map(({ evt, startCol, span, isStartOfEvent, isEndOfEvent, slotIndex }) => {
                   const evtColor = getEventColor(evt, members);
                   const gridColStart = startCol + 1;
@@ -226,7 +226,8 @@ export default function MonthGrid({
                         style={{
                           gridColumnStart: gridColStart,
                           gridColumnEnd: `span ${span}`,
-                          marginTop: `${slotIndex * 22}px`,
+                          gridRowStart: 1,
+                          marginTop: `${slotIndex * 21}px`,
                           backgroundColor: evtColor,
                           color: '#ffffff'
                         }}
@@ -245,7 +246,8 @@ export default function MonthGrid({
                         style={{
                           gridColumnStart: gridColStart,
                           gridColumnEnd: `span ${span}`,
-                          marginTop: `${slotIndex * 22}px`,
+                          gridRowStart: 1,
+                          marginTop: `${slotIndex * 21}px`,
                           backgroundColor: hexToRgba(evtColor, 0.16),
                           borderLeftColor: evtColor,
                           color: 'inherit'

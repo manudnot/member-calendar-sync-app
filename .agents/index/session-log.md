@@ -79,6 +79,20 @@
 - **All-Day Event Separation**: Preserved `all_day: true` for the 274 pure all-day events without specific hour timestamps.
 - **Supabase & Vercel Sync**: Re-imported complete timed dataset to Supabase PostgreSQL database and pushed commit `8f6a462` to GitHub `main` branch.
 
+### Version 4.7 - Fixed All-Day Toggle Override & Time Display (`isAllDayEvent`)
+- **Root Cause Fix**: Identified that events loaded from Supabase PostgreSQL lacked an explicit `all_day` column, causing `editingEvent.all_day !== false` to evaluate to `true` and forcing the All-day toggle ON in `MissionModal.jsx`.
+- **Smart Time Detection (`isAllDayEvent`)**: Created `isAllDayEvent(evt)` helper in `helpers.js` to inspect ISO timestamp hours (e.g. `10:00` - `12:00`). If non-zero start/end hours exist, it automatically sets `all_day = false`, turning OFF the All-day toggle and displaying the start/end time pickers cleanly in `MissionModal.jsx`, `DailyAgenda.jsx`, and `MonthGrid.jsx`.
+- **Git Commit**: `51ed641` pushed to `manudnot/member-calendar-sync-app` main branch.
+
+### Version 4.8 - Strict TimeTree MonthGrid Layout & Faded Timed Event Badges
+- **Unified Slot Stacking (Zero Gaps)**: Combined all-day banners and timed events into a unified slot index matrix (`slotIndex: 0, 1, 2...`). Timed events on days with all-day banners now stack tightly directly underneath with zero empty space.
+- **Faded Color Badges for Timed Events (`_1r1c5vl4`)**:
+  - **All-Day Events**: Rendered with solid color background (`backgroundColor: evtColor`, `#ffffff` text).
+  - **Timed Events**: Rendered with light faded background tint (`hexToRgba(evtColor, 0.16)`), left border line, colored bullet dot, and time text (`10:00 AM`) on the right side.
+- **Git Commit**: `87c31db` pushed to `manudnot/member-calendar-sync-app` main branch.
+
+
+
 
 
 
