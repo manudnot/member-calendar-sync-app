@@ -95,6 +95,38 @@ export function isAllDayEvent(evt) {
   return true;
 }
 
+export function convertMinutesToNotif(totalMinutes) {
+  const mins = Number(totalMinutes) || 15;
+  if (mins % 10080 === 0) {
+    return { value: mins / 10080, unit: 'week before' };
+  }
+  if (mins % 1440 === 0) {
+    return { value: mins / 1440, unit: 'day before' };
+  }
+  if (mins % 60 === 0) {
+    return { value: mins / 60, unit: 'hour before' };
+  }
+  return { value: mins, unit: 'min before' };
+}
+
+export function formatAlarmLabel(totalMinutes) {
+  const mins = Number(totalMinutes);
+  if (isNaN(mins) || mins <= 0) return 'ไม่เตือน';
+  if (mins % 10080 === 0) {
+    const w = mins / 10080;
+    return `${w} สัปดาห์ก่อนหน้า`;
+  }
+  if (mins % 1440 === 0) {
+    const d = mins / 1440;
+    return `${d} วันก่อนหน้า`;
+  }
+  if (mins % 60 === 0) {
+    const h = mins / 60;
+    return `${h} ชั่วโมงก่อนหน้า`;
+  }
+  return `${mins} นาทีก่อนหน้า`;
+}
+
 
 
 

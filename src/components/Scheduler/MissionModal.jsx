@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Check, Users, Plus, Trash2 } from 'lucide-react';
-import { isAllDayEvent } from '../../utils/helpers';
+import { isAllDayEvent, convertMinutesToNotif } from '../../utils/helpers';
 
 const COLOR_PALETTE = [
   { hex: '#10b981', name: 'Emerald green' },
@@ -112,9 +112,19 @@ export default function MissionModal({
       }
 
       if (Array.isArray(editingEvent.notifications) && editingEvent.notifications.length > 0) {
-        setNotifications(editingEvent.notifications);
-      } else if (editingEvent.alarm_minutes !== undefined) {
-        setNotifications([{ id: 'notif_1', value: editingEvent.alarm_minutes || 15, unit: 'min before' }]);
+        setNotifications(editingEvent.notifications.map(n => {
+          const totalMins = getAlarmMinutesFromNotif(n);
+          const converted = convertMinutesToNotif(totalMins);
+          return { ...n, value: converted.value, unit: converted.unit };
+        }));
+      } else if (Array.isArray(editingEvent.alarm_triggers) && editingEvent.alarm_triggers.length > 0) {
+        setNotifications(editingEvent.alarm_triggers.map((trig, idx) => {
+          const converted = convertMinutesToNotif(trig);
+          return { id: `notif_${idx + 1}`, value: converted.value, unit: converted.unit };
+        }));
+      } else if (editingEvent.alarm_minutes !== undefined && editingEvent.alarm_minutes !== null) {
+        const converted = convertMinutesToNotif(editingEvent.alarm_minutes);
+        setNotifications([{ id: 'notif_1', value: converted.value, unit: converted.unit }]);
       }
 
       setLocation(editingEvent.location || '');
@@ -545,10 +555,10 @@ export default function MissionModal({
                     value={notif.unit}
                     onChange={(e) => handleUpdateNotification(notif.id, 'unit', e.target.value)}
                   >
-                    <option value="min before">min before</option>
-                    <option value="hour before">hour before</option>
-                    <option value="day before">day before</option>
-                    <option value="week before">week before</option>
+                    <option value="min before">นาทีก่อนหน้า (min before)</option>
+                    <option value="hour before">ชั่วโมงก่อนหน้า (hour before)</option>
+                    <option value="day before">วันก่อนหน้า (day before)</option>
+                    <option value="week before">สัปดาห์ก่อนหน้า (week before)</option>
                   </select>
 
                   {notifications.length > 1 && (
