@@ -748,7 +748,7 @@ export default function App() {
         onSaveNewPin={handleSaveNewPin}
         onOpenForgotPin={() => setIsForgotPinModalOpen(true)}
         onOpenAddEvent={() => handleOpenAddEvent(selectedDateStr)}
-        onOpenMemberManagement={handleOpenMemberManagementModal}
+        onOpenMemberManagement={() => { setMemberToEdit(null); setIsMemberManagementOpen(true); }}
         onOpenIcalModal={() => setIsIcalModalOpen(true)}
         onOpenActivityLog={handleOpenActivityLogModal}
         unreadActivityCount={unreadActivityCount}
