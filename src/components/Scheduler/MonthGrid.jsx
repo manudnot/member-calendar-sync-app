@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatDateKey, formatTimeShort, hexToRgba, isEventOnDate, getEventColor } from '../../utils/helpers';
+import { formatDateKey, formatTimeShort, hexToRgba, isEventOnDate, getEventColor, isAllDayEvent } from '../../utils/helpers';
 
 export default function MonthGrid({
   currentYear,
@@ -130,8 +130,8 @@ export default function MonthGrid({
 
           // Sort week events: multi-day/all-day first, then by startCol, then longer span
           weekEvents.sort((a, b) => {
-            const aAllDay = a.evt.all_day !== false || a.span > 1;
-            const bAllDay = b.evt.all_day !== false || b.span > 1;
+            const aAllDay = isAllDayEvent(a.evt) || a.span > 1;
+            const bAllDay = isAllDayEvent(b.evt) || b.span > 1;
             if (aAllDay && !bAllDay) return -1;
             if (!aAllDay && bAllDay) return 1;
             if (a.startCol !== b.startCol) return a.startCol - b.startCol;
@@ -139,7 +139,7 @@ export default function MonthGrid({
           });
 
           // Separate multi-day banners vs single-day timed events
-          const multiDayBanners = weekEvents.filter(item => item.evt.all_day !== false || item.span > 1);
+          const multiDayBanners = weekEvents.filter(item => isAllDayEvent(item.evt) || item.span > 1);
           
           // Assign slotIndex for multi-day banners
           const slots = [];
@@ -164,7 +164,7 @@ export default function MonthGrid({
               {/* Day Background Cells with Full 4-Side Borders */}
               {week.map((cell, colIdx) => {
                 const dayAllEvents = visibleEvents.filter(e => isEventOnDate(e, cell.dateStr));
-                const daySingleEvents = dayAllEvents.filter(e => e.all_day === false && (!e.end_time || e.start_time.split('T')[0] === e.end_time.split('T')[0]));
+                const daySingleEvents = dayAllEvents.filter(e => !isAllDayEvent(e) && (!e.end_time || e.start_time.split('T')[0] === e.end_time.split('T')[0]));
                 
                 // Count banners occupying this column
                 const colBannersCount = bannersWithSlots.filter(b => b.startCol <= colIdx && b.endCol >= colIdx).length;

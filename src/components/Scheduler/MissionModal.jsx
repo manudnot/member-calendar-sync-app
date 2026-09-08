@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Check, Users, Plus, Trash2 } from 'lucide-react';
+import { isAllDayEvent } from '../../utils/helpers';
 
 const COLOR_PALETTE = [
   { hex: '#10b981', name: 'Emerald green' },
@@ -82,7 +83,7 @@ export default function MissionModal({
   useEffect(() => {
     if (editingEvent) {
       setTitle(editingEvent.title || '');
-      setAllDay(editingEvent.all_day !== false);
+      setAllDay(isAllDayEvent(editingEvent));
       const sKey = editingEvent.start_time ? editingEvent.start_time.split('T')[0] : initialDateStr;
       const eKey = editingEvent.end_time ? editingEvent.end_time.split('T')[0] : sKey;
       setStartDate(sKey);

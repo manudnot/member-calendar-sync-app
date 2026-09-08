@@ -81,5 +81,20 @@ export function getEventColor(evt, members = []) {
   return '#10B981';
 }
 
+export function isAllDayEvent(evt) {
+  if (!evt) return true;
+  if (evt.all_day === false) return false;
+  if (evt.all_day === true) return true;
+  if (evt.start_time && evt.start_time.includes('T')) {
+    const timePart = evt.start_time.split('T')[1].substring(0, 5);
+    const endTimePart = evt.end_time && evt.end_time.includes('T') ? evt.end_time.split('T')[1].substring(0, 5) : '00:00';
+    if (timePart !== '00:00' || (endTimePart !== '23:59' && endTimePart !== '00:00')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
 
 

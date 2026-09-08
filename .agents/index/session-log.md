@@ -61,3 +61,24 @@
   - 🟡 **ภารกิจหน่วย (`Yellow - #F59E0B`)**: 13 unit mission events with `member_ids: []`.
 - **UI Visibility & Color Engine**: Enhanced `getEventColor` helper and calendar filtering so unassigned team tasks (`member_ids: []`) render correctly across MonthGrid and DailyAgenda views.
 
+### Version 4.4 - Fixed ReferenceError handleOpenMemberManagementModal
+- **Root Cause Fix**: Resolved runtime exception in `FirstTimeUserModal.jsx` where prop `onOpenMemberManagement` referenced an undefined function identifier `handleOpenMemberManagementModal`.
+- **Inline Modal Handler**: Replaced missing reference in `App.jsx` with `() => { setMemberToEdit(null); setIsMemberManagementOpen(true); }`.
+- **Git Commit**: `931b007` pushed to `manudnot/member-calendar-sync-app` main branch for immediate Vercel auto-deployment.
+
+### Version 4.5 - Database Wipe & Full Clean Historical Dataset Import
+- **Database Wipe & Batch Upsert**: Wiped old events in Supabase PostgreSQL and imported all 579 clean parsed events.
+- **Enhanced Accuracy Features**:
+  - **Multi-alarm Triggers**: Parsed exact notification triggers (`1 day before` = 1,440 mins, multi-trigger arrays `[10, 120]`).
+  - **Dedicated Meeting URLs**: Extracted Google Meet (`meet.google.com`) and Zoom (`zoom.us`) meeting links directly into dedicated `url` field and descriptions.
+  - **Clean Titles**: Stripped system log prefixes (`Title updated`, `Date updated`, `URL updated`) and address line overflow.
+- **Git Commit**: `b46c5d3` pushed to `manudnot/member-calendar-sync-app` main branch.
+
+### Version 4.6 - Exact AM/PM Start & End Times Parsing (305 Timed Events)
+- **Time Parsing Engine**: Parsed specific AM/PM timestamps (e.g. `10:00AM` - `12:00PM`, `8:30AM` - `4:00PM`) for **305 timed events** out of 579, flagging `all_day: false` and converting `start_time` / `end_time` to exact ISO timestamps.
+- **All-Day Event Separation**: Preserved `all_day: true` for the 274 pure all-day events without specific hour timestamps.
+- **Supabase & Vercel Sync**: Re-imported complete timed dataset to Supabase PostgreSQL database and pushed commit `8f6a462` to GitHub `main` branch.
+
+
+
+

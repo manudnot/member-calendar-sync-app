@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, Edit3, Trash2, Clock, MapPin, Link as LinkIcon, CheckCircle2 } from 'lucide-react';
-import { THAI_MONTHS, formatTimeShort, isEventOnDate, getEventColor } from '../../utils/helpers';
+import { THAI_MONTHS, formatTimeShort, isEventOnDate, getEventColor, isAllDayEvent } from '../../utils/helpers';
 
 export default function DailyAgenda({
   selectedDateStr,
@@ -62,7 +62,7 @@ export default function DailyAgenda({
         ) : (
           dayEvents.map(evt => {
             const evtColor = getEventColor(evt, members);
-            const isAllDay = evt.all_day !== false;
+            const isAllDay = isAllDayEvent(evt);
 
             return (
               <div
