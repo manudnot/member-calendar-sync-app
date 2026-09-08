@@ -422,7 +422,7 @@ export default function App() {
       }
     }
 
-    logActivity('MEMBER_UPDATE', null, logDetails, updatedMember);
+    logActivity('MEMBER_UPDATE', null, logDetails);
     setToast({ message: `แก้ไขข้อมูลสมาชิก ${updatedMember.name} สำเร็จ!`, type: 'success' });
   };
 

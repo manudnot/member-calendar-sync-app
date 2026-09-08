@@ -304,18 +304,18 @@ export default function ActivityLogModal({
                       {log.details && (
                         <div className="flex flex-col gap-0.5 mt-0.5">
                           {log.details.split(' | ').map((part, idx) => (
-                            <span key={idx} className="text-[11px] font-medium text-slate-600 dark:text-slate-300 leading-relaxed flex items-center flex-wrap">
+                            <div key={idx} className="text-[11px] font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
                               {part.includes('➔') ? (
                                 part.split('➔').map((sub, sIdx) => (
                                   <React.Fragment key={sIdx}>
-                                    {sIdx > 0 && <span className="text-emerald-600 dark:text-emerald-400 font-black mx-1">➔</span>}
-                                    <span>{sub.trim()}</span>
+                                    {sIdx > 0 && <span className="text-emerald-600 dark:text-emerald-400 font-black mx-1 inline">➔</span>}
+                                    <span className="inline">{sub.trim()}</span>
                                   </React.Fragment>
                                 ))
                               ) : (
-                                part
+                                <span>{part}</span>
                               )}
-                            </span>
+                            </div>
                           ))}
                         </div>
                       )}
