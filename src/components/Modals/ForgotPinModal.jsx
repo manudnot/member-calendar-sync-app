@@ -20,7 +20,7 @@ export default function ForgotPinModal({
 
   const activeMembers = members.filter(m => !m.is_archived && m.status !== 'resigned' && m.member_type !== 'virtual');
 
-  const handleVerifyPasscode = (e) => {
+  const handleVerifyPasscode = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
@@ -31,11 +31,12 @@ export default function ForgotPinModal({
     }
 
     if (!masterPasscode || !masterPasscode.trim()) {
-      setErrorMsg('กรุณากรอกรหัสหน่วย CRMASIGNAL21');
+      setErrorMsg('กรุณากรอกรหัสหน่วย');
       return;
     }
 
-    if (!verifyMasterPasscode(masterPasscode)) {
+    const isValid = await verifyMasterPasscode(masterPasscode);
+    if (!isValid) {
       setErrorMsg('รหัสหน่วยไม่ถูกต้อง (กรุณาตรวจสอบการพิมพ์ตัวเล็ก-ตัวใหญ่ให้ถูกต้อง)');
       return;
     }
@@ -144,10 +145,10 @@ export default function ForgotPinModal({
               <div className="flex flex-col gap-1.5 text-left">
                 <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                   <Lock className="w-3.5 h-3.5 text-emerald-600" />
-                  2. กรอกรหัสหน่วย CRMASIGNAL21:
+                  2. กรอกรหัสหน่วย:
                 </label>
                 <input
-                  type="text"
+                  type="password"
                   className="input-field text-xs font-mono tracking-wider"
                   placeholder="กรอกรหัสหน่วย"
                   value={masterPasscode}

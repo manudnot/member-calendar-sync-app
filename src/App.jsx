@@ -14,6 +14,7 @@ import ActivityLogModal from './components/Modals/ActivityLogModal';
 import ForgotPinModal from './components/Modals/ForgotPinModal';
 import { formatDateKey } from './utils/helpers';
 import { supabase } from './utils/supabase';
+import { hashPasscode } from './utils/crypto';
 
 // INITIAL TEAM MEMBERS (9 MEMBERS: MEMBERS & VIRTUAL MEMBERS)
 const INITIAL_MEMBERS = [
@@ -154,15 +155,41 @@ export default function App() {
       if (!supabase) return;
 
       try {
-        // Fetch members from Supabase (Always prioritize Supabase PostgreSQL)
+        // Fetch members and activity logs from Supabase
         const { data: supaMembers, error: memErr } = await supabase.from('members').select('*');
+        const { data: supaLogs } = await supabase.from('activity_logs').select('*').order('created_at', { ascending: false });
+
+        // Extract PIN_SYNC mapping from activity_logs to ensure multi-device sync even if table schema is missing pin_code column
+        const pinSyncMap = {};
+        if (supaLogs && supaLogs.length > 0) {
+          supaLogs.forEach(l => {
+            if (l.details && l.details.startsWith('PIN_HASH:')) {
+              const parts = l.details.split(':');
+              const mId = parts[1];
+              const pHash = parts[2];
+              if (mId && pHash && !pinSyncMap[mId]) {
+                pinSyncMap[mId] = pHash;
+              }
+            }
+          });
+        }
+
         if (!memErr && supaMembers && supaMembers.length > 0) {
           const cleanSupaMembers = supaMembers.filter(m =>
             !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
           );
-          setMembers(cleanSupaMembers);
-          localStorage.setItem('member_calendar_members', JSON.stringify(cleanSupaMembers));
-          setVisibleMemberIds(prev => prev.length === 0 ? cleanSupaMembers.map(m => m.id) : prev);
+
+          setMembers(prevMembers => {
+            return prevMembers.map(localMem => {
+              const supaMem = cleanSupaMembers.find(sm => sm.id === localMem.id);
+              const syncedPin = supaMem?.pin_code || pinSyncMap[localMem.id] || localMem.pin_code || '';
+              return {
+                ...localMem,
+                ...(supaMem || {}),
+                pin_code: syncedPin
+              };
+            });
+          });
         } else {
           // If Supabase table empty, seed with initial members
           await supabase.from('members').upsert(INITIAL_MEMBERS);
@@ -176,7 +203,6 @@ export default function App() {
         }
 
         // Fetch activity logs from Supabase
-        const { data: supaLogs } = await supabase.from('activity_logs').select('*').order('created_at', { ascending: false });
         if (supaLogs && supaLogs.length > 0) {
           setActivityLogs(supaLogs);
           localStorage.setItem('member_calendar_activity_logs', JSON.stringify(supaLogs));
@@ -187,7 +213,7 @@ export default function App() {
     }
 
     fetchData();
-    const interval = setInterval(fetchData, 5000); // 5-second live multi-device polling
+    const interval = setInterval(fetchData, 3000); // 3-second live multi-device polling
     return () => clearInterval(interval);
   }, []);
 
@@ -231,29 +257,43 @@ export default function App() {
   };
 
   const handleResetPinWithOtp = async (memberId, newPinCode) => {
-    const updatedMembers = members.map(m => m.id === memberId ? { ...m, pin_code: newPinCode } : m);
+    const hashedPin = await hashPasscode(newPinCode);
+
+    const updatedMembers = members.map(m => m.id === memberId ? { ...m, pin_code: hashedPin } : m);
     setMembers(updatedMembers);
     localStorage.setItem('member_calendar_members', JSON.stringify(updatedMembers));
+
+    const mem = updatedMembers.find(m => m.id === memberId);
+    logActivity('PIN_UPDATE', null, `กู้คืนและตั้งรหัส PIN 4 หลักใหม่สำหรับคุณ ${mem ? mem.name : ''}`);
 
     if (supabase) {
       try {
         const target = updatedMembers.find(m => m.id === memberId);
-        await supabase.from('members').upsert([target]);
+        const supaPayload = {
+          id: target.id,
+          name: target.name,
+          color: target.color,
+          email: target.email || '',
+          pin_code: target.pin_code
+        };
+        const { error } = await supabase.from('members').upsert([supaPayload]);
+        if (error) {
+          logActivity('PIN_SYNC', null, `PIN_HASH:${target.id}:${hashedPin}`);
+        }
       } catch (e) {}
     }
 
-    const mem = updatedMembers.find(m => m.id === memberId);
-    logActivity('PIN_UPDATE', null, `กู้คืนและตั้งรหัส PIN 4 หลักใหม่สำหรับคุณ ${mem ? mem.name : ''}`);
     setToast({ message: `กู้คืนและตั้งรหัส PIN ใหม่สำหรับคุณ ${mem ? mem.name : ''} สำเร็จ!`, type: 'success' });
   };
 
   const handleSaveNewPin = async (memberId, pinCode, enableBiometrics, userEmail = '') => {
+    const hashedPin = await hashPasscode(pinCode);
+
     const updatedMembers = members.map(m => m.id === memberId ? {
       ...m,
-      pin_code: pinCode,
+      pin_code: hashedPin,
       email: userEmail || m.email
     } : m);
-
 
     setMembers(updatedMembers);
     localStorage.setItem('member_calendar_members', JSON.stringify(updatedMembers));
@@ -262,15 +302,26 @@ export default function App() {
     localStorage.setItem('member_calendar_active_user_id', memberId);
     setIsFirstTimeModalOpen(false);
 
+    const mem = updatedMembers.find(m => m.id === memberId);
+    logActivity('PIN_UPDATE', null, `ตั้งรหัส PIN 4 หลักประจำเครื่องสำหรับคุณ ${mem ? mem.name : ''}`);
+
     if (supabase) {
       try {
         const target = updatedMembers.find(m => m.id === memberId);
-        await supabase.from('members').upsert([target]);
+        const supaPayload = {
+          id: target.id,
+          name: target.name,
+          color: target.color,
+          email: target.email || '',
+          pin_code: target.pin_code
+        };
+        const { error } = await supabase.from('members').upsert([supaPayload]);
+        if (error) {
+          logActivity('PIN_SYNC', null, `PIN_HASH:${target.id}:${hashedPin}`);
+        }
       } catch (e) {}
     }
 
-    const mem = updatedMembers.find(m => m.id === memberId);
-    logActivity('PIN_UPDATE', null, `ตั้งรหัส PIN 4 หลักประจำเครื่องสำหรับคุณ ${mem ? mem.name : ''}`);
     setToast({ message: `ตั้งรหัส PIN และสลับตัวตนเป็นคุณ ${mem ? mem.name : ''} สำเร็จ!`, type: 'success' });
   };
 

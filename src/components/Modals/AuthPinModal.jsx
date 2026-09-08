@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, KeyRound, Fingerprint, Lock, ShieldCheck, AlertCircle } from 'lucide-react';
+import { verifyPinCode } from '../../utils/crypto';
 
 export default function AuthPinModal({
   isOpen,
@@ -31,7 +32,7 @@ export default function AuthPinModal({
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const enteredPin = pinInput.join('');
     if (enteredPin.length < 4) {
@@ -39,12 +40,15 @@ export default function AuthPinModal({
       return;
     }
 
-    if (targetMember.pin_code && enteredPin !== targetMember.pin_code) {
-      setErrorMsg('รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
-      setPinInput(['', '', '', '']);
-      const firstEl = document.getElementById('auth_pin_0');
-      if (firstEl) firstEl.focus();
-      return;
+    if (targetMember.pin_code) {
+      const isValid = await verifyPinCode(enteredPin, targetMember.pin_code);
+      if (!isValid) {
+        setErrorMsg('รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+        setPinInput(['', '', '', '']);
+        const firstEl = document.getElementById('auth_pin_0');
+        if (firstEl) firstEl.focus();
+        return;
+      }
     }
 
     onAuthenticateSuccess(targetMember.id, enteredPin);

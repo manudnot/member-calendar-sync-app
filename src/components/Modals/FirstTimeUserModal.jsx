@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, KeyRound, ShieldCheck, Fingerprint, Check, AlertCircle, Sparkles, Lock, ArrowRight, RefreshCw } from 'lucide-react';
-import { verifyMasterPasscode } from '../../utils/crypto';
+import { verifyMasterPasscode, verifyPinCode } from '../../utils/crypto';
 
 export default function FirstTimeUserModal({
   isOpen,
@@ -41,17 +41,18 @@ export default function FirstTimeUserModal({
     }
   };
 
-  const handleVerifyMasterPasscode = (e) => {
+  const handleVerifyMasterPasscode = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
 
     if (!masterPasscodeInput || !masterPasscodeInput.trim()) {
-      setErrorMsg('กรุณากรอกรหัสหน่วย CRMASIGNAL21');
+      setErrorMsg('กรุณากรอกรหัสหน่วย');
       return;
     }
 
-    if (!verifyMasterPasscode(masterPasscodeInput)) {
+    const isValid = await verifyMasterPasscode(masterPasscodeInput);
+    if (!isValid) {
       setErrorMsg('รหัสหน่วยไม่ถูกต้อง (กรุณาตรวจสอบการพิมพ์ตัวเล็ก-ตัวใหญ่ให้ถูกต้อง)');
       return;
     }
@@ -95,7 +96,7 @@ export default function FirstTimeUserModal({
     }
   };
 
-  const handleVerifyExistingPin = (e) => {
+  const handleVerifyExistingPin = async (e) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -105,7 +106,8 @@ export default function FirstTimeUserModal({
       return;
     }
 
-    if (enteredPin !== selectedMember.pin_code) {
+    const isValid = await verifyPinCode(enteredPin, selectedMember.pin_code);
+    if (!isValid) {
       setErrorMsg('รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
       setPinInput(['', '', '', '']);
       const firstEl = document.getElementById('pin_0');
@@ -160,10 +162,10 @@ export default function FirstTimeUserModal({
             เข้าใช้งานระบบปฏิทินปฏิบัติงาน
           </h2>
           <p className="text-xs font-semibold text-emerald-100">
-            {step === 'select_user' && '[Step 1] กรุณาเลือกชื่อสมาชิกทีมเพื่อเปิดใช้งาน'}
+            {step === 'select_user' && 'กรุณาเลือกชื่อสมาชิกทีมเพื่อเปิดใช้งาน'}
             {step === 'enter_pin' && `กรอกรหัส PIN 4 หลักเดิมเพื่อเข้าใช้งานในนาม ${selectedMember?.name}`}
-            {step === 'enter_master_passcode' && `[Step 2] กรอกรหัสหน่วยเพื่อยืนยันสิทธิ์สำหรับ ${selectedMember?.name}`}
-            {step === 'setup_pin' && `[Step 3] ตั้งรหัส PIN 4 หลักส่วนตัวสำหรับ ${selectedMember?.name}`}
+            {step === 'enter_master_passcode' && `กรอกรหัสหน่วยเพื่อยืนยันสิทธิ์สำหรับ ${selectedMember?.name}`}
+            {step === 'setup_pin' && `ตั้งรหัส PIN 4 หลักส่วนตัวสำหรับ ${selectedMember?.name}`}
           </p>
         </div>
 
@@ -186,7 +188,7 @@ export default function FirstTimeUserModal({
           {step === 'select_user' && (
             <div className="flex flex-col gap-2.5">
               <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                <span>[Step 1] รายชื่อสมาชิกทีม (คลิกเลือกชื่อของคุณ):</span>
+                <span>รายชื่อสมาชิกทีม (คลิกเลือกชื่อของคุณ):</span>
               </label>
               <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto no-scrollbar">
                 {activeMembers.map(mem => (
@@ -303,7 +305,7 @@ export default function FirstTimeUserModal({
             </form>
           )}
 
-          {/* STEP 2: Enter Master Passcode (CRMASIGNAL21) */}
+          {/* STEP 2: Enter Master Passcode */}
           {step === 'enter_master_passcode' && (
             <form onSubmit={handleVerifyMasterPasscode} className="flex flex-col gap-4 py-2">
               <div className="flex items-center justify-center gap-2">
@@ -326,10 +328,10 @@ export default function FirstTimeUserModal({
               <div className="flex flex-col gap-2 text-left bg-slate-50 dark:bg-dark-bg/60 p-4 border border-slate-200 dark:border-dark-border rounded-2xl">
                 <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   <Lock className="w-4 h-4 text-emerald-600" />
-                  [Step 2] กรอกรหัสหน่วย CRMASIGNAL21:
+                  กรอกรหัสหน่วย:
                 </label>
                 <input
-                  type="text"
+                  type="password"
                   placeholder="กรอกรหัสหน่วย"
                   className="input-field font-mono text-sm tracking-wider"
                   value={masterPasscodeInput}
@@ -338,7 +340,7 @@ export default function FirstTimeUserModal({
                   required
                 />
                 <span className="text-[10px] text-slate-400">
-                  * กรอกรหัสให้ถูกต้องตามตัวอักษรเพื่อยืนยันสิทธิ์
+                  * กรอกรหัสให้ถูกต้องเพื่อยืนยันสิทธิ์
                 </span>
               </div>
 
@@ -378,7 +380,7 @@ export default function FirstTimeUserModal({
               <div className="flex flex-col gap-1.5 items-center">
                 <label className="text-xs font-extrabold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                   <KeyRound className="w-3.5 h-3.5 text-emerald-600" />
-                  [Step 3] ตั้งรหัส PIN 4 หลักส่วนตัว:
+                  ตั้งรหัส PIN 4 หลักส่วนตัว:
                 </label>
                 <div className="flex gap-2.5 justify-center">
                   {[0, 1, 2, 3].map(idx => (
