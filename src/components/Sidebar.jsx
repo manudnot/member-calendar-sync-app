@@ -24,8 +24,10 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`bg-white dark:bg-dark-card border-r border-slate-200 dark:border-dark-border flex flex-col transition-all duration-300 z-20 shrink-0 ${
-        isOpen ? 'w-64 opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
+      className={`bg-white dark:bg-dark-card border-r border-slate-200 dark:border-dark-border flex flex-col transition-all duration-300 z-30 shrink-0 ${
+        isOpen
+          ? 'fixed md:relative inset-y-0 left-0 top-14 md:top-0 w-64 opacity-100 translate-x-0 shadow-2xl md:shadow-none'
+          : 'fixed md:relative inset-y-0 left-0 top-14 md:top-0 w-64 md:w-0 opacity-0 -translate-x-full md:translate-x-0 overflow-hidden border-none pointer-events-none md:pointer-events-auto'
       }`}
     >
       {/* Calendar Identity Header */}

@@ -59,7 +59,7 @@ export default function App() {
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('member_calendar_theme') || 'light';
   });
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
 
   // Per-Device Active User Identity State
   const [activeUserId, setActiveUserId] = useState(() => {
@@ -72,7 +72,6 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Clean up stale mockup @unit21.com emails
           return parsed.map(m => {
             if (m.id === 'mem_manudnot') {
               return { ...m, email: 'wtgmso123@gmail.com' };
@@ -148,62 +147,47 @@ export default function App() {
     }
   }, [theme]);
 
-  // Load & Sync between LocalStorage and Supabase on mount
+  // Load & Sync between LocalStorage and Supabase on mount and periodically
   useEffect(() => {
     async function fetchData() {
-      const savedMembersStr = localStorage.getItem('member_calendar_members');
-      const savedEventsStr = localStorage.getItem('member_calendar_events');
-      
-      let localMembers = null;
-      let localEvents = null;
+      if (!supabase) return;
 
       try {
-        if (savedMembersStr) localMembers = JSON.parse(savedMembersStr);
-      } catch (e) {}
-
-      try {
-        if (savedEventsStr) localEvents = JSON.parse(savedEventsStr);
-      } catch (e) {}
-
-      if (supabase) {
-        try {
-          // Fetch members from Supabase
-          const { data: supaMembers } = await supabase.from('members').select('*');
-          if (localMembers && localMembers.length > 0) {
-            setMembers(localMembers);
-            setVisibleMemberIds(localMembers.map(m => m.id));
-            await supabase.from('members').upsert(localMembers);
-          } else if (supaMembers && supaMembers.length > 0) {
-            const cleanSupaMembers = supaMembers.filter(m =>
-              !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
-            );
-            setMembers(cleanSupaMembers);
-            localStorage.setItem('member_calendar_members', JSON.stringify(cleanSupaMembers));
-            setVisibleMemberIds(cleanSupaMembers.map(m => m.id));
-          }
-
-          // Fetch events from Supabase
-          const { data: supaEvents } = await supabase.from('events').select('*');
-          if (localEvents && localEvents.length > 0) {
-            setEvents(localEvents);
-            await supabase.from('events').upsert(localEvents);
-          } else if (supaEvents && supaEvents.length > 0) {
-            setEvents(supaEvents);
-            localStorage.setItem('member_calendar_events', JSON.stringify(supaEvents));
-          }
-
-          // Fetch activity logs from Supabase
-          const { data: supaLogs } = await supabase.from('activity_logs').select('*').order('created_at', { ascending: false });
-          if (supaLogs && supaLogs.length > 0) {
-            setActivityLogs(supaLogs);
-            localStorage.setItem('member_calendar_activity_logs', JSON.stringify(supaLogs));
-          }
-        } catch (err) {
-          console.warn('Supabase sync notice:', err);
+        // Fetch members from Supabase (Always prioritize Supabase PostgreSQL)
+        const { data: supaMembers, error: memErr } = await supabase.from('members').select('*');
+        if (!memErr && supaMembers && supaMembers.length > 0) {
+          const cleanSupaMembers = supaMembers.filter(m =>
+            !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
+          );
+          setMembers(cleanSupaMembers);
+          localStorage.setItem('member_calendar_members', JSON.stringify(cleanSupaMembers));
+          setVisibleMemberIds(prev => prev.length === 0 ? cleanSupaMembers.map(m => m.id) : prev);
+        } else {
+          // If Supabase table empty, seed with initial members
+          await supabase.from('members').upsert(INITIAL_MEMBERS);
         }
+
+        // Fetch events from Supabase
+        const { data: supaEvents, error: evtErr } = await supabase.from('events').select('*');
+        if (!evtErr && supaEvents && supaEvents.length > 0) {
+          setEvents(supaEvents);
+          localStorage.setItem('member_calendar_events', JSON.stringify(supaEvents));
+        }
+
+        // Fetch activity logs from Supabase
+        const { data: supaLogs } = await supabase.from('activity_logs').select('*').order('created_at', { ascending: false });
+        if (supaLogs && supaLogs.length > 0) {
+          setActivityLogs(supaLogs);
+          localStorage.setItem('member_calendar_activity_logs', JSON.stringify(supaLogs));
+        }
+      } catch (err) {
+        console.warn('Supabase sync notice:', err);
       }
     }
+
     fetchData();
+    const interval = setInterval(fetchData, 5000); // 5-second live multi-device polling
+    return () => clearInterval(interval);
   }, []);
 
   // Audit Logging helper

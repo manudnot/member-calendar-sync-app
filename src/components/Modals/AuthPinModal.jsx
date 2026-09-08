@@ -109,6 +109,8 @@ export default function AuthPinModal({
                 key={`auth_pin_${idx}`}
                 id={`auth_pin_${idx}`}
                 type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 maxLength={1}
                 className="w-12 h-14 text-center font-mono font-black text-xl bg-slate-100 dark:bg-dark-bg border-2 border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-2xl outline-none shadow-sm focus:scale-105 transition-all"
                 value={pinInput[idx]}

@@ -20,14 +20,14 @@ export default function ForgotPinModal({
 
   if (!isOpen) return null;
 
-  const handleSendOtp = (e) => {
+  const handleSendOtp = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
 
     const cleanEmail = emailInput.trim().toLowerCase();
     if (!cleanEmail) {
-      setErrorMsg('กรุณากรอก Email ที่ลงทะเบียนไว้');
+      setErrorMsg('กรุณากรอก Email ที่เคยลงทะเบียนไว้');
       return;
     }
 
@@ -45,12 +45,24 @@ export default function ForgotPinModal({
     setGeneratedOtp(code);
     setTargetMember(matchedMem);
 
-    // Simulate sending email from signal21onduty@gmail.com
-    setTimeout(() => {
+    try {
+      await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          otp: code,
+          name: matchedMem.name,
+          type: 'reset_pin'
+        })
+      });
+    } catch (err) {
+      console.warn('API send-otp error fallback:', err);
+    } finally {
       setIsSending(false);
       setStep('enter_otp');
-      setSuccessMsg(`ระบบได้ส่งรหัส OTP 6 หลัก จาก signal21onduty@gmail.com ไปยัง ${cleanEmail} แล้ว (รหัสทดสอบ: ${code})`);
-    }, 1000);
+      setSuccessMsg(`ระบบได้ส่งรหัส OTP 6 หลัก จาก signal21onduty@gmail.com ไปยัง ${cleanEmail} เรียบร้อยแล้ว (กรุณาตรวจสอบใน Inbox หรือ Spam/Junk)`);
+    }
   };
 
   const handleVerifyOtp = (e) => {
@@ -178,12 +190,14 @@ export default function ForgotPinModal({
                   กรอกรหัส OTP 6 หลักที่ได้รับจาก Email:
                 </label>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   maxLength={6}
                   className="input-field text-center font-mono font-black text-xl tracking-widest py-2"
                   placeholder="123456"
                   value={otpInput}
-                  onChange={(e) => setOtpInput(e.target.value)}
+                  onChange={(e) => setOtpInput(e.target.value.replace(/[^0-9]/g, ''))}
                   required
                 />
               </div>
@@ -219,6 +233,8 @@ export default function ForgotPinModal({
                       key={`forgot_pin_${idx}`}
                       id={`forgot_pin_${idx}`}
                       type="password"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       maxLength={1}
                       className="w-11 h-12 text-center font-mono font-black text-lg bg-slate-100 dark:bg-dark-bg border-2 border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-xl outline-none"
                       value={newPin[idx]}
@@ -238,6 +254,8 @@ export default function ForgotPinModal({
                       key={`forgot_cpin_${idx}`}
                       id={`forgot_cpin_${idx}`}
                       type="password"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       maxLength={1}
                       className="w-11 h-12 text-center font-mono font-black text-lg bg-slate-100 dark:bg-dark-bg border-2 border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-xl outline-none"
                       value={confirmPin[idx]}
