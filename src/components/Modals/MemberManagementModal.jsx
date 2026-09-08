@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Plus, Trash2, Edit3, Check, User, UserX, UserCheck, Mail, Send, Bot } from 'lucide-react';
+import { X, Search, Plus, Trash2, Edit3, Check, User, UserX, UserCheck, Bot } from 'lucide-react';
 
 const PRESET_COLORS = [
   '#10b981', // Emerald
@@ -30,8 +30,6 @@ export default function MemberManagementModal({
   const [memberName, setMemberName] = useState('');
   const [memberColor, setMemberColor] = useState('#10b981');
   const [memberType, setMemberType] = useState('member'); // 'member' | 'virtual'
-  const [memberEmail, setMemberEmail] = useState('');
-  const [inviteSentMsg, setInviteSentMsg] = useState('');
 
   useEffect(() => {
     if (memberToEdit) {
@@ -39,7 +37,6 @@ export default function MemberManagementModal({
       setMemberName(memberToEdit.name);
       setMemberColor(memberToEdit.color || '#10b981');
       setMemberType(memberToEdit.member_type === 'virtual' ? 'virtual' : 'member');
-      setMemberEmail(memberToEdit.email || '');
       setShowForm(true);
     }
   }, [memberToEdit]);
@@ -65,8 +62,6 @@ export default function MemberManagementModal({
     setMemberName('');
     setMemberColor('#10b981');
     setMemberType('member');
-    setMemberEmail('');
-    setInviteSentMsg('');
     setShowForm(true);
   };
 
@@ -75,17 +70,7 @@ export default function MemberManagementModal({
     setMemberName(mem.name);
     setMemberColor(mem.color || '#10b981');
     setMemberType(mem.member_type === 'virtual' ? 'virtual' : 'member');
-    setMemberEmail(mem.email || '');
-    setInviteSentMsg('');
     setShowForm(true);
-  };
-
-  const handleSendInvite = () => {
-    if (!memberEmail.trim()) {
-      alert('กรุณาระบุ Email ก่อนส่งคำเชิญ');
-      return;
-    }
-    setInviteSentMsg(`ส่งคำเชิญจาก signal21onduty@gmail.com ไปยัง ${memberEmail.trim()} สำเร็จแล้ว!`);
   };
 
   const handleFormSubmit = (e) => {
@@ -102,8 +87,7 @@ export default function MemberManagementModal({
         name: memberName.trim(),
         initials,
         color: memberColor,
-        member_type: memberType,
-        email: memberType === 'member' ? memberEmail.trim() : ''
+        member_type: memberType
       };
       onUpdateMember(updatedMember);
     } else {
@@ -113,14 +97,12 @@ export default function MemberManagementModal({
         initials,
         color: memberColor,
         member_type: memberType,
-        email: memberType === 'member' ? memberEmail.trim() : '',
         is_archived: false
       };
       onAddMember(newMember);
     }
 
     setMemberName('');
-    setMemberEmail('');
     setEditingMemberId(null);
     setShowForm(false);
   };
@@ -222,36 +204,6 @@ export default function MemberManagementModal({
               />
             </div>
 
-            {/* Email Input for Member */}
-            {memberType === 'member' && (
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
-                  <span className="flex items-center gap-1">
-                    <Mail className="w-3 h-3 text-emerald-600" /> Email สำหรับส่ง OTP / คำเชิญ:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleSendInvite}
-                    className="text-[10px] text-emerald-600 hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <Send className="w-2.5 h-2.5" /> ส่ง Email คำเชิญ
-                  </button>
-                </label>
-                <input
-                  type="email"
-                  placeholder="เช่น signal21onduty@gmail.com"
-                  className="input-field text-xs font-mono"
-                  value={memberEmail}
-                  onChange={(e) => setMemberEmail(e.target.value)}
-                />
-                {inviteSentMsg && (
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                    {inviteSentMsg}
-                  </span>
-                )}
-              </div>
-            )}
-
             {/* Color Palette Selector */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
@@ -327,11 +279,6 @@ export default function MemberManagementModal({
                           <Bot className="w-3 h-3" /> Virtual Member
                         </span>
                       )}
-                      {mem.email && (
-                        <span className="text-[10px] font-mono text-slate-400">
-                          {mem.email}
-                        </span>
-                      )}
                     </div>
                   </div>
 
@@ -365,3 +312,4 @@ export default function MemberManagementModal({
     </div>
   );
 }
+

@@ -138,7 +138,7 @@ export default function FirstTimeUserModal({
       return;
     }
 
-    onSaveNewPin(selectedMember.id, p1, enableBiometrics, selectedMember.email);
+    onSaveNewPin(selectedMember.id, p1, enableBiometrics);
   };
 
   const handleTriggerForgotPin = () => {

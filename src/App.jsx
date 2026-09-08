@@ -18,15 +18,15 @@ import { hashPasscode } from './utils/crypto';
 
 // INITIAL TEAM MEMBERS (9 MEMBERS: MEMBERS & VIRTUAL MEMBERS)
 const INITIAL_MEMBERS = [
-  { id: 'mem_manudnot', name: 'Not', initials: 'NO', color: '#8b5cf6', pin_code: '1234', member_type: 'member', email: 'wtgmso123@gmail.com' },
-  { id: 'mem_third', name: 'Third', initials: 'TH', color: '#0ea5e9', pin_code: '1234', member_type: 'member', email: '' },
-  { id: 'mem_june', name: 'June', initials: 'JU', color: '#ec4899', member_type: 'member', email: '' },
-  { id: 'mem_thanatat', name: 'Top', initials: 'TO', color: '#f59e0b', member_type: 'member', email: '' },
-  { id: 'mem_phak_ek', name: 'เอก', initials: 'PE', color: '#ef4444', member_type: 'member', email: '' },
-  { id: 'mem_keng', name: 'เก่ง', initials: 'KG', color: '#06b6d4', member_type: 'member', email: '' },
-  { id: 'mem_tum', name: 'ตั้ม', initials: 'TM', color: '#84cc16', member_type: 'member', email: '' },
-  { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', color: '#10b981', member_type: 'member', email: '' },
-  { id: 'mem_wm', name: 'เวรหมาย', initials: 'WM', color: '#64748b', member_type: 'virtual', email: '' }
+  { id: 'mem_manudnot', name: 'Not', initials: 'NO', color: '#8b5cf6', member_type: 'member' },
+  { id: 'mem_third', name: 'Third', initials: 'TH', color: '#0ea5e9', member_type: 'member' },
+  { id: 'mem_june', name: 'June', initials: 'JU', color: '#ec4899', member_type: 'member' },
+  { id: 'mem_thanatat', name: 'Top', initials: 'TO', color: '#f59e0b', member_type: 'member' },
+  { id: 'mem_phak_ek', name: 'เอก', initials: 'PE', color: '#ef4444', member_type: 'member' },
+  { id: 'mem_keng', name: 'เก่ง', initials: 'KG', color: '#06b6d4', member_type: 'member' },
+  { id: 'mem_tum', name: 'ตั้ม', initials: 'TM', color: '#84cc16', member_type: 'member' },
+  { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', color: '#10b981', member_type: 'member' },
+  { id: 'mem_wm', name: 'เวรหมาย', initials: 'WM', color: '#64748b', member_type: 'virtual' }
 ];
 
 
@@ -180,15 +180,19 @@ export default function App() {
           );
 
           setMembers(prevMembers => {
-            return prevMembers.map(localMem => {
+            const updated = prevMembers.map(localMem => {
               const supaMem = cleanSupaMembers.find(sm => sm.id === localMem.id);
-              const syncedPin = supaMem?.pin_code || pinSyncMap[localMem.id] || localMem.pin_code || '';
+              const validSupaPin = (supaMem && supaMem.pin_code && supaMem.pin_code.trim()) ? supaMem.pin_code.trim() : null;
+              const syncedPin = validSupaPin || pinSyncMap[localMem.id] || localMem.pin_code || '';
+
               return {
                 ...localMem,
                 ...(supaMem || {}),
                 pin_code: syncedPin
               };
             });
+            localStorage.setItem('member_calendar_members', JSON.stringify(updated));
+            return updated;
           });
         } else {
           // If Supabase table empty, seed with initial members
@@ -286,13 +290,13 @@ export default function App() {
     setToast({ message: `กู้คืนและตั้งรหัส PIN ใหม่สำหรับคุณ ${mem ? mem.name : ''} สำเร็จ!`, type: 'success' });
   };
 
-  const handleSaveNewPin = async (memberId, pinCode, enableBiometrics, userEmail = '') => {
+  const handleSaveNewPin = async (memberId, pinCode, enableBiometrics) => {
     const hashedPin = await hashPasscode(pinCode);
 
     const updatedMembers = members.map(m => m.id === memberId ? {
       ...m,
       pin_code: hashedPin,
-      email: userEmail || m.email
+      email: ''
     } : m);
 
     setMembers(updatedMembers);
@@ -359,7 +363,15 @@ export default function App() {
 
     if (supabase) {
       try {
-        await supabase.from('members').upsert([newMember]);
+        const supaPayload = {
+          id: newMember.id,
+          name: newMember.name,
+          color: newMember.color,
+          email: '',
+          status: newMember.status || 'active',
+          is_archived: Boolean(newMember.is_archived)
+        };
+        await supabase.from('members').upsert([supaPayload]);
       } catch (e) {
         console.warn('Supabase insert member warning:', e);
       }
@@ -376,13 +388,22 @@ export default function App() {
 
     if (supabase) {
       try {
-        await supabase.from('members').upsert([updatedMember]);
+        const supaPayload = {
+          id: updatedMember.id,
+          name: updatedMember.name,
+          color: updatedMember.color,
+          email: '',
+          status: updatedMember.status || 'active',
+          is_archived: Boolean(updatedMember.is_archived)
+        };
+        if (updatedMember.pin_code) supaPayload.pin_code = updatedMember.pin_code;
+        await supabase.from('members').upsert([supaPayload]);
       } catch (e) {
         console.warn('Supabase update member warning:', e);
       }
     }
 
-    logActivity('MEMBER_UPDATE', null, `แก้ไขข้อมูลสมาชิก: คุณ ${updatedMember.name} (Email: ${updatedMember.email || 'ไม่ระบุ'})`);
+    logActivity('MEMBER_UPDATE', null, `แก้ไขข้อมูลสมาชิก: คุณ ${updatedMember.name}`);
     setToast({ message: `แก้ไขข้อมูลสมาชิก ${updatedMember.name} สำเร็จ!`, type: 'success' });
   };
 
@@ -403,7 +424,16 @@ export default function App() {
 
     if (supabase) {
       try {
-        await supabase.from('members').upsert([updatedMember]);
+        const supaPayload = {
+          id: updatedMember.id,
+          name: updatedMember.name,
+          color: updatedMember.color,
+          email: '',
+          status: updatedMember.status,
+          is_archived: updatedMember.is_archived
+        };
+        if (updatedMember.pin_code) supaPayload.pin_code = updatedMember.pin_code;
+        await supabase.from('members').upsert([supaPayload]);
       } catch (e) {
         console.warn('Supabase toggle archive member warning:', e);
       }
