@@ -256,9 +256,6 @@ export default function MonthGrid({
                       >
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: evtColor }} />
                         <span className="truncate font-bold text-slate-800 dark:text-slate-100">{evt.title}</span>
-                        {timeText && (
-                          <span className="ml-auto text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400 shrink-0">{timeText}</span>
-                        )}
                       </div>
                     );
                   }
