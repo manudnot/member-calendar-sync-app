@@ -48,3 +48,16 @@ export function isEventOnDate(evt, targetDateStr) {
   return targetDateStr >= sDateStr && targetDateStr <= eDateStr;
 }
 
+export function formatThaiDateTime(isoStr) {
+  if (!isoStr) return '-';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return isoStr;
+  const day = d.getDate();
+  const month = THAI_MONTHS[d.getMonth()];
+  const year = d.getFullYear() + 543;
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${day} ${month} ${year} ${hours}:${minutes} น.`;
+}
+
+

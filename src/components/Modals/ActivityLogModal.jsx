@@ -98,7 +98,7 @@ export default function ActivityLogModal({
       case 'MEMBER_UPDATE':
         return (
           <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 flex items-center gap-1 shrink-0">
-            <UserCheck className="w-3 h-3" /> แก้ไขสมาชิก/Email
+            <UserCheck className="w-3 h-3" /> แก้ไขข้อมูลสมาชิก
           </span>
         );
       case 'MEMBER_ARCHIVE':
@@ -297,14 +297,27 @@ export default function ActivityLogModal({
                       {getActionBadge(log.action)}
                     </div>
 
-                    <div className="flex flex-col gap-0.5 pl-8 border-l-2 border-slate-200 dark:border-slate-700 ml-3 py-0.5">
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                    <div className="flex flex-col gap-1 pl-8 border-l-2 border-slate-200 dark:border-slate-700 ml-3 py-0.5">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
                         {log.event_title}
                       </span>
                       {log.details && (
-                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                          {log.details}
-                        </span>
+                        <div className="flex flex-col gap-0.5 mt-0.5">
+                          {log.details.split(' | ').map((part, idx) => (
+                            <span key={idx} className="text-[11px] font-medium text-slate-600 dark:text-slate-300 leading-relaxed flex items-center flex-wrap">
+                              {part.includes('➔') ? (
+                                part.split('➔').map((sub, sIdx) => (
+                                  <React.Fragment key={sIdx}>
+                                    {sIdx > 0 && <span className="text-emerald-600 dark:text-emerald-400 font-black mx-1">➔</span>}
+                                    <span>{sub.trim()}</span>
+                                  </React.Fragment>
+                                ))
+                              ) : (
+                                part
+                              )}
+                            </span>
+                          ))}
+                        </div>
                       )}
                       <span className="text-[10px] font-mono text-slate-400 mt-1 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
