@@ -16,22 +16,24 @@ const COLOR_PALETTE = [
 function getRepeatOptionsForDate(dateStr) {
   const d = dateStr ? new Date(dateStr) : new Date();
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const thaiDayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
   const ordinals = ['1st', '2nd', '3rd', '4th', '5th'];
 
-  const dayName = dayNames[d.getDay()] || 'Saturday';
+  const dayIdx = d.getDay();
+  const dayName = dayNames[dayIdx] || 'Saturday';
+  const thaiDayName = thaiDayNames[dayIdx] || 'เสาร์';
   const dayNum = d.getDate();
   const weekOrdinalIndex = Math.floor((dayNum - 1) / 7);
   const weekOrdinal = ordinals[weekOrdinalIndex] || `${weekOrdinalIndex + 1}th`;
 
   return [
-    { value: 'none', label: 'Not Repeating' },
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: `${dayName} each week` },
-    { value: 'weekdays', label: 'Weekdays (Mon-Fri)' },
-    { value: 'monthly_nth_day', label: `${weekOrdinal} ${dayName} each month` },
-    { value: 'monthly_date', label: `Every month on the ${dayNum}` },
-    { value: 'yearly', label: 'Yearly' },
-    { value: 'custom', label: 'Custom' }
+    { value: 'none', label: 'ไม่ทำซ้ำ (Not Repeating)' },
+    { value: 'yearly', label: 'ทุกปี (Yearly)' },
+    { value: 'daily', label: 'ทุกวัน (Daily)' },
+    { value: 'weekly', label: `ทุกสัปดาห์วัน${thaiDayName} (Weekly on ${dayName})` },
+    { value: 'weekdays', label: 'วันทำการ จันทร์-ศุกร์ (Mon-Fri)' },
+    { value: 'monthly_date', label: `ทุกเดือน วันที่ ${dayNum} (Every month on ${dayNum})` },
+    { value: 'custom', label: 'กำหนดเอง (Custom)' }
   ];
 }
 
@@ -101,7 +103,17 @@ export default function MissionModal({
 
       setSelectedMembers(Array.isArray(editingEvent.member_ids) ? editingEvent.member_ids : []);
       setColor(editingEvent.color || '#10b981');
-      setRepeat(editingEvent.repeat || 'none');
+      let initialRepeat = editingEvent.repeat;
+      if (!initialRepeat || initialRepeat === 'none') {
+        const tLower = (editingEvent.title || '').toLowerCase();
+        const dLower = (editingEvent.description || '').toLowerCase();
+        if (tLower.includes('วันเกิด') || tLower.includes('เกิด') || dLower.includes('yearly')) {
+          initialRepeat = 'yearly';
+        } else {
+          initialRepeat = 'none';
+        }
+      }
+      setRepeat(initialRepeat);
 
       if (editingEvent.custom_repeat) {
         setCustomInterval(editingEvent.custom_repeat.interval || 1);
