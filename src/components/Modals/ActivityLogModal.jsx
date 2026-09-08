@@ -19,8 +19,11 @@ export default function ActivityLogModal({
 
   const getMemberById = (mId) => members.find(m => m.id === mId);
 
+  // Filter out internal system sync logs
+  const userFacingLogs = activityLogs.filter(l => l.action !== 'PIN_SYNC');
+
   // Sort logs reverse chronological order (Newest -> Oldest)
-  const sortedLogs = [...activityLogs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const sortedLogs = [...userFacingLogs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   // Filter logs by Category, Actor, and Search Query
   const filteredLogs = sortedLogs.filter(log => {
@@ -137,7 +140,7 @@ export default function ActivityLogModal({
               }`}
             >
               <History className="w-3.5 h-3.5" />
-              <span>ประวัติการทำงาน ({activityLogs.length})</span>
+              <span>ประวัติการทำงาน ({userFacingLogs.length})</span>
             </button>
 
             <button

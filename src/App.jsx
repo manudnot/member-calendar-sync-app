@@ -218,8 +218,8 @@ export default function App() {
   }, []);
 
   // Audit Logging helper
-  const logActivity = async (action, evt, details = '') => {
-    const actor = members.find(m => m.id === activeUserId) || members[0];
+  const logActivity = async (action, evt, details = '', customActor = null) => {
+    const actor = customActor || members.find(m => m.id === activeUserId) || members[0];
     const newLog = {
       id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       event_id: evt ? evt.id : null,
@@ -264,7 +264,7 @@ export default function App() {
     localStorage.setItem('member_calendar_members', JSON.stringify(updatedMembers));
 
     const mem = updatedMembers.find(m => m.id === memberId);
-    logActivity('PIN_UPDATE', null, `กู้คืนและตั้งรหัส PIN 4 หลักใหม่สำหรับคุณ ${mem ? mem.name : ''}`);
+    logActivity('PIN_UPDATE', null, `กู้คืนและตั้งรหัส PIN 4 หลักใหม่สำหรับคุณ ${mem ? mem.name : ''}`, mem);
 
     if (supabase) {
       try {
@@ -278,7 +278,7 @@ export default function App() {
         };
         const { error } = await supabase.from('members').upsert([supaPayload]);
         if (error) {
-          logActivity('PIN_SYNC', null, `PIN_HASH:${target.id}:${hashedPin}`);
+          logActivity('PIN_SYNC', null, `PIN_HASH:${target.id}:${hashedPin}`, mem);
         }
       } catch (e) {}
     }
@@ -303,7 +303,7 @@ export default function App() {
     setIsFirstTimeModalOpen(false);
 
     const mem = updatedMembers.find(m => m.id === memberId);
-    logActivity('PIN_UPDATE', null, `ตั้งรหัส PIN 4 หลักประจำเครื่องสำหรับคุณ ${mem ? mem.name : ''}`);
+    logActivity('PIN_UPDATE', null, `ตั้งรหัส PIN 4 หลักประจำเครื่องสำหรับคุณ ${mem ? mem.name : ''}`, mem);
 
     if (supabase) {
       try {
@@ -317,7 +317,7 @@ export default function App() {
         };
         const { error } = await supabase.from('members').upsert([supaPayload]);
         if (error) {
-          logActivity('PIN_SYNC', null, `PIN_HASH:${target.id}:${hashedPin}`);
+          logActivity('PIN_SYNC', null, `PIN_HASH:${target.id}:${hashedPin}`, mem);
         }
       } catch (e) {}
     }
