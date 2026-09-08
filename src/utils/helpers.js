@@ -45,7 +45,75 @@ export function isEventOnDate(evt, targetDateStr) {
     ? (evt.end_time.includes('T') ? evt.end_time.split('T')[0] : formatDateKey(new Date(evt.end_time)))
     : sDateStr;
 
-  return targetDateStr >= sDateStr && targetDateStr <= eDateStr;
+  // Direct date match for event range
+  const isDirectMatch = targetDateStr >= sDateStr && targetDateStr <= eDateStr;
+  if (isDirectMatch) return true;
+
+  // Detect repeat mode from field or title/description
+  let repeatMode = evt.repeat || 'none';
+  if (repeatMode === 'none') {
+    const titleLower = (evt.title || '').toLowerCase();
+    const descLower = (evt.description || '').toLowerCase();
+    if (titleLower.includes('วันเกิด') || titleLower.includes('เกิด') || descLower.includes('yearly')) {
+      repeatMode = 'yearly';
+    } else if (descLower.includes('weekly')) {
+      repeatMode = 'weekly';
+    } else if (descLower.includes('daily')) {
+      repeatMode = 'daily';
+    } else if (descLower.includes('monthly')) {
+      repeatMode = 'monthly_date';
+    }
+  }
+
+  if (repeatMode === 'none') return false;
+
+  // Ensure target date is on or after start date (except birthdays which apply to all years)
+  const isBirthday = (evt.title || '').includes('วันเกิด') || (evt.title || '').includes('เกิด');
+  if (!isBirthday && targetDateStr < sDateStr) return false;
+
+  // Custom repeat end condition check
+  if (evt.custom_repeat) {
+    if (evt.custom_repeat.ends_mode === 'on' && evt.custom_repeat.ends_on) {
+      if (targetDateStr > evt.custom_repeat.ends_on) return false;
+    }
+  }
+
+  const sDateParts = sDateStr.split('-').map(Number);
+  const tDateParts = targetDateStr.split('-').map(Number);
+  const tDate = new Date(tDateParts[0], tDateParts[1] - 1, tDateParts[2]);
+
+  switch (repeatMode) {
+    case 'yearly': {
+      // Same Month & Day (MM-DD)
+      const sMMDD = sDateStr.substring(5);
+      const tMMDD = targetDateStr.substring(5);
+      return sMMDD === tMMDD;
+    }
+
+    case 'monthly_date': {
+      // Same day of month (DD)
+      return sDateParts[2] === tDateParts[2];
+    }
+
+    case 'weekly': {
+      // Same day of week
+      const sDate = new Date(sDateParts[0], sDateParts[1] - 1, sDateParts[2]);
+      return sDate.getDay() === tDate.getDay();
+    }
+
+    case 'weekdays': {
+      // Monday to Friday (1..5)
+      const dayOfWeek = tDate.getDay();
+      return dayOfWeek >= 1 && dayOfWeek <= 5;
+    }
+
+    case 'daily': {
+      return true;
+    }
+
+    default:
+      return false;
+  }
 }
 
 export function formatThaiDateTime(isoStr) {
