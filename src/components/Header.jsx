@@ -126,20 +126,6 @@ export default function Header({
           </button>
         )}
 
-        {/* Activity Log & Recycle Bin Button */}
-        <button
-          onClick={onOpenActivityLogModal}
-          className="relative p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-dark-border transition-colors cursor-pointer"
-          title="ประวัติการทำงาน & ถังขยะกู้คืน"
-        >
-          <History className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          {unreadActivityCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black font-mono w-4 h-4 rounded-full flex items-center justify-center border-2 border-white dark:border-dark-card animate-pulse shadow-sm">
-              {unreadActivityCount > 9 ? '9+' : unreadActivityCount}
-            </span>
-          )}
-        </button>
-
         {/* Theme Switcher */}
         <div className="flex items-center gap-1 bg-slate-100 dark:bg-dark-bg p-1 rounded-xl border border-slate-200 dark:border-dark-border">
           <button
@@ -176,22 +162,6 @@ export default function Header({
             <Laptop className="w-4 h-4" />
           </button>
         </div>
-
-        <button
-          onClick={onOpenIcalModal}
-          className="btn-secondary hidden sm:flex"
-        >
-          <QrCode className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span>iCal Hub</span>
-        </button>
-
-        <button
-          onClick={onOpenAddEvent}
-          className="btn-primary"
-        >
-          <Plus className="w-4 h-4" />
-          <span>เพิ่มงาน</span>
-        </button>
       </div>
 
     </header>

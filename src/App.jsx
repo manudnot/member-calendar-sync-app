@@ -25,7 +25,7 @@ const INITIAL_MEMBERS = [
   { id: 'mem_phak_ek', name: 'เอก', initials: 'PE', color: '#ef4444', member_type: 'member' },
   { id: 'mem_keng', name: 'เก่ง', initials: 'KG', color: '#06b6d4', member_type: 'member' },
   { id: 'mem_tum', name: 'ตั้ม', initials: 'TM', color: '#84cc16', member_type: 'member' },
-  { id: 'mem_woooddy', name: 'WoooddY', initials: 'WD', color: '#10b981', member_type: 'member' },
+  { id: 'mem_woooddy', name: 'Champ', initials: 'CH', color: '#10b981', member_type: 'member' },
   { id: 'mem_wm', name: 'เวรหมาย', initials: 'WM', color: '#64748b', member_type: 'virtual' }
 ];
 
@@ -180,14 +180,14 @@ export default function App() {
           );
 
           setMembers(prevMembers => {
-            const updated = prevMembers.map(localMem => {
-              const supaMem = cleanSupaMembers.find(sm => sm.id === localMem.id);
-              const validSupaPin = (supaMem && supaMem.pin_code && supaMem.pin_code.trim()) ? supaMem.pin_code.trim() : null;
-              const syncedPin = validSupaPin || pinSyncMap[localMem.id] || localMem.pin_code || '';
+            const updated = cleanSupaMembers.map(supaMem => {
+              const localMem = prevMembers.find(m => m.id === supaMem.id);
+              const validSupaPin = (supaMem.pin_code && supaMem.pin_code.trim()) ? supaMem.pin_code.trim() : null;
+              const syncedPin = validSupaPin || pinSyncMap[supaMem.id] || (localMem && localMem.pin_code) || '';
 
               return {
                 ...localMem,
-                ...(supaMem || {}),
+                ...supaMem,
                 pin_code: syncedPin
               };
             });
@@ -587,7 +587,18 @@ export default function App() {
 
     if (supabase) {
       try {
-        await supabase.from('events').upsert([eventPayload]);
+        const supaEvtPayload = {
+          id: eventPayload.id,
+          title: eventPayload.title,
+          start_time: eventPayload.start_time,
+          end_time: eventPayload.end_time,
+          description: eventPayload.description || '',
+          location: eventPayload.location || eventPayload.url || '',
+          category: eventPayload.category || 'General',
+          member_ids: eventPayload.member_ids || [],
+          alarm_minutes: eventPayload.alarm_minutes || 15
+        };
+        await supabase.from('events').upsert([supaEvtPayload]);
       } catch(e) {
         console.warn('Supabase upsert event warning:', e);
       }
@@ -614,9 +625,9 @@ export default function App() {
 
     if (supabase) {
       try {
-        await supabase.from('events').upsert([softDeletedEvt]);
+        await supabase.from('events').delete().eq('id', eventId);
       } catch(e) {
-        console.warn('Supabase soft delete event warning:', e);
+        console.warn('Supabase delete event warning:', e);
       }
     }
     setToast({ message: 'ย้ายกิจกรรมไปถังขยะเรียบร้อยแล้ว (สามารถกู้คืนได้)', type: 'info' });
@@ -730,10 +741,17 @@ export default function App() {
       {/* Modals & Toast */}
       <FirstTimeUserModal
         isOpen={isFirstTimeModalOpen}
+        onClose={() => setIsFirstTimeModalOpen(false)}
         members={members}
+        activeUser={activeUser}
         onSelectMemberWithPin={handleSelectMemberWithPin}
         onSaveNewPin={handleSaveNewPin}
         onOpenForgotPin={() => setIsForgotPinModalOpen(true)}
+        onOpenAddEvent={() => handleOpenAddEvent(selectedDateStr)}
+        onOpenMemberManagement={handleOpenMemberManagementModal}
+        onOpenIcalModal={() => setIsIcalModalOpen(true)}
+        onOpenActivityLog={handleOpenActivityLogModal}
+        unreadActivityCount={unreadActivityCount}
       />
 
       <ForgotPinModal

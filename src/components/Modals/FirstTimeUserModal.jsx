@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
-import { User, KeyRound, ShieldCheck, Fingerprint, Check, AlertCircle, Sparkles, Lock, ArrowRight, RefreshCw } from 'lucide-react';
+import { User, KeyRound, ShieldCheck, Fingerprint, Check, AlertCircle, Sparkles, Lock, ArrowRight, RefreshCw, X, Plus, Users, QrCode, Activity, UserCheck } from 'lucide-react';
 import { verifyMasterPasscode, verifyPinCode } from '../../utils/crypto';
 
 export default function FirstTimeUserModal({
   isOpen,
+  onClose,
   members,
+  activeUser,
   onSelectMemberWithPin,
   onSaveNewPin,
-  onOpenForgotPin
+  onOpenForgotPin,
+  onOpenAddEvent,
+  onOpenMemberManagement,
+  onOpenIcalModal,
+  onOpenActivityLog,
+  unreadActivityCount = 0
 }) {
   const [selectedMember, setSelectedMember] = useState(null);
   const [masterPasscodeInput, setMasterPasscodeInput] = useState('');
@@ -154,15 +161,26 @@ export default function FirstTimeUserModal({
       <div className="relative w-full max-w-md bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-3xl shadow-2xl overflow-hidden glass-panel max-h-[90vh] flex flex-col">
         
         {/* Header */}
-        <div className="p-5 border-b border-slate-200 dark:border-dark-border bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex flex-col gap-1 text-center">
+        <div className="p-5 border-b border-slate-200 dark:border-dark-border bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex flex-col gap-1 text-center relative">
+          {(onClose || activeUser) && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute right-4 top-4 p-1.5 rounded-full bg-black/20 hover:bg-black/40 text-white/90 hover:text-white transition-all cursor-pointer z-10"
+              title="ปิดหน้าต่าง"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+
           <div className="w-12 h-12 mx-auto rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white mb-1 shadow-inner">
             <Sparkles className="w-6 h-6 animate-pulse" />
           </div>
           <h2 className="text-base font-black tracking-tight">
-            เข้าใช้งานระบบปฏิทินปฏิบัติงาน
+            {activeUser ? `เมนูผู้ใช้งาน (${activeUser.name})` : 'เข้าใช้งานระบบปฏิทินปฏิบัติงาน'}
           </h2>
           <p className="text-xs font-semibold text-emerald-100">
-            {step === 'select_user' && 'กรุณาเลือกชื่อสมาชิกทีมเพื่อเปิดใช้งาน'}
+            {step === 'select_user' && (activeUser ? 'เลือกเมนูด้านล่างหรือสลับตัวตนสมาชิก' : 'กรุณาเลือกชื่อสมาชิกทีมเพื่อเปิดใช้งาน')}
             {step === 'enter_pin' && `กรอกรหัส PIN 4 หลักเดิมเพื่อเข้าใช้งานในนาม ${selectedMember?.name}`}
             {step === 'enter_master_passcode' && `กรอกรหัสหน่วยเพื่อยืนยันสิทธิ์สำหรับ ${selectedMember?.name}`}
             {step === 'setup_pin' && `ตั้งรหัส PIN 4 หลักส่วนตัวสำหรับ ${selectedMember?.name}`}
@@ -184,43 +202,112 @@ export default function FirstTimeUserModal({
             </div>
           )}
 
-          {/* STEP 1: Select Member Identity */}
+          {/* STEP 1: Select Member Identity & Mobile Actions */}
           {step === 'select_user' && (
-            <div className="flex flex-col gap-2.5">
-              <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                <span>รายชื่อสมาชิกทีม (คลิกเลือกชื่อของคุณ):</span>
-              </label>
-              <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto no-scrollbar">
-                {activeMembers.map(mem => (
-                  <button
-                    key={mem.id}
-                    type="button"
-                    onClick={() => handleChooseMember(mem)}
-                    className="p-3 bg-slate-50 dark:bg-dark-bg/80 border border-slate-200 dark:border-dark-border hover:border-emerald-500 dark:hover:border-emerald-500 rounded-2xl flex items-center justify-between transition-all hover:scale-[1.01] cursor-pointer group shadow-xs"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className="w-9 h-9 rounded-xl text-white flex items-center justify-center font-mono font-black text-xs shadow-sm"
-                        style={{ backgroundColor: mem.color }}
-                      >
-                        {mem.initials || mem.name.substring(0, 2).toUpperCase()}
-                      </span>
-                      <div className="flex flex-col text-left">
-                        <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                          {mem.name}
-                        </span>
-                        <span className="text-[10px] font-semibold text-slate-400">
-                          {mem.pin_code ? '🔒 มีรหัส PIN แล้ว (กรอก PIN เดิมเพื่อเข้าเครื่อง)' : '🔑 สมาชิกใหม่ (กรอกรหัสหน่วยเพื่อตั้ง PIN)'}
-                        </span>
-                      </div>
-                    </div>
+            <div className="flex flex-col gap-4">
 
-                    <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </div>
-                  </button>
-                ))}
+              {/* Mobile Quick Action Buttons Panel */}
+              {activeUser && (
+                <div className="p-3 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-2xl flex flex-col gap-2">
+                  <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    ⚡ เมนูด่วนใช้งานระบบ (Quick Actions)
+                  </span>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {onOpenAddEvent && (
+                      <button
+                        type="button"
+                        onClick={() => { onClose && onClose(); onOpenAddEvent(); }}
+                        className="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center gap-2 text-xs font-black transition-all cursor-pointer shadow-xs"
+                      >
+                        <Plus className="w-4 h-4 shrink-0" />
+                        <span>เพิ่มกิจกรรมใหม่</span>
+                      </button>
+                    )}
+
+                    {onOpenMemberManagement && (
+                      <button
+                        type="button"
+                        onClick={() => { onClose && onClose(); onOpenMemberManagement(); }}
+                        className="p-2.5 bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-slate-700 dark:text-slate-200 hover:border-emerald-500 rounded-xl flex items-center gap-2 text-xs font-black transition-all cursor-pointer shadow-xs"
+                      >
+                        <Users className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>จัดการสมาชิก</span>
+                      </button>
+                    )}
+
+                    {onOpenIcalModal && (
+                      <button
+                        type="button"
+                        onClick={() => { onClose && onClose(); onOpenIcalModal(); }}
+                        className="p-2.5 bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-slate-700 dark:text-slate-200 hover:border-emerald-500 rounded-xl flex items-center gap-2 text-xs font-black transition-all cursor-pointer shadow-xs"
+                      >
+                        <QrCode className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>ซิงค์ iCal / QR</span>
+                      </button>
+                    )}
+
+                    {onOpenActivityLog && (
+                      <button
+                        type="button"
+                        onClick={() => { onClose && onClose(); onOpenActivityLog(); }}
+                        className="p-2.5 bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-slate-700 dark:text-slate-200 hover:border-emerald-500 rounded-xl flex items-center gap-2 text-xs font-black transition-all cursor-pointer shadow-xs relative"
+                      >
+                        <Activity className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>ประวัติ & ถังขยะ</span>
+                        {unreadActivityCount > 0 && (
+                          <span className="ml-auto bg-rose-500 text-white text-[9px] font-mono font-black px-1.5 py-0.5 rounded-full animate-pulse">
+                            {unreadActivityCount}
+                          </span>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                  <span>{activeUser ? '🔄 สลับตัวตนสมาชิกประจำเครื่อง:' : 'รายชื่อสมาชิกทีม (คลิกเลือกชื่อของคุณ):'}</span>
+                </label>
+                <div className="grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto no-scrollbar">
+                  {activeMembers.map(mem => (
+                    <button
+                      key={mem.id}
+                      type="button"
+                      onClick={() => handleChooseMember(mem)}
+                      className={`p-2.5 bg-slate-50 dark:bg-dark-bg/80 border ${mem.id === activeUser?.id ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20' : 'border-slate-200 dark:border-dark-border'} hover:border-emerald-500 dark:hover:border-emerald-500 rounded-2xl flex items-center justify-between transition-all cursor-pointer group shadow-xs`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="w-8 h-8 rounded-xl text-white flex items-center justify-center font-mono font-black text-xs shadow-sm"
+                          style={{ backgroundColor: mem.color }}
+                        >
+                          {mem.initials || mem.name.substring(0, 2).toUpperCase()}
+                        </span>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                            {mem.name}
+                            {mem.id === activeUser?.id && (
+                              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-950/80 px-1.5 py-0.2 rounded-full">
+                                ใช้อยู่ปัจจุบัน
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-[10px] font-semibold text-slate-400">
+                            {mem.pin_code ? '🔒 มีรหัส PIN แล้ว' : '🔑 สมาชิกใหม่'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
+
             </div>
           )}
 
