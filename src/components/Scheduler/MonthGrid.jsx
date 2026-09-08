@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatDateKey, formatTimeShort, hexToRgba, isEventOnDate } from '../../utils/helpers';
+import { formatDateKey, formatTimeShort, hexToRgba, isEventOnDate, getEventColor } from '../../utils/helpers';
 
 export default function MonthGrid({
   currentYear,
@@ -73,9 +73,9 @@ export default function MonthGrid({
     weeks.push(gridCells.slice(i, i + 7));
   }
 
-  // Filter visible events for assigned members
+  // Filter visible events for assigned members (or unassigned team events)
   const visibleEvents = events.filter(evt => {
-    if (!Array.isArray(evt.member_ids)) return false;
+    if (!Array.isArray(evt.member_ids) || evt.member_ids.length === 0) return true;
     return evt.member_ids.some(mId => visibleMemberIds.includes(mId));
   });
 
@@ -210,8 +210,7 @@ export default function MonthGrid({
                       style={{ marginTop: `${bannerAreaHeight + 22}px` }}
                     >
                       {visibleSingleEvents.map(evt => {
-                        const firstMem = getMemberById(evt.member_ids ? evt.member_ids[0] : null);
-                        const evtColor = evt.color || (firstMem ? firstMem.color : '#10b981');
+                        const evtColor = getEventColor(evt, members);
                         const timeText = formatTimeShort(evt.start_time);
 
                         return (
@@ -248,8 +247,7 @@ export default function MonthGrid({
               {/* Multi-Day Spanning Event Banners Overlay */}
               <div className="absolute inset-0 top-6 pointer-events-none grid grid-cols-7 gap-px p-0.5">
                 {bannersWithSlots.slice(0, 8).map(({ evt, startCol, span, isStartOfEvent, isEndOfEvent, slotIndex }) => {
-                  const firstMem = getMemberById(evt.member_ids ? evt.member_ids[0] : null);
-                  const evtColor = evt.color || (firstMem ? firstMem.color : '#10b981');
+                  const evtColor = getEventColor(evt, members);
                   const gridColStart = startCol + 1;
 
                   return (

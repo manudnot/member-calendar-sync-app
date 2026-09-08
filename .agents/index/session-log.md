@@ -49,3 +49,15 @@
 - **Multiple Notifications Triggers**: Added support for adding multiple notification reminders (`+ Add notification`) with custom values and unit selectors (*min before*, *hour before*, *day before*, *week before*).
 - **Git Commit**: `a3cac21` pushed to `manudnot/member-calendar-sync-app` main branch.
 - **Verification**: `npm run build` completed cleanly in 1.76s.
+
+### Version 4.3 - Full Historical Events Import (545 Events from Dec 2024 to 2026)
+- **Supabase Database Wipe & Batch Import**: Cleared demo/test events in Supabase `events` table and imported all **545 historical events** parsed from `his.txt`.
+- **Strict Category & Member Rules**:
+  - 🔴 **ภารกิจหมาย (`Red - #EF4444`)**: 162 events assigned to virtual member **"เวรหมาย" (`mem_wm`)**.
+  - 🟣 **งานหน่วย (`Purple - #8B5CF6`)**: 124 unit events with `member_ids: []`.
+  - 🟢 **ประชุม (`Emerald - #10B981`)**: 152 meeting events with `member_ids: []`.
+  - 🟤 **การฝึก (`Brown - #795548`)**: 64 training events with `member_ids: []`.
+  - 💗 **กิจกรรมพิเศษ (`Pink - #EC4899`)**: 30 special activity events with `member_ids: []`.
+  - 🟡 **ภารกิจหน่วย (`Yellow - #F59E0B`)**: 13 unit mission events with `member_ids: []`.
+- **UI Visibility & Color Engine**: Enhanced `getEventColor` helper and calendar filtering so unassigned team tasks (`member_ids: []`) render correctly across MonthGrid and DailyAgenda views.
+

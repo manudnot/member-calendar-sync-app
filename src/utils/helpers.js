@@ -60,4 +60,26 @@ export function formatThaiDateTime(isoStr) {
   return `${day} ${month} ${year} ${hours}:${minutes} น.`;
 }
 
+export function getEventColor(evt, members = []) {
+  if (!evt) return '#10B981';
+  if (evt.color) return evt.color;
+
+  if (evt.category) {
+    if (evt.category.includes('ภารกิจหมาย') || evt.category.includes('Red')) return '#EF4444';
+    if (evt.category.includes('ภารกิจหน่วย') || evt.category.includes('Yellow')) return '#F59E0B';
+    if (evt.category.includes('งานหน่วย') || evt.category.includes('Purple')) return '#8B5CF6';
+    if (evt.category.includes('ประชุม') || evt.category.includes('Emerald')) return '#10B981';
+    if (evt.category.includes('การฝึก') || evt.category.includes('Brown')) return '#795548';
+    if (evt.category.includes('กิจกรรมพิเศษ') || evt.category.includes('Pink')) return '#EC4899';
+  }
+
+  if (Array.isArray(evt.member_ids) && evt.member_ids.length > 0) {
+    const firstMem = members.find(m => m.id === evt.member_ids[0]);
+    if (firstMem && firstMem.color) return firstMem.color;
+  }
+
+  return '#10B981';
+}
+
+
 

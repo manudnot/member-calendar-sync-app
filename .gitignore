@@ -22,3 +22,7 @@ logs/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Scratch scripts
+scratch/
+

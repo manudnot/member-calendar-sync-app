@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, Edit3, Trash2, Clock, MapPin, Link as LinkIcon, CheckCircle2 } from 'lucide-react';
-import { THAI_MONTHS, formatTimeShort, isEventOnDate } from '../../utils/helpers';
+import { THAI_MONTHS, formatTimeShort, isEventOnDate, getEventColor } from '../../utils/helpers';
 
 export default function DailyAgenda({
   selectedDateStr,
@@ -18,7 +18,7 @@ export default function DailyAgenda({
 
   const dayEvents = events.filter(evt => {
     if (!isEventOnDate(evt, selectedDateStr)) return false;
-    if (!Array.isArray(evt.member_ids)) return false;
+    if (!Array.isArray(evt.member_ids) || evt.member_ids.length === 0) return true;
 
     // Filter by visible members
     return evt.member_ids.some(mId => visibleMemberIds.includes(mId));
@@ -61,8 +61,7 @@ export default function DailyAgenda({
           </div>
         ) : (
           dayEvents.map(evt => {
-            const firstMem = getMemberById(evt.member_ids ? evt.member_ids[0] : null);
-            const evtColor = evt.color || (firstMem ? firstMem.color : '#10b981');
+            const evtColor = getEventColor(evt, members);
             const isAllDay = evt.all_day !== false;
 
             return (
