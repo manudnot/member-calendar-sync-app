@@ -243,8 +243,8 @@ export default function App() {
     }
 
     const mem = updatedMembers.find(m => m.id === memberId);
-    logActivity('PIN_UPDATE', null, `ตั้งรหัส PIN 4 หลักใหม่สำหรับคุณ ${mem ? mem.name : ''}`);
-    setToast({ message: `รีเซ็ตรหัส PIN ใหม่สำหรับคุณ ${mem ? mem.name : ''} สำเร็จแล้ว!`, type: 'success' });
+    logActivity('PIN_UPDATE', null, `กู้คืนและตั้งรหัส PIN 4 หลักใหม่สำหรับคุณ ${mem ? mem.name : ''}`);
+    setToast({ message: `กู้คืนและตั้งรหัส PIN ใหม่สำหรับคุณ ${mem ? mem.name : ''} สำเร็จ!`, type: 'success' });
   };
 
   const handleSaveNewPin = async (memberId, pinCode, enableBiometrics, userEmail = '') => {

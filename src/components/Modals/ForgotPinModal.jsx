@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Mail, KeyRound, ShieldCheck, AlertCircle, CheckCircle, Send, Sparkles } from 'lucide-react';
+import { X, KeyRound, ShieldCheck, AlertCircle, CheckCircle, Lock, Sparkles } from 'lucide-react';
+import { verifyMasterPasscode } from '../../utils/crypto';
 
 export default function ForgotPinModal({
   isOpen,
@@ -7,75 +8,41 @@ export default function ForgotPinModal({
   members,
   onResetPinWithOtp
 }) {
-  const [emailInput, setEmailInput] = useState('');
-  const [step, setStep] = useState('enter_email'); // 'enter_email' | 'enter_otp' | 'new_pin'
-  const [targetMember, setTargetMember] = useState(null);
-  const [generatedOtp, setGeneratedOtp] = useState('');
-  const [otpInput, setOtpInput] = useState('');
+  const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [masterPasscode, setMasterPasscode] = useState('');
+  const [step, setStep] = useState('verify_passcode'); // 'verify_passcode' | 'new_pin'
   const [newPin, setNewPin] = useState(['', '', '', '']);
   const [confirmPin, setConfirmPin] = useState(['', '', '', '']);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [isSending, setIsSending] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSendOtp = async (e) => {
+  const activeMembers = members.filter(m => !m.is_archived && m.status !== 'resigned' && m.member_type !== 'virtual');
+
+  const handleVerifyPasscode = (e) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
 
-    const cleanEmail = emailInput.trim().toLowerCase();
-    if (!cleanEmail) {
-      setErrorMsg('กรุณากรอก Email ที่เคยลงทะเบียนไว้');
+    if (!selectedMemberId) {
+      setErrorMsg('กรุณาเลือกชื่อสมาชิกที่ต้องการรีเซ็ตรหัส PIN');
       return;
     }
 
-    const matchedMem = members.find(m => m.email && m.email.trim().toLowerCase() === cleanEmail && m.member_type !== 'virtual');
-    
-    if (!matchedMem) {
-      setErrorMsg('ไม่พบ Email นี้ในระบบสมาชิก หรือเป็นตำแหน่งเวรเสมือน');
+    if (!masterPasscode || !masterPasscode.trim()) {
+      setErrorMsg('กรุณากรอกรหัสหน่วย CRMASIGNAL21');
       return;
     }
 
-    setIsSending(true);
-    
-    // Generate 6-digit OTP
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(code);
-    setTargetMember(matchedMem);
-
-    try {
-      await fetch('/api/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: cleanEmail,
-          otp: code,
-          name: matchedMem.name,
-          type: 'reset_pin'
-        })
-      });
-    } catch (err) {
-      console.warn('API send-otp error fallback:', err);
-    } finally {
-      setIsSending(false);
-      setStep('enter_otp');
-      setSuccessMsg(`ระบบได้ส่งรหัส OTP 6 หลัก จาก signal21onduty@gmail.com ไปยัง ${cleanEmail} เรียบร้อยแล้ว (กรุณาตรวจสอบใน Inbox หรือ Spam/Junk)`);
-    }
-  };
-
-  const handleVerifyOtp = (e) => {
-    e.preventDefault();
-    setErrorMsg('');
-
-    if (otpInput.trim() !== generatedOtp) {
-      setErrorMsg('รหัส OTP ไม่ถูกต้อง กรุณาตรวจสอบจาก Email ของคุณอีกครั้ง');
+    if (!verifyMasterPasscode(masterPasscode)) {
+      setErrorMsg('รหัสหน่วยไม่ถูกต้อง (กรุณาตรวจสอบการพิมพ์ตัวเล็ก-ตัวใหญ่ให้ถูกต้อง)');
       return;
     }
 
+    const target = members.find(m => m.id === selectedMemberId);
     setStep('new_pin');
-    setSuccessMsg('ยืนยันรหัส OTP สำเร็จ! กรุณาตั้งรหัส PIN 4 หลักใหม่');
+    setSuccessMsg(`ยืนยันรหัสหน่วยสำเร็จ! กรุณาตั้งรหัส PIN 4 หลักใหม่สำหรับคุณ ${target?.name}`);
   };
 
   const handleDigitChange = (val, idx, isConfirm = false) => {
@@ -95,6 +62,8 @@ export default function ForgotPinModal({
 
   const handleSavePin = (e) => {
     e.preventDefault();
+    setErrorMsg('');
+
     const p1 = newPin.join('');
     const p2 = confirmPin.join('');
 
@@ -108,9 +77,11 @@ export default function ForgotPinModal({
       return;
     }
 
-    onResetPinWithOtp(targetMember.id, p1);
+    onResetPinWithOtp(selectedMemberId, p1);
     onClose();
   };
+
+  const targetMember = members.find(m => m.id === selectedMemberId);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-fade-in">
@@ -121,7 +92,7 @@ export default function ForgotPinModal({
           <div className="flex items-center gap-2">
             <KeyRound className="w-5 h-5" />
             <h3 className="text-xs font-black">
-              กู้คืนรหัส PIN (Forgot PIN)
+              กู้คืนและตั้งรหัส PIN ใหม่ (Forgot PIN)
             </h3>
           </div>
           <button
@@ -134,12 +105,6 @@ export default function ForgotPinModal({
 
         <div className="p-5 flex flex-col gap-4">
           
-          {/* Sender Badge Banner */}
-          <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl flex items-center gap-2 text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
-            <Mail className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>ส่งจาก: <strong className="font-mono text-emerald-700 dark:text-emerald-400">signal21onduty@gmail.com</strong></span>
-          </div>
-
           {errorMsg && (
             <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl flex items-center gap-2 text-rose-600 dark:text-rose-400 text-xs font-bold animate-shake">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -154,75 +119,70 @@ export default function ForgotPinModal({
             </div>
           )}
 
-          {/* STEP 1: Enter Email */}
-          {step === 'enter_email' && (
-            <form onSubmit={handleSendOtp} className="flex flex-col gap-4">
+          {/* STEP 1: Select Member & Enter Master Passcode */}
+          {step === 'verify_passcode' && (
+            <form onSubmit={handleVerifyPasscode} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5 text-left">
                 <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
-                  กรอก Email ที่เคยลงทะเบียนไว้ *
+                  1. เลือกชื่อสมาชิกที่ต้องการรีเซ็ต PIN:
+                </label>
+                <select
+                  className="input-field text-xs font-bold"
+                  value={selectedMemberId}
+                  onChange={(e) => setSelectedMemberId(e.target.value)}
+                  required
+                >
+                  <option value="">-- เลือกสมาชิก --</option>
+                  {activeMembers.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5 text-left">
+                <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                  <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                  2. กรอกรหัสหน่วย CRMASIGNAL21:
                 </label>
                 <input
-                  type="email"
-                  className="input-field text-xs font-mono"
-                  placeholder="เช่น signal21onduty@gmail.com"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
+                  type="text"
+                  className="input-field text-xs font-mono tracking-wider"
+                  placeholder="กรอกรหัสหน่วย"
+                  value={masterPasscode}
+                  onChange={(e) => setMasterPasscode(e.target.value)}
                   required
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={isSending}
-                className="btn-primary py-2.5 text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                className="btn-primary py-2.5 text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md mt-1"
               >
-                <Send className="w-4 h-4" />
-                <span>{isSending ? 'กำลังส่ง OTP...' : 'ส่งรหัส OTP 6 หลัก'}</span>
+                <ShieldCheck className="w-4 h-4" />
+                <span>ยืนยันรหัสหน่วย ➔ ตั้ง PIN ใหม่</span>
               </button>
             </form>
           )}
 
-          {/* STEP 2: Enter OTP Code */}
-          {step === 'enter_otp' && (
-            <form onSubmit={handleVerifyOtp} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5 text-center">
-                <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
-                  กรอกรหัส OTP 6 หลักที่ได้รับจาก Email:
-                </label>
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  className="input-field text-center font-mono font-black text-xl tracking-widest py-2"
-                  placeholder="123456"
-                  value={otpInput}
-                  onChange={(e) => setOtpInput(e.target.value.replace(/[^0-9]/g, ''))}
-                  required
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setStep('enter_email')}
-                  className="btn-secondary flex-1 text-xs py-2"
-                >
-                  ย้อนกลับ
-                </button>
-                <button
-                  type="submit"
-                  className="btn-primary flex-1 text-xs py-2"
-                >
-                  ยืนยัน OTP
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* STEP 3: Set New PIN */}
+          {/* STEP 2: Set New PIN */}
           {step === 'new_pin' && (
             <form onSubmit={handleSavePin} className="flex flex-col gap-4">
+              {targetMember && (
+                <div className="flex items-center justify-center gap-2 py-1">
+                  <span
+                    className="w-8 h-8 rounded-xl text-white flex items-center justify-center font-mono font-black text-xs shadow-sm"
+                    style={{ backgroundColor: targetMember.color }}
+                  >
+                    {targetMember.initials || targetMember.name.substring(0, 2).toUpperCase()}
+                  </span>
+                  <span className="text-xs font-black text-slate-800 dark:text-slate-100">
+                    คุณ {targetMember.name}
+                  </span>
+                </div>
+              )}
+
               <div className="flex flex-col gap-1.5 items-center">
                 <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
                   ตั้งรหัส PIN 4 หลักใหม่:
@@ -279,3 +239,4 @@ export default function ForgotPinModal({
     </div>
   );
 }
+
