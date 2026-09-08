@@ -605,6 +605,117 @@ export default function App() {
     }
   };
 
+  const handleMoveEvent = async (eventId, targetDateStr) => {
+    const targetEvt = events.find(e => e.id === eventId);
+    if (!targetEvt || !targetDateStr) return;
+
+    const oldStartDateStr = targetEvt.start_time ? targetEvt.start_time.split('T')[0] : targetDateStr;
+    const oldEndDateStr = targetEvt.end_time ? targetEvt.end_time.split('T')[0] : oldStartDateStr;
+    const oldStart = new Date(oldStartDateStr);
+    const oldEnd = new Date(oldEndDateStr);
+    const durationDays = Math.max(0, Math.round((oldEnd - oldStart) / (1000 * 60 * 60 * 24)));
+
+    const startTimePart = targetEvt.start_time && targetEvt.start_time.includes('T') ? targetEvt.start_time.split('T')[1] : '09:00:00Z';
+    const endTimePart = targetEvt.end_time && targetEvt.end_time.includes('T') ? targetEvt.end_time.split('T')[1] : '17:00:00Z';
+
+    const newStartDateObj = new Date(targetDateStr);
+    const newEndDateObj = new Date(newStartDateObj);
+    newEndDateObj.setDate(newEndDateObj.getDate() + durationDays);
+    const newEndDateStr = formatDateKey(newEndDateObj);
+
+    const newStartIso = `${targetDateStr}T${startTimePart}`;
+    const newEndIso = `${newEndDateStr}T${endTimePart}`;
+
+    const updatedEvt = {
+      ...targetEvt,
+      start_time: newStartIso,
+      end_time: newEndIso,
+      is_deleted: false
+    };
+
+    const updatedEvents = events.map(e => e.id === eventId ? updatedEvt : e);
+    setEvents(updatedEvents);
+    localStorage.setItem('member_calendar_events', JSON.stringify(updatedEvents));
+
+    logActivity('UPDATE', updatedEvt, `ย้ายกำหนดเวลา (Drag & Drop Move): จากวันที่ ${oldStartDateStr} ➔ ไปยังวันที่ ${targetDateStr}`);
+    setToast({ message: `ย้ายกิจกรรม "${targetEvt.title}" ไปยังวันที่ ${targetDateStr} เรียบร้อยแล้ว!`, type: 'success' });
+
+    if (supabase) {
+      try {
+        const supaEvtPayload = {
+          id: updatedEvt.id,
+          title: updatedEvt.title,
+          start_time: updatedEvt.start_time,
+          end_time: updatedEvt.end_time,
+          description: updatedEvt.description || '',
+          location: updatedEvt.location || updatedEvt.url || '',
+          category: updatedEvt.category || 'General',
+          member_ids: updatedEvt.member_ids || [],
+          alarm_minutes: updatedEvt.alarm_minutes || 15
+        };
+        await supabase.from('events').upsert([supaEvtPayload]);
+      } catch (e) {
+        console.warn('Supabase move event warning:', e);
+      }
+    }
+  };
+
+  const handleCopyEvent = async (originalEvt, targetDateStr) => {
+    if (!originalEvt || !targetDateStr) return;
+
+    const oldStartDateStr = originalEvt.start_time ? originalEvt.start_time.split('T')[0] : targetDateStr;
+    const oldEndDateStr = originalEvt.end_time ? originalEvt.end_time.split('T')[0] : oldStartDateStr;
+    const oldStart = new Date(oldStartDateStr);
+    const oldEnd = new Date(oldEndDateStr);
+    const durationDays = Math.max(0, Math.round((oldEnd - oldStart) / (1000 * 60 * 60 * 24)));
+
+    const startTimePart = originalEvt.start_time && originalEvt.start_time.includes('T') ? originalEvt.start_time.split('T')[1] : '09:00:00Z';
+    const endTimePart = originalEvt.end_time && originalEvt.end_time.includes('T') ? originalEvt.end_time.split('T')[1] : '17:00:00Z';
+
+    const newStartDateObj = new Date(targetDateStr);
+    const newEndDateObj = new Date(newStartDateObj);
+    newEndDateObj.setDate(newEndDateObj.getDate() + durationDays);
+    const newEndDateStr = formatDateKey(newEndDateObj);
+
+    const newStartIso = `${targetDateStr}T${startTimePart}`;
+    const newEndIso = `${newEndDateStr}T${endTimePart}`;
+
+    const newEvt = {
+      ...originalEvt,
+      id: `evt_copy_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      start_time: newStartIso,
+      end_time: newEndIso,
+      is_deleted: false,
+      created_at: new Date().toISOString()
+    };
+
+    const updatedEvents = [...events, newEvt];
+    setEvents(updatedEvents);
+    localStorage.setItem('member_calendar_events', JSON.stringify(updatedEvents));
+
+    logActivity('CREATE', newEvt, `คัดลอกกิจกรรม (Drag & Drop Copy): ไปยังวันที่ ${targetDateStr}`);
+    setToast({ message: `คัดลอกกิจกรรม "${originalEvt.title}" ไปยังวันที่ ${targetDateStr} สำเร็จแล้ว!`, type: 'success' });
+
+    if (supabase) {
+      try {
+        const supaEvtPayload = {
+          id: newEvt.id,
+          title: newEvt.title,
+          start_time: newEvt.start_time,
+          end_time: newEvt.end_time,
+          description: newEvt.description || '',
+          location: newEvt.location || newEvt.url || '',
+          category: newEvt.category || 'General',
+          member_ids: newEvt.member_ids || [],
+          alarm_minutes: newEvt.alarm_minutes || 15
+        };
+        await supabase.from('events').upsert([supaEvtPayload]);
+      } catch (e) {
+        console.warn('Supabase copy event warning:', e);
+      }
+    }
+  };
+
   const handleDeleteEvent = async (eventId) => {
     const targetEvt = events.find(e => e.id === eventId);
     if (!targetEvt) return;
@@ -715,6 +826,8 @@ export default function App() {
             members={members}
             visibleMemberIds={visibleMemberIds}
             onEditEvent={handleOpenEditEvent}
+            onMoveEvent={handleMoveEvent}
+            onCopyEvent={handleCopyEvent}
           />
 
           <DailyAgenda

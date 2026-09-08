@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatDateKey, formatTimeShort, hexToRgba, isEventOnDate, getEventColor, isAllDayEvent } from '../../utils/helpers';
+import { Move, Copy, X } from 'lucide-react';
 
 export default function MonthGrid({
   currentYear,
@@ -9,8 +10,14 @@ export default function MonthGrid({
   events,
   members,
   visibleMemberIds,
-  onEditEvent
+  onEditEvent,
+  onMoveEvent,
+  onCopyEvent
 }) {
+  const [draggedEvt, setDraggedEvt] = useState(null);
+  const [dragOverDateStr, setDragOverDateStr] = useState(null);
+  const [dropMenu, setDropMenu] = useState(null);
+
   const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
@@ -79,8 +86,28 @@ export default function MonthGrid({
     return evt.member_ids.some(mId => visibleMemberIds.includes(mId));
   });
 
+  const handleCellDrop = (e, cellDateStr) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!draggedEvt) return;
+
+    const clickX = e.clientX;
+    const clickY = e.clientY;
+    const menuWidth = 190;
+    const menuHeight = 110;
+    const posX = Math.min(clickX, window.innerWidth - menuWidth - 16);
+    const posY = Math.min(clickY, window.innerHeight - menuHeight - 16);
+
+    setDropMenu({
+      evt: draggedEvt,
+      targetDateStr: cellDateStr,
+      position: { x: posX, y: posY }
+    });
+    setDragOverDateStr(null);
+  };
+
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-dark-card border-b border-slate-200 dark:border-dark-border">
+    <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-dark-card border-b border-slate-200 dark:border-dark-border relative">
       {/* Weekdays Header */}
       <div className="grid grid-cols-7 border-b border-slate-200 dark:border-dark-border bg-slate-50/50 dark:bg-dark-bg/50 shrink-0">
         <div className="py-2 text-center text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider">Sun</div>
@@ -155,19 +182,32 @@ export default function MonthGrid({
           return (
             <div key={`week-${weekIdx}`} className="relative grid grid-cols-7 bg-slate-200 dark:bg-dark-border gap-px min-h-[90px] overflow-hidden">
               
-              {/* Day Background Cells with Full 4-Side Borders */}
+              {/* Day Background Cells with Full 4-Side Borders & Drag Target Handlers */}
               {week.map((cell, colIdx) => {
                 const dayAllEvents = visibleEvents.filter(e => isEventOnDate(e, cell.dateStr));
                 const totalEventsOnDay = dayAllEvents.length;
                 const visibleInCellCount = itemsWithSlots.filter(item => item.startCol <= colIdx && item.endCol >= colIdx && item.slotIndex < 3).length;
                 const overflowCount = totalEventsOnDay - visibleInCellCount;
+                const isDragTarget = dragOverDateStr === cell.dateStr;
 
                 return (
                   <div
                     key={cell.key}
                     onClick={() => cell.dateStr && onSelectDate(cell.dateStr)}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'copy';
+                      if (dragOverDateStr !== cell.dateStr) setDragOverDateStr(cell.dateStr);
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      if (dragOverDateStr === cell.dateStr) setDragOverDateStr(null);
+                    }}
+                    onDrop={(e) => handleCellDrop(e, cell.dateStr)}
                     className={`bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border/80 p-1 flex flex-col justify-between cursor-pointer transition-all duration-150 relative select-none ${
-                      cell.isSelected
+                      isDragTarget
+                        ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-100/60 dark:bg-emerald-950/40 shadow-inner z-20 scale-[0.99]'
+                        : cell.isSelected
                         ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-50/30 dark:bg-emerald-950/20'
                         : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     } ${cell.isOtherMonth ? 'bg-slate-50/60 dark:bg-dark-card/40' : ''}`}
@@ -211,18 +251,30 @@ export default function MonthGrid({
                   const gridColStart = startCol + 1;
                   const isAllDay = isAllDayEvent(evt) || span > 1;
                   const timeText = formatTimeShort(evt.start_time);
+                  const isBeingDragged = draggedEvt?.id === evt.id;
 
                   if (isAllDay) {
                     // All-Day Events: Solid background pill (TimeTree Style)
                     return (
                       <div
                         key={`${evt.id}-w${weekIdx}`}
+                        draggable={true}
+                        onDragStart={(e) => {
+                          e.stopPropagation();
+                          setDraggedEvt(evt);
+                          e.dataTransfer.effectAllowed = 'copyMove';
+                          e.dataTransfer.setData('text/plain', evt.id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedEvt(null);
+                          setDragOverDateStr(null);
+                        }}
                         onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                        className={`pointer-events-auto h-5 px-2 text-[11px] font-bold flex items-center shadow-xs transition-transform hover:scale-[1.01] cursor-pointer truncate z-10 ${
+                        className={`pointer-events-auto h-5 px-2 text-[11px] font-bold flex items-center shadow-xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 ${
                           isStartOfEvent ? 'rounded-l-md' : 'rounded-r-none'
                         } ${
                           isEndOfEvent ? 'rounded-r-md' : 'rounded-r-none'
-                        }`}
+                        } ${isBeingDragged ? 'opacity-40 scale-95 ring-2 ring-emerald-400' : ''}`}
                         style={{
                           gridColumnStart: gridColStart,
                           gridColumnEnd: `span ${span}`,
@@ -231,7 +283,7 @@ export default function MonthGrid({
                           backgroundColor: evtColor,
                           color: '#ffffff'
                         }}
-                        title={evt.title}
+                        title={`${evt.title} (ลากวางเพื่อย้ายหรือคัดลอก)`}
                       >
                         <span className="truncate">{evt.title}</span>
                       </div>
@@ -241,8 +293,21 @@ export default function MonthGrid({
                     return (
                       <div
                         key={`${evt.id}-w${weekIdx}`}
+                        draggable={true}
+                        onDragStart={(e) => {
+                          e.stopPropagation();
+                          setDraggedEvt(evt);
+                          e.dataTransfer.effectAllowed = 'copyMove';
+                          e.dataTransfer.setData('text/plain', evt.id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedEvt(null);
+                          setDragOverDateStr(null);
+                        }}
                         onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                        className={`pointer-events-auto h-5 px-1.5 text-[10px] font-semibold flex items-center gap-1 shadow-2xs transition-transform hover:scale-[1.01] cursor-pointer truncate z-10 rounded-md border-l-2`}
+                        className={`pointer-events-auto h-5 px-1.5 text-[10px] font-semibold flex items-center gap-1 shadow-2xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 rounded-md border-l-2 ${
+                          isBeingDragged ? 'opacity-40 scale-95 ring-2 ring-emerald-400' : ''
+                        }`}
                         style={{
                           gridColumnStart: gridColStart,
                           gridColumnEnd: `span ${span}`,
@@ -252,7 +317,7 @@ export default function MonthGrid({
                           borderLeftColor: evtColor,
                           color: 'inherit'
                         }}
-                        title={`${evt.title} (${timeText})`}
+                        title={`${evt.title} (${timeText}) (ลากวางเพื่อย้ายหรือคัดลอก)`}
                       >
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: evtColor }} />
                         <span className="truncate font-bold text-slate-800 dark:text-slate-100">{evt.title}</span>
@@ -266,6 +331,60 @@ export default function MonthGrid({
           );
         })}
       </div>
+
+      {/* TimeTree Style Move / Copy Popover Action Menu */}
+      {dropMenu && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/10 backdrop-blur-[1px] overflow-hidden"
+          onClick={() => setDropMenu(null)}
+        >
+          <div
+            className="absolute bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-1.5 backdrop-blur-md animate-fade-in flex flex-col gap-1 z-50 min-w-[170px]"
+            style={{ left: dropMenu.position.x, top: dropMenu.position.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-2 py-1 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+              <span className="truncate max-w-[130px] font-bold text-slate-700 dark:text-slate-300">{dropMenu.evt?.title}</span>
+              <button
+                type="button"
+                onClick={() => setDropMenu(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5 rounded"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (onMoveEvent && dropMenu.evt) {
+                  onMoveEvent(dropMenu.evt.id, dropMenu.targetDateStr);
+                }
+                setDropMenu(null);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg transition-colors cursor-pointer text-left"
+            >
+              <Move className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>Move (ย้าย)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (onCopyEvent && dropMenu.evt) {
+                  onCopyEvent(dropMenu.evt, dropMenu.targetDateStr);
+                }
+                setDropMenu(null);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-colors cursor-pointer text-left"
+            >
+              <Copy className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span>Copy (คัดลอก)</span>
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
