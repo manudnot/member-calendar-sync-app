@@ -569,6 +569,7 @@ export default function App() {
         <RightToolbar
           onOpenMemberManagement={() => { setMemberToEdit(null); setIsMemberManagementOpen(true); }}
           onOpenIcalModal={() => setIsIcalModalOpen(true)}
+          onOpenActivityLog={() => setIsActivityLogModalOpen(true)}
           onOpenAddEvent={() => handleOpenAddEvent(selectedDateStr)}
         />
       </div>
