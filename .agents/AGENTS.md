@@ -17,3 +17,7 @@ This repository houses a high-performance **TimeTree-Style Team Member Calendar 
 3. **Repository Tree & Logs**:
    - Maintain repository status in [.agents/index/repo-tree.md](file:///.agents/index/repo-tree.md).
    - Log deployment & architecture updates in [.agents/index/session-log.md](file:///.agents/index/session-log.md).
+
+4. **Agent Workflow & Planning Rules**:
+   - Whenever the user reports a problem or requests a new feature/change, the agent MUST write/update an implementation plan (`implementation_plan.md`) first.
+   - Do NOT modify source code or run mutating shell commands until the user reviews and explicitly approves the plan ("Proceed" / "อนุมัติ").

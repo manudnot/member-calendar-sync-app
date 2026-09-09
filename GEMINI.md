@@ -47,8 +47,14 @@ member-calendar-sync-app/
 ├── supabase/
 │   └── schema.sql               # PostgreSQL tables, policies, and seed data
 ├── .gitignore
-├── GEMINI.md                    # Project guidance & rules
-├── README.md                    # Setup and Vercel deployment guide
-├── package.json
-└── vercel.json                  # Vercel routing configuration
-```
+---
+
+## 📋 Agent Workflow & Planning Rules
+
+1. **Mandatory Planning Before Code Execution**:
+   - Whenever the user reports a problem or requests a new feature/change, the agent MUST create or update an implementation plan (`implementation_plan.md`) first.
+   - Do NOT make any source code changes or run mutating commands during the planning phase.
+
+2. **Explicit User Approval Required**:
+   - The agent MUST wait for explicit user approval ("Proceed" / "อนุมัติ") on the implementation plan before making any code modifications or running mutating shell commands.
+
