@@ -879,6 +879,83 @@ export default function App() {
     setToast({ message: `กู้คืนกิจกรรม "${targetEvt.title}" กลับมาบนปฏิทินแล้ว!`, type: 'success' });
   };
 
+  const handleUndoActivityLog = async (log) => {
+    if (!log || log.action !== 'UPDATE' || !log.event_id) return;
+    const targetEvt = events.find(e => e.id === log.event_id);
+    if (!targetEvt) {
+      setToast({ message: 'ไม่พบภารกิจนี้ในระบบ (อาจถูกลบถาวรไปแล้ว)', type: 'error' });
+      return;
+    }
+
+    const details = log.details || '';
+    let updatedEvt = { ...targetEvt };
+    const revertedChanges = [];
+
+    // 1. Revert Category Change
+    if (details.includes('เปลี่ยนหมวดหมู่:')) {
+      const match = details.match(/เปลี่ยนหมวดหมู่:\s*จาก\s*"([^"]+)"\s*➔\s*เป็น\s*"([^"]+)"/);
+      if (match && match[1]) {
+        const oldCatName = match[1];
+        const matchedCat = categories.find(c => (c.name || c.category || '').toLowerCase() === oldCatName.toLowerCase());
+        updatedEvt.category = oldCatName;
+        if (matchedCat) {
+          updatedEvt.category_id = matchedCat.id;
+          updatedEvt.color = matchedCat.color || matchedCat.hex;
+        }
+        revertedChanges.push(`หมวดหมู่ ➔ "${oldCatName}"`);
+      }
+    }
+
+    // 2. Revert Title Change
+    if (details.includes('เปลี่ยนชื่อกิจกรรม:')) {
+      const match = details.match(/เปลี่ยนชื่อกิจกรรม:\s*จากเดิม\s*"([^"]+)"\s*➔\s*เป็น\s*"([^"]+)"/);
+      if (match && match[1]) {
+        updatedEvt.title = match[1];
+        revertedChanges.push(`ชื่อภารกิจ ➔ "${match[1]}"`);
+      }
+    }
+
+    // 3. Revert Location Change
+    if (details.includes('เปลี่ยนสถานที่/URL:')) {
+      const match = details.match(/เปลี่ยนสถานที่\/URL:\s*จาก\s*"([^"]*)"\s*➔\s*เป็น\s*"([^"]*)"/);
+      if (match) {
+        updatedEvt.location = match[1] || '';
+        revertedChanges.push(`สถานที่/URL ➔ "${match[1] || 'ลบออก'}"`);
+      }
+    }
+
+    if (revertedChanges.length === 0) {
+      setToast({ message: 'ไม่พบประวัติการเปลี่ยนค่าที่สามารถย้อนกลับอัตโนมัติได้', type: 'info' });
+      return;
+    }
+
+    const updatedEvents = events.map(e => e.id === targetEvt.id ? updatedEvt : e);
+    setEvents(updatedEvents);
+    localStorage.setItem('member_calendar_events', JSON.stringify(updatedEvents));
+
+    logActivity('UPDATE', updatedEvt, `ย้อนกลับการแก้ไข (Undo): ${revertedChanges.join(' | ')}`);
+    setToast({ message: `ย้อนกลับการแก้ไขภารกิจ "${updatedEvt.title}" เรียบร้อยแล้ว!`, type: 'success' });
+
+    if (supabase) {
+      try {
+        const supaEvtPayload = {
+          id: updatedEvt.id,
+          title: updatedEvt.title,
+          start_time: updatedEvt.start_time,
+          end_time: updatedEvt.end_time,
+          description: updatedEvt.description || '',
+          location: updatedEvt.location || updatedEvt.url || '',
+          category: updatedEvt.category || 'General',
+          member_ids: updatedEvt.member_ids || [],
+          alarm_minutes: updatedEvt.alarm_minutes || 15
+        };
+        await supabase.from('events').upsert([supaEvtPayload]);
+      } catch (e) {
+        console.warn('Supabase undo event warning:', e);
+      }
+    }
+  };
+
   // Active (Non-deleted) Events for MonthGrid and DailyAgenda
   const activeEvents = events.filter(e => !e.is_deleted);
   const deletedEvents = events.filter(e => e.is_deleted);
@@ -993,6 +1070,7 @@ export default function App() {
         deletedEvents={deletedEvents}
         members={members}
         onRestoreEvent={handleRestoreEvent}
+        onUndoLog={handleUndoActivityLog}
       />
 
       <MissionModal

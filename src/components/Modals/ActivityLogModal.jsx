@@ -8,7 +8,8 @@ export default function ActivityLogModal({
   activityLogs,
   deletedEvents,
   members,
-  onRestoreEvent
+  onRestoreEvent,
+  onUndoLog
 }) {
   const [activeTab, setActiveTab] = useState('logs'); // 'logs' | 'trash'
   const [searchQuery, setSearchQuery] = useState('');
@@ -319,10 +320,23 @@ export default function ActivityLogModal({
                           ))}
                         </div>
                       )}
-                      <span className="text-[10px] font-mono text-slate-400 mt-1 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {formatLogTime(log.created_at)}
-                      </span>
+                      <div className="flex items-center justify-between mt-1 pt-1 border-t border-slate-200/60 dark:border-slate-800">
+                        <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatLogTime(log.created_at)}
+                        </span>
+                        {log.action === 'UPDATE' && log.event_id && onUndoLog && (
+                          <button
+                            type="button"
+                            onClick={() => onUndoLog(log)}
+                            className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/40 px-2 py-0.5 rounded-md transition-all flex items-center gap-1 cursor-pointer border border-blue-200 dark:border-blue-800/60 shadow-2xs"
+                            title="ยกเลิก/ย้อนกลับการแก้ไขรายการนี้"
+                          >
+                            <RotateCcw className="w-2.5 h-2.5" />
+                            <span>ย้อนกลับ (Undo)</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
