@@ -91,6 +91,18 @@
   - **Timed Events**: Rendered with light faded background tint (`hexToRgba(evtColor, 0.16)`), left border line, colored bullet dot, and time text (`10:00 AM`) on the right side.
 - **Git Commit**: `87c31db` pushed to `manudnot/member-calendar-sync-app` main branch.
 
+### Version 4.9 - Optimistic UI Update & Async Supabase Confirmation
+- **Instant Local UI Updates**: Updated state and `localStorage` immediately upon saving in `MissionModal.jsx` for zero-latency user interaction.
+- **Async Supabase Payload & Rollback**: Sent clean schema columns to Supabase. Displayed success Toast upon server confirmation, and auto-rolled back local state if server upsert failed.
+- **Git Commit**: `7b106d8` pushed to `manudnot/member-calendar-sync-app` main branch.
+
+### Version 5.0 - Normalized `public.categories` Table Architecture & Dynamic Color Binding
+- **Normalized PostgreSQL Categories Table**: Created `public.categories` (`id`, `name`, `color`, `icon`, `is_system`, `created_at`) with 6 official categories (`cat_royal`, `cat_unit`, `cat_meeting`, `cat_work`, `cat_training`, `cat_special`) and linked `category_id` in `public.events`.
+- **Dynamic Category & Palette Integration**: Bound `MissionModal.jsx` Label Color options directly to `categories` state and enabled dynamic creation of new custom categories with automatic Supabase & LocalStorage sync.
+- **Unified Color Engine**: Updated `getEventColor(evt, categories, members)` in `helpers.js` and `MonthGrid.jsx` to render consistent category colors across all devices.
+- **Git Commit**: `614b984` pushed to `manudnot/member-calendar-sync-app` main branch.
+- **Verification**: `npm run build` succeeded in 1.92s.
+
 
 
 
