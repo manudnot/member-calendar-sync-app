@@ -270,8 +270,8 @@ export default function MissionModal({
     let startIso;
     let endIso;
     if (allDay) {
-      startIso = `${startDate}T00:00:00.000Z`;
-      endIso = `${endDate}T23:59:59.000Z`;
+      startIso = `${startDate}T09:00:00.000Z`;
+      endIso = `${endDate}T17:00:00.000Z`;
     } else {
       startIso = new Date(`${startDate}T${startTime}:00`).toISOString();
       endIso = new Date(`${endDate}T${endTime}:00`).toISOString();

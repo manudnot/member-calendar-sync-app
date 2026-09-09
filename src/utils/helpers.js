@@ -12,8 +12,11 @@ export function formatDateKey(dateObj) {
 
 export function getLocalDateStr(isoStr) {
   if (!isoStr) return '';
+  if (typeof isoStr === 'string' && isoStr.includes('T')) {
+    return isoStr.split('T')[0];
+  }
   const date = new Date(isoStr);
-  if (isNaN(date.getTime())) return isoStr.includes('T') ? isoStr.split('T')[0] : isoStr;
+  if (isNaN(date.getTime())) return isoStr;
   return formatDateKey(date);
 }
 
