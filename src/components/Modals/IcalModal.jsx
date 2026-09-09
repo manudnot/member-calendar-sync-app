@@ -53,7 +53,7 @@ export default function IcalModal({ isOpen, onClose, members }) {
             <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center justify-between">
               <span>เลือกปฏิทินที่ต้องการสมัครรับ:</span>
               <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                {selectedMember === 'team' ? 'ปฏิทินรวมภารกิจ' : `ปฏิทินคุณ ${members.find(m => m.id === selectedMember)?.name || ''}`}
+                {selectedMember === 'team' ? 'Sig21 รวมภารกิจ' : `Sig21 ${members.find(m => m.id === selectedMember)?.name || ''}`}
               </span>
             </label>
 
@@ -69,7 +69,7 @@ export default function IcalModal({ isOpen, onClose, members }) {
                 }`}
               >
                 <span>👥</span>
-                <span>ปฏิทินรวมภารกิจ</span>
+                <span>Sig21 รวมภารกิจ</span>
                 {selectedMember === 'team' && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
               </button>
 
