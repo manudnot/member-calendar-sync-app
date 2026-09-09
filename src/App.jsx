@@ -851,6 +851,7 @@ export default function App() {
             onMoveEvent={handleMoveEvent}
             onCopyEvent={handleCopyEvent}
             onOpenDayModal={handleOpenDayModal}
+            onOpenAddEvent={handleOpenAddEvent}
           />
         </main>
 

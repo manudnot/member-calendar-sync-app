@@ -13,7 +13,8 @@ export default function MonthGrid({
   onEditEvent,
   onMoveEvent,
   onCopyEvent,
-  onOpenDayModal
+  onOpenDayModal,
+  onOpenAddEvent
 }) {
   const [draggedEvt, setDraggedEvt] = useState(null);
   const [dragOverDateStr, setDragOverDateStr] = useState(null);
@@ -110,14 +111,6 @@ export default function MonthGrid({
     setDragOverDateStr(null);
   };
 
-  const handleCellClick = (dateStr) => {
-    if (!dateStr) return;
-    onSelectDate(dateStr);
-    if (onOpenDayModal) {
-      onOpenDayModal(dateStr);
-    }
-  };
-
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-dark-card border-b border-slate-200 dark:border-dark-border relative">
       {/* Weekdays Header */}
@@ -131,8 +124,11 @@ export default function MonthGrid({
         <div className="py-2 text-center text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">Sat</div>
       </div>
 
-      {/* 7-Column Week Rows Container */}
-      <div className="flex-1 grid grid-rows-5 lg:grid-rows-6 bg-slate-200 dark:bg-dark-border gap-px overflow-y-auto no-scrollbar">
+      {/* 7-Column Week Rows Container (Dynamic Height filling 100% space) */}
+      <div
+        className="flex-1 grid bg-slate-200 dark:bg-dark-border gap-px overflow-y-auto no-scrollbar"
+        style={{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }}
+      >
         {weeks.map((week, weekIdx) => {
           // Calculate events present in this week
           const weekEvents = [];
@@ -192,7 +188,7 @@ export default function MonthGrid({
           });
 
           return (
-            <div key={`week-${weekIdx}`} className="relative grid grid-cols-7 bg-slate-200 dark:bg-dark-border gap-px min-h-[85px] overflow-hidden">
+            <div key={`week-${weekIdx}`} className="relative grid grid-cols-7 bg-slate-200 dark:bg-dark-border gap-px overflow-hidden">
               
               {/* Day Background Cells with Full 4-Side Borders & Drag Target Handlers */}
               {week.map((cell, colIdx) => {
@@ -205,7 +201,12 @@ export default function MonthGrid({
                 return (
                   <div
                     key={cell.key}
-                    onClick={() => handleCellClick(cell.dateStr)}
+                    onClick={() => {
+                      if (cell.dateStr) {
+                        onSelectDate(cell.dateStr);
+                        if (onOpenAddEvent) onOpenAddEvent(cell.dateStr);
+                      }
+                    }}
                     onDragOver={(e) => {
                       e.preventDefault();
                       e.dataTransfer.dropEffect = 'copy';
@@ -216,19 +217,27 @@ export default function MonthGrid({
                       if (dragOverDateStr === cell.dateStr) setDragOverDateStr(null);
                     }}
                     onDrop={(e) => handleCellDrop(e, cell.dateStr)}
-                    className={`bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border/80 p-1 flex flex-col justify-between cursor-pointer transition-all duration-150 relative select-none overflow-hidden ${
+                    className={`bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border/80 p-1 flex flex-col justify-between cursor-pointer transition-all duration-150 relative select-none overflow-hidden group ${
                       isDragTarget
                         ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-100/60 dark:bg-emerald-950/40 shadow-inner z-20 scale-[0.99]'
                         : cell.isSelected
                         ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-50/30 dark:bg-emerald-950/20'
                         : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     } ${cell.isOtherMonth ? 'bg-slate-50/60 dark:bg-dark-card/40' : ''}`}
+                    title="กดที่พื้นที่ว่างเพื่อสร้างภารกิจใหม่ในวันนี้"
                   >
-                    <div className="flex items-center justify-between pointer-events-none z-10">
+                    <div className="flex items-center justify-between z-20">
                       <span
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black font-mono ${
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (cell.dateStr) {
+                            onSelectDate(cell.dateStr);
+                            if (onOpenDayModal) onOpenDayModal(cell.dateStr);
+                          }
+                        }}
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black font-mono cursor-pointer hover:scale-115 transition-transform pointer-events-auto shadow-2xs ${
                           cell.isToday
-                            ? 'bg-emerald-600 text-white shadow-sm'
+                            ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-300'
                             : cell.isOtherMonth
                             ? 'text-slate-300 dark:text-slate-600'
                             : cell.dayOfWeek === 0
@@ -237,6 +246,7 @@ export default function MonthGrid({
                             ? 'text-blue-600 dark:text-blue-400'
                             : 'text-slate-700 dark:text-slate-300'
                         }`}
+                        title={`กดที่วงกลมตัวเลขเพื่อดูภารกิจทั้งหมดในวันที่ ${cell.dayNum}`}
                       >
                         {cell.dayNum}
                       </span>
@@ -248,9 +258,12 @@ export default function MonthGrid({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleCellClick(cell.dateStr);
+                          if (cell.dateStr) {
+                            onSelectDate(cell.dateStr);
+                            if (onOpenDayModal) onOpenDayModal(cell.dateStr);
+                          }
                         }}
-                        className="absolute bottom-1 right-1 text-[9px] font-mono font-black px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 shadow-2xs cursor-pointer hover:bg-emerald-500 hover:text-white transition-all z-30"
+                        className="absolute bottom-1 right-1 text-[9px] font-mono font-black px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 shadow-2xs cursor-pointer hover:bg-emerald-500 hover:text-white transition-all z-30 pointer-events-auto"
                         title={`กดเพื่อดูภารกิจทั้งหมด ${totalEventsOnDay} รายการในวันที่ ${cell.dayNum}`}
                       >
                         +{overflowCount}

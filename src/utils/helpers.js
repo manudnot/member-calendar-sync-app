@@ -10,6 +10,22 @@ export function formatDateKey(dateObj) {
   return `${y}-${m}-${d}`;
 }
 
+export function getLocalDateStr(isoStr) {
+  if (!isoStr) return '';
+  const date = new Date(isoStr);
+  if (isNaN(date.getTime())) return isoStr.includes('T') ? isoStr.split('T')[0] : isoStr;
+  return formatDateKey(date);
+}
+
+export function getLocalTimeStr(isoStr) {
+  if (!isoStr) return '09:00';
+  const date = new Date(isoStr);
+  if (isNaN(date.getTime())) return '09:00';
+  const h = String(date.getHours()).padStart(2, '0');
+  const m = String(date.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
 export function formatTimeShort(isoStr) {
   if (!isoStr) return '';
   const date = new Date(isoStr);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Check, Users, Plus, Trash2, Palette } from 'lucide-react';
-import { isAllDayEvent, convertMinutesToNotif } from '../../utils/helpers';
+import { isAllDayEvent, convertMinutesToNotif, getLocalDateStr, getLocalTimeStr } from '../../utils/helpers';
 
 const DEFAULT_COLOR_PALETTE = [
   { hex: '#f59e0b', category: 'ภารกิจหมาย', name: 'ภารกิจหมาย' },
@@ -110,20 +110,14 @@ export default function MissionModal({
       if (editingEvent) {
         setTitle(editingEvent.title || '');
         setAllDay(isAllDayEvent(editingEvent));
-        const sKey = editingEvent.start_time ? editingEvent.start_time.split('T')[0] : initialDateStr;
-        const eKey = editingEvent.end_time ? editingEvent.end_time.split('T')[0] : sKey;
+        const sKey = getLocalDateStr(editingEvent.start_time) || initialDateStr;
+        const eKey = getLocalDateStr(editingEvent.end_time) || sKey;
         setStartDate(sKey);
         setEndDate(eKey);
         setCustomEndsOnDate(eKey);
 
-        if (editingEvent.start_time && editingEvent.start_time.includes('T')) {
-          const timePart = editingEvent.start_time.split('T')[1].substring(0, 5);
-          setStartTime(timePart);
-        }
-        if (editingEvent.end_time && editingEvent.end_time.includes('T')) {
-          const timePart = editingEvent.end_time.split('T')[1].substring(0, 5);
-          setEndTime(timePart);
-        }
+        setStartTime(getLocalTimeStr(editingEvent.start_time));
+        setEndTime(getLocalTimeStr(editingEvent.end_time));
 
         setSelectedMembers(Array.isArray(editingEvent.member_ids) ? editingEvent.member_ids : []);
         setColor(editingEvent.color || '#f59e0b');
