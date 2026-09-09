@@ -34,6 +34,11 @@ export default function AuthPinModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (targetMember?.member_type === 'virtual') {
+      setErrorMsg('Virtual Member (สมาชิกรวมงาน) ไม่สามารถเข้าใช้งานระบบได้');
+      return;
+    }
+
     const enteredPin = pinInput.join('');
     if (enteredPin.length < 4) {
       setErrorMsg('กรุณากรอกรหัส PIN 4 หลักให้ครบ');
@@ -56,6 +61,10 @@ export default function AuthPinModal({
   };
 
   const handleBiometricAuth = () => {
+    if (targetMember?.member_type === 'virtual') {
+      setErrorMsg('Virtual Member (สมาชิกรวมงาน) ไม่สามารถเข้าใช้งานระบบได้');
+      return;
+    }
     // WebAuthn Biometric Trigger / Simulation for TouchID / FaceID
     onAuthenticateSuccess(targetMember.id, targetMember.pin_code);
     onClose();

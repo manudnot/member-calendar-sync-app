@@ -142,7 +142,9 @@ export default function App() {
   const [memberToEdit, setMemberToEdit] = useState(null);
   const [toast, setToast] = useState(null);
 
-  const activeUser = members.find(m => m.id === activeUserId) || members[0];
+  const activeUser = members.find(m => m.id === activeUserId && m.member_type !== 'virtual') || 
+                     members.find(m => m.member_type !== 'virtual') || 
+                     members[0];
 
   const handleAddCategory = async (newCategory) => {
     if (!newCategory || !newCategory.id) return;
@@ -288,7 +290,10 @@ export default function App() {
 
   // Audit Logging helper
   const logActivity = async (action, evt, details = '', customActor = null) => {
-    const actor = customActor || members.find(m => m.id === activeUserId) || members[0];
+    const actor = customActor || 
+                  members.find(m => m.id === activeUserId && m.member_type !== 'virtual') || 
+                  members.find(m => m.member_type !== 'virtual') || 
+                  members[0];
     const newLog = {
       id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       event_id: evt ? evt.id : null,

@@ -44,6 +44,11 @@ export default function FirstTimeUserModal({
   const activeMembers = members.filter(m => !m.is_archived && m.status !== 'resigned' && m.member_type !== 'virtual');
 
   const handleChooseMember = (member) => {
+    if (member?.member_type === 'virtual') {
+      setErrorMsg('Virtual Member (สมาชิกรวมงาน) ไม่สามารถเข้าใช้งานระบบได้');
+      return;
+    }
+
     setSelectedMember(member);
     setErrorMsg('');
     setSuccessMsg('');
@@ -190,7 +195,7 @@ export default function FirstTimeUserModal({
             <Sparkles className="w-6 h-6 animate-pulse" />
           </div>
           <h2 className="text-base font-black tracking-tight">
-            {activeUser ? `เมนูผู้ใช้งาน (${activeUser.name})` : 'เข้าใช้งานระบบปฏิทินปฏิบัติงาน'}
+            {activeUser ? 'เมนูผู้ใช้งาน' : 'เข้าใช้งานระบบปฏิทินปฏิบัติงาน'}
           </h2>
           <p className="text-xs font-semibold text-emerald-100">
             {step === 'select_user' && (activeUser ? 'เลือกเมนูด้านล่างหรือสลับตัวตนสมาชิก' : 'กรุณาเลือกชื่อสมาชิกทีมเพื่อเปิดใช้งาน')}
