@@ -212,8 +212,24 @@ export default function App() {
         const { data: supaEvents, error: evtErr } = await supabase.from('events').select('*');
         if (!evtErr && supaEvents && supaEvents.length > 0) {
           const cleanEvents = sanitizeEventsTime(supaEvents);
-          setEvents(cleanEvents);
-          localStorage.setItem('member_calendar_events', JSON.stringify(cleanEvents));
+          setEvents(prevEvents => {
+            const merged = cleanEvents.map(supaEvt => {
+              const localEvt = prevEvents.find(e => e.id === supaEvt.id);
+              return {
+                ...localEvt,
+                ...supaEvt,
+                all_day: (supaEvt.all_day !== undefined && supaEvt.all_day !== null)
+                  ? supaEvt.all_day
+                  : (localEvt ? localEvt.all_day : supaEvt.all_day),
+                color: supaEvt.color || (localEvt ? localEvt.color : '#f59e0b'),
+                category: supaEvt.category || (localEvt ? localEvt.category : 'General'),
+                repeat: supaEvt.repeat || (localEvt ? localEvt.repeat : 'none'),
+                custom_repeat: supaEvt.custom_repeat || (localEvt ? localEvt.custom_repeat : null)
+              };
+            });
+            localStorage.setItem('member_calendar_events', JSON.stringify(merged));
+            return merged;
+          });
         }
 
         // Fetch activity logs from Supabase
@@ -590,8 +606,12 @@ export default function App() {
             changes.push(`เปลี่ยนสถานที่/URL: จาก "${oldEvt.location}" ➔ เป็น "${eventPayload.location}"`);
           }
         }
-        if (oldEvt.category !== eventPayload.category) {
-          changes.push(`เปลี่ยนหมวดหมู่: จาก "${oldEvt.category || 'ทั่วไป'}" ➔ เป็น "${eventPayload.category}"`);
+        if (oldEvt.category && eventPayload.category && oldEvt.category !== eventPayload.category) {
+          const oldC = oldEvt.category.trim();
+          const newC = eventPayload.category.trim();
+          if (oldC.toLowerCase() !== newC.toLowerCase() && !oldC.includes(newC) && !newC.includes(oldC)) {
+            changes.push(`เปลี่ยนหมวดหมู่: จาก "${oldC}" ➔ เป็น "${newC}"`);
+          }
         }
         if (JSON.stringify(oldEvt.member_ids || []) !== JSON.stringify(eventPayload.member_ids || [])) {
           const getMemberNames = (ids) => (ids || []).map(id => members.find(m => m.id === id)?.name || id).join(', ');
@@ -625,9 +645,13 @@ export default function App() {
           title: eventPayload.title,
           start_time: eventPayload.start_time,
           end_time: eventPayload.end_time,
+          all_day: Boolean(eventPayload.all_day),
+          color: eventPayload.color || '#f59e0b',
+          category: eventPayload.category || 'General',
+          repeat: eventPayload.repeat || 'none',
+          custom_repeat: eventPayload.custom_repeat || null,
           description: eventPayload.description || '',
           location: eventPayload.location || eventPayload.url || '',
-          category: eventPayload.category || 'General',
           member_ids: eventPayload.member_ids || [],
           alarm_minutes: eventPayload.alarm_minutes || 15
         };
