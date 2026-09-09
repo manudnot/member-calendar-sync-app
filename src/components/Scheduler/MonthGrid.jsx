@@ -12,7 +12,8 @@ export default function MonthGrid({
   visibleMemberIds,
   onEditEvent,
   onMoveEvent,
-  onCopyEvent
+  onCopyEvent,
+  onOpenDayModal
 }) {
   const [draggedEvt, setDraggedEvt] = useState(null);
   const [dragOverDateStr, setDragOverDateStr] = useState(null);
@@ -24,6 +25,9 @@ export default function MonthGrid({
   const todayStr = formatDateKey(new Date());
 
   const getMemberById = (mId) => members.find(m => m.id === mId);
+
+  // Maximum event slots to show per cell in month view (to avoid bleeding into row below)
+  const MAX_VISIBLE_SLOTS = 2;
 
   // 1. Generate flat grid cells (Previous, Current, Next month)
   const gridCells = [];
@@ -106,6 +110,14 @@ export default function MonthGrid({
     setDragOverDateStr(null);
   };
 
+  const handleCellClick = (dateStr) => {
+    if (!dateStr) return;
+    onSelectDate(dateStr);
+    if (onOpenDayModal) {
+      onOpenDayModal(dateStr);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-dark-card border-b border-slate-200 dark:border-dark-border relative">
       {/* Weekdays Header */}
@@ -180,20 +192,20 @@ export default function MonthGrid({
           });
 
           return (
-            <div key={`week-${weekIdx}`} className="relative grid grid-cols-7 bg-slate-200 dark:bg-dark-border gap-px min-h-[90px] overflow-hidden">
+            <div key={`week-${weekIdx}`} className="relative grid grid-cols-7 bg-slate-200 dark:bg-dark-border gap-px min-h-[85px] overflow-hidden">
               
               {/* Day Background Cells with Full 4-Side Borders & Drag Target Handlers */}
               {week.map((cell, colIdx) => {
                 const dayAllEvents = visibleEvents.filter(e => isEventOnDate(e, cell.dateStr));
                 const totalEventsOnDay = dayAllEvents.length;
-                const visibleInCellCount = itemsWithSlots.filter(item => item.startCol <= colIdx && item.endCol >= colIdx && item.slotIndex < 3).length;
+                const visibleInCellCount = itemsWithSlots.filter(item => item.startCol <= colIdx && item.endCol >= colIdx && item.slotIndex < MAX_VISIBLE_SLOTS).length;
                 const overflowCount = totalEventsOnDay - visibleInCellCount;
                 const isDragTarget = dragOverDateStr === cell.dateStr;
 
                 return (
                   <div
                     key={cell.key}
-                    onClick={() => cell.dateStr && onSelectDate(cell.dateStr)}
+                    onClick={() => handleCellClick(cell.dateStr)}
                     onDragOver={(e) => {
                       e.preventDefault();
                       e.dataTransfer.dropEffect = 'copy';
@@ -204,7 +216,7 @@ export default function MonthGrid({
                       if (dragOverDateStr === cell.dateStr) setDragOverDateStr(null);
                     }}
                     onDrop={(e) => handleCellDrop(e, cell.dateStr)}
-                    className={`bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border/80 p-1 flex flex-col justify-between cursor-pointer transition-all duration-150 relative select-none ${
+                    className={`bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border/80 p-1 flex flex-col justify-between cursor-pointer transition-all duration-150 relative select-none overflow-hidden ${
                       isDragTarget
                         ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-100/60 dark:bg-emerald-950/40 shadow-inner z-20 scale-[0.99]'
                         : cell.isSelected
@@ -212,7 +224,7 @@ export default function MonthGrid({
                         : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     } ${cell.isOtherMonth ? 'bg-slate-50/60 dark:bg-dark-card/40' : ''}`}
                   >
-                    <div className="flex items-center justify-between pointer-events-none">
+                    <div className="flex items-center justify-between pointer-events-none z-10">
                       <span
                         className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black font-mono ${
                           cell.isToday
@@ -230,23 +242,27 @@ export default function MonthGrid({
                       </span>
                     </div>
 
-                    {/* Overflow "+N" Pill Badge (e.g. +2 on Day 7) */}
+                    {/* Overflow "+N" Pill Badge (TimeTree Style +1, +2) */}
                     {overflowCount > 0 && (
-                      <span
-                        onClick={(e) => { e.stopPropagation(); onSelectDate(cell.dateStr); }}
-                        className="absolute bottom-1 right-1 text-[9px] font-mono font-black px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-dark-border text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs cursor-pointer hover:bg-emerald-500 hover:text-white transition-all z-20"
-                        title={`ดูงานทั้งหมด ${totalEventsOnDay} รายการในวันที่ ${cell.dayNum}`}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCellClick(cell.dateStr);
+                        }}
+                        className="absolute bottom-1 right-1 text-[9px] font-mono font-black px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 shadow-2xs cursor-pointer hover:bg-emerald-500 hover:text-white transition-all z-30"
+                        title={`กดเพื่อดูภารกิจทั้งหมด ${totalEventsOnDay} รายการในวันที่ ${cell.dayNum}`}
                       >
                         +{overflowCount}
-                      </span>
+                      </button>
                     )}
                   </div>
                 );
               })}
 
-              {/* Unified Event Banners & Timed Cards Overlay (Tight Stack without Gaps) */}
-              <div className="absolute inset-0 top-[22px] pointer-events-none grid grid-cols-7 gap-px p-0.5">
-                {itemsWithSlots.filter(item => item.slotIndex < 3).map(({ evt, startCol, span, isStartOfEvent, isEndOfEvent, slotIndex }) => {
+              {/* Unified Event Banners & Timed Cards Overlay (Strictly Clipped within Week Row) */}
+              <div className="absolute inset-0 top-[22px] pointer-events-none grid grid-cols-7 gap-px p-0.5 overflow-hidden">
+                {itemsWithSlots.filter(item => item.slotIndex < MAX_VISIBLE_SLOTS).map(({ evt, startCol, span, isStartOfEvent, isEndOfEvent, slotIndex }) => {
                   const evtColor = getEventColor(evt, members);
                   const gridColStart = startCol + 1;
                   const isAllDay = isAllDayEvent(evt) || span > 1;

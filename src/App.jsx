@@ -122,6 +122,7 @@ export default function App() {
   const [isFirstTimeModalOpen, setIsFirstTimeModalOpen] = useState(!activeUserId);
   const [isAuthPinModalOpen, setIsAuthPinModalOpen] = useState(false);
   const [isActivityLogModalOpen, setIsActivityLogModalOpen] = useState(false);
+  const [isDayEventsModalOpen, setIsDayEventsModalOpen] = useState(false);
   const [unreadActivityCount, setUnreadActivityCount] = useState(0);
   const [isForgotPinModalOpen, setIsForgotPinModalOpen] = useState(false);
 
@@ -517,6 +518,11 @@ export default function App() {
     setSelectedDateStr(formatDateKey(now));
   };
 
+  const handleOpenDayModal = (dateStr) => {
+    if (dateStr) setSelectedDateStr(dateStr);
+    setIsDayEventsModalOpen(true);
+  };
+
   const handleOpenAddEvent = (dateStr) => {
     setEditingEvent(null);
     if (dateStr) setSelectedDateStr(dateStr);
@@ -828,6 +834,7 @@ export default function App() {
             onEditEvent={handleOpenEditEvent}
             onMoveEvent={handleMoveEvent}
             onCopyEvent={handleCopyEvent}
+            onOpenDayModal={handleOpenDayModal}
           />
 
           <DailyAgenda
@@ -918,6 +925,18 @@ export default function App() {
         onDeleteMember={handleDeleteMember}
         onToggleArchiveMember={handleToggleArchiveMember}
         memberToEdit={memberToEdit}
+      />
+
+      <DayEventsModal
+        isOpen={isDayEventsModalOpen}
+        onClose={() => setIsDayEventsModalOpen(false)}
+        selectedDateStr={selectedDateStr}
+        events={activeEvents}
+        members={members}
+        visibleMemberIds={visibleMemberIds}
+        onOpenAddEvent={handleOpenAddEvent}
+        onEditEvent={handleOpenEditEvent}
+        onDeleteEvent={handleDeleteEvent}
       />
 
       <Toast toast={toast} onClose={() => setToast(null)} />
