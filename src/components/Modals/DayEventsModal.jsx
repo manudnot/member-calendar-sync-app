@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus, Edit3, Trash2, Clock, MapPin, Link as LinkIcon, Calendar, X } from 'lucide-react';
 import { THAI_MONTHS, formatTimeShort, isEventOnDate, getEventColor, isAllDayEvent } from '../../utils/helpers';
+import { getHolidayForDate, FALLBACK_HOLIDAYS } from '../../utils/holidays';
 
 export default function DayEventsModal({
   isOpen,
@@ -9,6 +10,7 @@ export default function DayEventsModal({
   events,
   members,
   visibleMemberIds,
+  holidays = FALLBACK_HOLIDAYS,
   onOpenAddEvent,
   onEditEvent,
   onDeleteEvent
@@ -27,6 +29,8 @@ export default function DayEventsModal({
     if (!Array.isArray(evt.member_ids) || evt.member_ids.length === 0) return true;
     return evt.member_ids.some(mId => visibleMemberIds.includes(mId));
   });
+
+  const holiday = getHolidayForDate(selectedDateStr, holidays);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
@@ -72,6 +76,13 @@ export default function DayEventsModal({
 
         {/* Modal Events List Content */}
         <div className="flex-1 p-5 overflow-y-auto space-y-3 no-scrollbar">
+          {holiday && (
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl flex items-center gap-2.5 text-rose-700 dark:text-rose-300 text-xs font-bold shadow-2xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
+              <span>🎉 วันหยุดราชการ/วันสำคัญ: <strong className="font-extrabold">{holiday.name}</strong></span>
+            </div>
+          )}
+
           {dayEvents.length === 0 ? (
             <div className="text-center py-12 px-4 bg-slate-50/50 dark:bg-dark-bg/50 border border-dashed border-slate-200 dark:border-dark-border rounded-xl">
               <Calendar className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />

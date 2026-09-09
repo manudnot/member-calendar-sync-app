@@ -170,7 +170,7 @@ export default function MemberManagementModal({
                 }`}
               >
                 <User className="w-3.5 h-3.5" />
-                <span>Member (สมาชิกทั่วไป)</span>
+                <span>Member</span>
               </button>
               <button
                 type="button"
@@ -182,7 +182,7 @@ export default function MemberManagementModal({
                 }`}
               >
                 <Bot className="w-3.5 h-3.5" />
-                <span>Virtual Member (ตำแหน่งเวร)</span>
+                <span>Virtual Member</span>
               </button>
             </div>
 

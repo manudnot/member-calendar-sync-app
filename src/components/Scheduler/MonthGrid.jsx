@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { formatDateKey, formatTimeShort, hexToRgba, isEventOnDate, getEventColor, isAllDayEvent } from '../../utils/helpers';
+import { getHolidayForDate, FALLBACK_HOLIDAYS } from '../../utils/holidays';
 import { Move, Copy, X } from 'lucide-react';
 
 export default function MonthGrid({
@@ -11,6 +12,7 @@ export default function MonthGrid({
   members,
   categories,
   visibleMemberIds,
+  holidays = FALLBACK_HOLIDAYS,
   onEditEvent,
   onMoveEvent,
   onCopyEvent,
@@ -232,6 +234,7 @@ export default function MonthGrid({
                 const visibleInCellCount = itemsWithSlots.filter(item => item.startCol <= colIdx && item.endCol >= colIdx && item.slotIndex < maxVisibleSlots).length;
                 const overflowCount = totalEventsOnDay - visibleInCellCount;
                 const isDragTarget = dragOverDateStr === cell.dateStr;
+                const holiday = getHolidayForDate(cell.dateStr, holidays);
 
                 return (
                   <div
@@ -252,14 +255,16 @@ export default function MonthGrid({
                       if (dragOverDateStr === cell.dateStr) setDragOverDateStr(null);
                     }}
                     onDrop={(e) => handleCellDrop(e, cell.dateStr)}
-                    className={`bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border/80 p-1 flex flex-col justify-between cursor-pointer transition-all duration-150 relative select-none overflow-hidden group ${
+                    className={`border border-slate-200/80 dark:border-dark-border/80 p-1 flex flex-col justify-between cursor-pointer transition-all duration-150 relative select-none overflow-hidden group ${
                       isDragTarget
                         ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-100/60 dark:bg-emerald-950/40 shadow-inner z-20 scale-[0.99]'
                         : cell.isSelected
                         ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-50/30 dark:bg-emerald-950/20'
-                        : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                    } ${cell.isOtherMonth ? 'bg-slate-50/60 dark:bg-dark-card/40' : ''}`}
-                    title="กดที่พื้นที่ว่างเพื่อสร้างภารกิจใหม่ในวันนี้"
+                        : holiday
+                        ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200/80 dark:border-rose-900/60 hover:bg-rose-100/70 dark:hover:bg-rose-950/60'
+                        : 'bg-white dark:bg-dark-card hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                    } ${cell.isOtherMonth ? 'bg-slate-50/60 dark:bg-dark-card/40 opacity-60' : ''}`}
+                    title={holiday ? `🎉 ${holiday.name} (วันหยุดราชการ)` : 'กดที่พื้นที่ว่างเพื่อสร้างภารกิจใหม่ในวันนี้'}
                   >
                     {/* Day Header Strip Box (Centered Day Number + Clickable for Day Agenda Modal) */}
                     <div
@@ -270,13 +275,15 @@ export default function MonthGrid({
                           if (onOpenDayModal) onOpenDayModal(cell.dateStr);
                         }
                       }}
-                      className="w-full flex items-center justify-center py-0.5 rounded-t-lg hover:bg-slate-200/60 dark:hover:bg-slate-800/80 cursor-pointer transition-all z-20 pointer-events-auto group/header"
-                      title={`กดที่แถบหัววันที่เพื่อดูภารกิจทั้งหมดในวันที่ ${cell.dayNum}`}
+                      className="w-full flex items-center justify-center gap-1 py-0.5 rounded-t-lg hover:bg-slate-200/60 dark:hover:bg-slate-800/80 cursor-pointer transition-all z-20 pointer-events-auto group/header"
+                      title={holiday ? `🎉 ${holiday.name} (กดเพื่อดูภารกิจวันนี้)` : `กดที่แถบหัววันที่เพื่อดูภารกิจทั้งหมดในวันที่ ${cell.dayNum}`}
                     >
                       <span
                         className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black font-mono transition-transform group-hover/header:scale-110 shadow-2xs ${
                           cell.isToday
                             ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-300'
+                            : holiday
+                            ? 'text-rose-600 dark:text-rose-400 font-extrabold'
                             : cell.isOtherMonth
                             ? 'text-slate-300 dark:text-slate-600'
                             : cell.dayOfWeek === 0
@@ -288,6 +295,16 @@ export default function MonthGrid({
                       >
                         {cell.dayNum}
                       </span>
+
+                      {/* Holiday Badge Pill on Month Cell Header */}
+                      {holiday && (
+                        <span
+                          className="text-[9px] font-black text-rose-600 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/60 px-1 py-0.2 rounded-md truncate max-w-[65px] sm:max-w-[90px] shadow-2xs hidden sm:inline"
+                          title={holiday.name}
+                        >
+                          {holiday.name}
+                        </span>
+                      )}
                     </div>
 
                     {/* Overflow "+N" Pill Badge (TimeTree Style +1, +2) */}
