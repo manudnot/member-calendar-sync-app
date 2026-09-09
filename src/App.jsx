@@ -176,6 +176,8 @@ export default function App() {
           });
         }
 
+        const savedPins = JSON.parse(localStorage.getItem('member_calendar_pins') || '{}');
+
         if (!memErr && supaMembers && supaMembers.length > 0) {
           const cleanSupaMembers = supaMembers.filter(m =>
             !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
@@ -185,7 +187,12 @@ export default function App() {
             const updated = cleanSupaMembers.map(supaMem => {
               const localMem = prevMembers.find(m => m.id === supaMem.id);
               const validSupaPin = (supaMem.pin_code && supaMem.pin_code.trim()) ? supaMem.pin_code.trim() : null;
-              const syncedPin = validSupaPin || pinSyncMap[supaMem.id] || (localMem && localMem.pin_code) || '';
+              const syncedPin = validSupaPin || pinSyncMap[supaMem.id] || savedPins[supaMem.id] || (localMem && localMem.pin_code) || '';
+
+              if (syncedPin && !savedPins[supaMem.id]) {
+                savedPins[supaMem.id] = syncedPin;
+                localStorage.setItem('member_calendar_pins', JSON.stringify(savedPins));
+              }
 
               return {
                 ...localMem,
@@ -265,6 +272,10 @@ export default function App() {
   const handleResetPinWithOtp = async (memberId, newPinCode) => {
     const hashedPin = await hashPasscode(newPinCode);
 
+    const savedPins = JSON.parse(localStorage.getItem('member_calendar_pins') || '{}');
+    savedPins[memberId] = hashedPin;
+    localStorage.setItem('member_calendar_pins', JSON.stringify(savedPins));
+
     const updatedMembers = members.map(m => m.id === memberId ? { ...m, pin_code: hashedPin } : m);
     setMembers(updatedMembers);
     localStorage.setItem('member_calendar_members', JSON.stringify(updatedMembers));
@@ -294,6 +305,10 @@ export default function App() {
 
   const handleSaveNewPin = async (memberId, pinCode, enableBiometrics) => {
     const hashedPin = await hashPasscode(pinCode);
+
+    const savedPins = JSON.parse(localStorage.getItem('member_calendar_pins') || '{}');
+    savedPins[memberId] = hashedPin;
+    localStorage.setItem('member_calendar_pins', JSON.stringify(savedPins));
 
     const updatedMembers = members.map(m => m.id === memberId ? {
       ...m,

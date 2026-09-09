@@ -295,7 +295,7 @@ export default function FirstTimeUserModal({
                             )}
                           </span>
                           <span className="text-[10px] font-semibold text-slate-400">
-                            {mem.pin_code ? '🔒 มีรหัส PIN แล้ว' : '🔑 สมาชิกใหม่'}
+                            {mem.pin_code ? '🔒 มีรหัส PIN แล้ว (ยืนยัน PIN เพื่อสลับตัวตน)' : '🔑 สมาชิกใหม่ (ยืนยันรหัสหน่วยเพื่อตั้ง PIN)'}
                           </span>
                         </div>
                       </div>
