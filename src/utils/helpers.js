@@ -133,8 +133,8 @@ export function getEventColor(evt, members = []) {
   if (evt.color) return evt.color;
 
   if (evt.category) {
-    if (evt.category.includes('ภารกิจหมาย') || evt.category.includes('Red')) return '#EF4444';
-    if (evt.category.includes('ภารกิจหน่วย') || evt.category.includes('Yellow')) return '#F59E0B';
+    if (evt.category.includes('ภารกิจหมาย') || evt.category.includes('Yellow')) return '#F59E0B';
+    if (evt.category.includes('ภารกิจหน่วย') || evt.category.includes('Red')) return '#EF4444';
     if (evt.category.includes('งานหน่วย') || evt.category.includes('Purple')) return '#8B5CF6';
     if (evt.category.includes('ประชุม') || evt.category.includes('Emerald')) return '#10B981';
     if (evt.category.includes('การฝึก') || evt.category.includes('Brown')) return '#795548';

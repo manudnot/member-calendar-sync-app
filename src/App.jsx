@@ -899,6 +899,7 @@ export default function App() {
         editingEvent={editingEvent}
         members={members}
         onSaveEvent={handleSaveEvent}
+        onDeleteEvent={handleDeleteEvent}
         initialDateStr={selectedDateStr}
       />
 

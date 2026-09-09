@@ -3,14 +3,14 @@ import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Chec
 import { isAllDayEvent, convertMinutesToNotif } from '../../utils/helpers';
 
 const COLOR_PALETTE = [
-  { hex: '#10b981', name: 'Emerald green' },
-  { hex: '#3b82f6', name: 'Blue' },
-  { hex: '#8b5cf6', name: 'Purple' },
-  { hex: '#ec4899', name: 'Pink' },
-  { hex: '#f59e0b', name: 'Amber' },
-  { hex: '#ef4444', name: 'Red' },
-  { hex: '#795548', name: 'Brown' },
-  { hex: '#009688', name: 'Teal' }
+  { hex: '#f59e0b', category: '🟡 ภารกิจหมาย (Yellow)', name: 'ภารกิจหมาย (Yellow)' },
+  { hex: '#ef4444', category: '🔴 ภารกิจหน่วย (Red)', name: 'ภารกิจหน่วย (Red)' },
+  { hex: '#10b981', category: '🟢 ประชุม (Emerald)', name: 'ประชุม (Emerald)' },
+  { hex: '#8b5cf6', category: '🟣 งานหน่วย (Purple)', name: 'งานหน่วย (Purple)' },
+  { hex: '#795548', category: '🟤 การฝึก (Brown)', name: 'การฝึก (Brown)' },
+  { hex: '#ec4899', category: '💗 กิจกรรมพิเศษ (Pink)', name: 'กิจกรรมพิเศษ (Pink)' },
+  { hex: '#3b82f6', category: '🔵 ฝึกศึกษา / ทั่วไป (Blue)', name: 'ฝึกศึกษา / ทั่วไป (Blue)' },
+  { hex: '#009688', category: '🟢 งานอื่นๆ (Teal)', name: 'งานอื่นๆ (Teal)' }
 ];
 
 function getRepeatOptionsForDate(dateStr) {
@@ -53,6 +53,7 @@ export default function MissionModal({
   editingEvent,
   members,
   onSaveEvent,
+  onDeleteEvent,
   initialDateStr
 }) {
   const [title, setTitle] = useState('');
@@ -209,6 +210,7 @@ export default function MissionModal({
     const endIso = new Date(`${endDate}T${allDay ? '10:00' : endTime}:00`).toISOString();
 
     const primaryAlarmMinutes = notifications.length > 0 ? getAlarmMinutesFromNotif(notifications[0]) : 15;
+    const selectedPalette = COLOR_PALETTE.find(item => item.hex.toLowerCase() === color.toLowerCase()) || COLOR_PALETTE[0];
 
     const payload = {
       id: editingEvent ? editingEvent.id : `evt_${Date.now()}`,
@@ -217,6 +219,7 @@ export default function MissionModal({
       end_time: endIso,
       all_day: allDay,
       color,
+      category: selectedPalette.category,
       repeat,
       custom_repeat: repeat === 'custom' ? {
         interval: customInterval,
@@ -404,10 +407,27 @@ export default function MissionModal({
           </div>
 
           {/* Color Palette Selector */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
-              Label Color (เลือกสีของงาน)
-            </label>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                Label Color (เลือกสีและประเภทงาน) *
+              </label>
+              {(() => {
+                const currentPalette = COLOR_PALETTE.find(item => item.hex.toLowerCase() === color.toLowerCase()) || COLOR_PALETTE[0];
+                return (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 shadow-2xs"
+                        style={{
+                          backgroundColor: `${currentPalette.hex}1a`,
+                          borderColor: currentPalette.hex,
+                          color: currentPalette.hex
+                        }}>
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: currentPalette.hex }} />
+                    <span>{currentPalette.category}</span>
+                  </span>
+                );
+              })()}
+            </div>
+            
             <div className="flex flex-wrap gap-2.5 p-2.5 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl">
               {COLOR_PALETTE.map(item => (
                 <button
@@ -415,13 +435,20 @@ export default function MissionModal({
                   key={item.hex}
                   onClick={() => setColor(item.hex)}
                   style={{ backgroundColor: item.hex }}
-                  className={`w-6 h-6 rounded-full border transition-all cursor-pointer ${
-                    color === item.hex
-                      ? 'ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-slate-900 border-white scale-110 shadow-md'
+                  className={`w-7 h-7 rounded-full border transition-all cursor-pointer relative group flex items-center justify-center ${
+                    color.toLowerCase() === item.hex.toLowerCase()
+                      ? 'ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-slate-900 border-white scale-110 shadow-md z-10'
                       : 'border-transparent hover:scale-105 opacity-85'
                   }`}
-                  title={item.name}
-                />
+                  title={`ประเภทงาน: ${item.category}`}
+                >
+                  {color.toLowerCase() === item.hex.toLowerCase() && <Check className="w-3.5 h-3.5 text-white drop-shadow-xs" />}
+                  
+                  {/* Hover Tooltip Popup Badge */}
+                  <span className="absolute bottom-full mb-1.5 hidden group-hover:flex px-2 py-1 bg-slate-900/90 text-white text-[10px] font-bold rounded-lg shadow-xl whitespace-nowrap z-30 pointer-events-none transition-opacity animate-fade-in">
+                    {item.category}
+                  </span>
+                </button>
               ))}
             </div>
           </div>
@@ -631,21 +658,42 @@ export default function MissionModal({
             />
           </div>
 
-          {/* Footer Submit Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-200 dark:border-dark-border">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-secondary py-2 px-4 text-xs"
-            >
-              ยกเลิก
-            </button>
-            <button
-              type="submit"
-              className="btn-primary py-2 px-5 text-xs"
-            >
-              {editingEvent ? 'บันทึกแก้ไข' : 'สร้างกิจกรรม'}
-            </button>
+          {/* Footer Submit & Delete Buttons */}
+          <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-dark-border">
+            {editingEvent ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm(`คุณต้องการลบกิจกรรม "${editingEvent.title}" ใช่หรือไม่?`)) {
+                    if (onDeleteEvent) onDeleteEvent(editingEvent.id);
+                    onClose();
+                  }
+                }}
+                className="py-2 px-3 text-xs font-bold flex items-center gap-1.5 bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-200 dark:border-rose-800 rounded-xl transition-all cursor-pointer"
+                title="ลบกิจกรรมนี้ออกจากระบบ"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>ลบกิจกรรม</span>
+              </button>
+            ) : (
+              <div />
+            )}
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-secondary py-2 px-4 text-xs"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="submit"
+                className="btn-primary py-2 px-5 text-xs"
+              >
+                {editingEvent ? 'บันทึกแก้ไข' : 'สร้างกิจกรรม'}
+              </button>
+            </div>
           </div>
 
         </form>
