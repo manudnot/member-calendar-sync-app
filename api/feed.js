@@ -75,10 +75,12 @@ export default async function handler(req, res) {
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data: eventsData } = await supabase.from('events').select('*').eq('is_deleted', false);
+    const { data: eventsData, error: eventsErr } = await supabase.from('events').select('*');
     
-    if (eventsData && eventsData.length > 0) {
+    if (!eventsErr && eventsData && eventsData.length > 0) {
       events = eventsData;
+    } else {
+      events = SAMPLE_EVENTS;
     }
 
     if (memberId) {
@@ -103,6 +105,19 @@ export default async function handler(req, res) {
 
     // Filter events for specific member if not all-team feed
     if (memberId && (team !== 'true' && team !== '1')) {
+      const memKeywords = {
+        'mem_manudnot': ['น็อต', 'not', 'manudnot'],
+        'mem_third': ['ท็อป', 'third'],
+        'mem_june': ['จูน', 'june'],
+        'mem_thanatat': ['พี่ท็อป', 'top', 'thanatat'],
+        'mem_phak_ek': ['เอก', 'ผก.เอก', 'ภักดี'],
+        'mem_keng': ['เก่ง', 'มว.เก่ง'],
+        'mem_tum': ['ตั้ม', 'มว.ตั้ม'],
+        'mem_woooddy': ['แชมป์', 'woooddy', 'champ']
+      };
+
+      const keywords = memKeywords[memberId] || [];
+
       events = events.filter(evt => {
         let mIds = [];
         if (Array.isArray(evt.member_ids)) {
@@ -116,7 +131,16 @@ export default async function handler(req, res) {
             mIds = [evt.member_ids];
           }
         }
-        return mIds.includes(memberId);
+
+        if (mIds.includes(memberId)) return true;
+
+        // Keyword matching fallback for title/description
+        if (keywords.length > 0) {
+          const text = `${evt.title || ''} ${evt.description || ''}`.toLowerCase();
+          return keywords.some(kw => text.includes(kw.toLowerCase()));
+        }
+
+        return false;
       });
     }
 
