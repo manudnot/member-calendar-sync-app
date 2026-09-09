@@ -13,7 +13,7 @@ import AuthPinModal from './components/Modals/AuthPinModal';
 import ActivityLogModal from './components/Modals/ActivityLogModal';
 import ForgotPinModal from './components/Modals/ForgotPinModal';
 import DayEventsModal from './components/Modals/DayEventsModal';
-import { formatDateKey, formatThaiDateTime } from './utils/helpers';
+import { formatDateKey, formatThaiDateTime, sanitizeEventsTime } from './utils/helpers';
 import { supabase } from './utils/supabase';
 import { hashPasscode } from './utils/crypto';
 
@@ -34,7 +34,7 @@ const INITIAL_MEMBERS = [
 
 const INITIAL_EVENTS = [
   { "id": "evt_tt_1", "title": "Open house All", "start_time": "2024-12-27T09:00:00Z", "end_time": "2024-12-27T17:00:00Z", "all_day": true, "color": "#8b5cf6", "member_ids": ["mem_woooddy", "mem_third"], "alarm_minutes": 15 },
-  { "id": "evt_tt_2", "title": "ตรวจพื้นที่ All บน.6 (ประชุม กฝร. 8:30 / SBAC 9:00)", "start_time": "2025-01-02T08:30:00Z", "end_time": "2025-01-02T16:00:00Z", "all_day": false, "color": "#ef4444", "member_ids": ["mem_phak_ek", "mem_woooddy"], "alarm_minutes": 15 },
+  { "id": "evt_tt_2", "title": "ตรวจพื้นที่ All บน.6 (ประชุม กฝร. 8:30 / SBAC 9:00)", "start_time": "2025-01-02T01:30:00Z", "end_time": "2025-01-02T09:00:00Z", "all_day": false, "color": "#ef4444", "member_ids": ["mem_phak_ek", "mem_woooddy"], "alarm_minutes": 15 },
   { "id": "evt_tt_3", "title": "ประกาศรายชื่อจิตอาสา", "start_time": "2025-01-03T09:00:00Z", "end_time": "2025-01-03T17:00:00Z", "all_day": true, "color": "#795548", "member_ids": ["mem_third"], "alarm_minutes": 15 },
   { "id": "evt_tt_4", "title": "STAFFEX", "start_time": "2025-01-06T09:00:00Z", "end_time": "2025-01-10T17:00:00Z", "all_day": true, "color": "#3b82f6", "member_ids": ["mem_manudnot", "mem_thanatat"], "alarm_minutes": 15 },
   { "id": "evt_tt_5", "title": "วันเด็ก", "start_time": "2025-01-09T08:00:00Z", "end_time": "2025-01-09T16:00:00Z", "all_day": true, "color": "#ec4899", "member_ids": ["mem_june"], "alarm_minutes": 15 },
@@ -47,7 +47,7 @@ const INITIAL_EVENTS = [
   { "id": "evt_tt_12", "title": "Unit school / ภาคนอกที่ตั้ง", "start_time": "2025-03-01T09:00:00Z", "end_time": "2025-03-28T17:00:00Z", "all_day": true, "color": "#3b82f6", "member_ids": ["mem_woooddy", "mem_tum"], "alarm_minutes": 15 },
   { "id": "evt_tt_13", "title": "กฝร.ห้วยภูมิภาค ระยอง", "start_time": "2025-03-12T09:00:00Z", "end_time": "2025-03-15T17:00:00Z", "all_day": true, "color": "#795548", "member_ids": ["mem_third"], "alarm_minutes": 15 },
   { "id": "evt_tt_80", "title": "ฝึก CALFLEX", "start_time": "2026-09-05T09:00:00Z", "end_time": "2026-09-08T17:00:00Z", "all_day": true, "color": "#3b82f6", "member_ids": ["mem_keng", "mem_tum"], "alarm_minutes": 15 },
-  { "id": "evt_tt_81", "title": "1000 ประชุมหารือ การติดต่อสื่อสาร กกล.บูรพา และ ส.พัน.2", "start_time": "2026-09-09T10:00:00Z", "end_time": "2026-09-09T12:00:00Z", "all_day": false, "color": "#10b981", "member_ids": ["mem_third"], "location": "https://meet.google.com/cqp-hwsa-eet", "alarm_minutes": 15 },
+  { "id": "evt_tt_81", "title": "1000 ประชุมหารือ การติดต่อสื่อสาร กกล.บูรพา และ ส.พัน.2", "start_time": "2026-09-09T03:00:00Z", "end_time": "2026-09-09T05:00:00Z", "all_day": false, "color": "#10b981", "member_ids": ["mem_third"], "location": "https://meet.google.com/cqp-hwsa-eet", "alarm_minutes": 15 },
   { "id": "evt_tt_82", "title": "จเร ทภ.1 ตรวจคุณภาพชีวิต", "start_time": "2026-09-10T09:00:00Z", "end_time": "2026-09-10T17:00:00Z", "all_day": true, "color": "#ef4444", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 },
   { "id": "evt_tt_83", "title": "908 ครบ 100 วัน / หมาย 904 HMSV", "start_time": "2026-09-18T09:00:00Z", "end_time": "2026-09-19T17:00:00Z", "all_day": true, "color": "#ef4444", "member_ids": ["mem_phak_ek", "mem_woooddy"], "alarm_minutes": 15 },
   { "id": "evt_tt_84", "title": "หมาย 904 HMSV", "start_time": "2026-09-24T09:00:00Z", "end_time": "2026-09-25T17:00:00Z", "all_day": true, "color": "#ef4444", "member_ids": ["mem_phak_ek"], "alarm_minutes": 15 }
@@ -95,10 +95,10 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return sanitizeEventsTime(parsed);
       } catch (e) {}
     }
-    return INITIAL_EVENTS;
+    return sanitizeEventsTime(INITIAL_EVENTS);
   });
 
   const [activityLogs, setActivityLogs] = useState(() => {
@@ -211,8 +211,9 @@ export default function App() {
         // Fetch events from Supabase
         const { data: supaEvents, error: evtErr } = await supabase.from('events').select('*');
         if (!evtErr && supaEvents && supaEvents.length > 0) {
-          setEvents(supaEvents);
-          localStorage.setItem('member_calendar_events', JSON.stringify(supaEvents));
+          const cleanEvents = sanitizeEventsTime(supaEvents);
+          setEvents(cleanEvents);
+          localStorage.setItem('member_calendar_events', JSON.stringify(cleanEvents));
         }
 
         // Fetch activity logs from Supabase
