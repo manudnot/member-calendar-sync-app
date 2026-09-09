@@ -215,16 +215,12 @@ export default function App() {
           setEvents(prevEvents => {
             const merged = cleanEvents.map(supaEvt => {
               const localEvt = prevEvents.find(e => e.id === supaEvt.id);
+              if (!localEvt) return supaEvt;
               return {
-                ...localEvt,
                 ...supaEvt,
-                all_day: (supaEvt.all_day !== undefined && supaEvt.all_day !== null)
-                  ? supaEvt.all_day
-                  : (localEvt ? localEvt.all_day : supaEvt.all_day),
-                color: supaEvt.color || (localEvt ? localEvt.color : '#f59e0b'),
-                category: supaEvt.category || (localEvt ? localEvt.category : 'General'),
-                repeat: supaEvt.repeat || (localEvt ? localEvt.repeat : 'none'),
-                custom_repeat: supaEvt.custom_repeat || (localEvt ? localEvt.custom_repeat : null)
+                ...localEvt,
+                all_day: localEvt.all_day !== undefined ? localEvt.all_day : (supaEvt.all_day ?? true),
+                color: localEvt.color || supaEvt.color || '#f59e0b'
               };
             });
             localStorage.setItem('member_calendar_events', JSON.stringify(merged));
@@ -571,10 +567,14 @@ export default function App() {
   };
 
   const handleSaveEvent = async (eventPayload) => {
+    const prevEventsState = [...events];
     const exists = events.some(e => e.id === eventPayload.id);
     let updated;
+    let logAction = 'CREATE';
+    let logDetails = 'สร้างกิจกรรมใหม่';
 
     if (exists) {
+      logAction = 'UPDATE';
       const oldEvt = events.find(e => e.id === eventPayload.id);
       const changes = [];
 
@@ -621,23 +621,21 @@ export default function App() {
         }
       }
 
-      const logDetails = changes.length > 0 
+      logDetails = changes.length > 0 
         ? `แก้ไขรายละเอียด: ${changes.join(' | ')}`
         : 'ปรับปรุงรายละเอียดกิจกรรม';
 
       updated = events.map(e => e.id === eventPayload.id ? { ...eventPayload, is_deleted: false } : e);
-      logActivity('UPDATE', eventPayload, logDetails);
-      setToast({ message: 'แก้ไขกิจกรรมสำเร็จแล้ว!', type: 'success' });
     } else {
       const newEvt = { ...eventPayload, is_deleted: false };
       updated = [...events, newEvt];
-      logActivity('CREATE', newEvt, 'สร้างกิจกรรมใหม่');
-      setToast({ message: 'สร้างกิจกรรมใหม่สำเร็จแล้ว!', type: 'success' });
     }
 
+    // 1. Optimistic UI update locally
     setEvents(updated);
     localStorage.setItem('member_calendar_events', JSON.stringify(updated));
 
+    // 2. Supabase Async Confirmation & Rollback on Error
     if (supabase) {
       try {
         const supaEvtPayload = {
@@ -645,20 +643,31 @@ export default function App() {
           title: eventPayload.title,
           start_time: eventPayload.start_time,
           end_time: eventPayload.end_time,
-          all_day: Boolean(eventPayload.all_day),
-          color: eventPayload.color || '#f59e0b',
-          category: eventPayload.category || 'General',
-          repeat: eventPayload.repeat || 'none',
-          custom_repeat: eventPayload.custom_repeat || null,
           description: eventPayload.description || '',
           location: eventPayload.location || eventPayload.url || '',
+          category: eventPayload.category || 'General',
           member_ids: eventPayload.member_ids || [],
           alarm_minutes: eventPayload.alarm_minutes || 15
         };
-        await supabase.from('events').upsert([supaEvtPayload]);
-      } catch(e) {
-        console.warn('Supabase upsert event warning:', e);
+
+        const { error } = await supabase.from('events').upsert([supaEvtPayload]);
+        if (error) {
+          throw error;
+        }
+
+        // Success: Log activity & notify
+        logActivity(logAction, eventPayload, logDetails);
+        setToast({ message: 'บันทึกกิจกรรมลงเซิร์ฟเวอร์สำเร็จแล้ว!', type: 'success' });
+      } catch (err) {
+        console.error('Supabase save error:', err);
+        // Rollback on error
+        setEvents(prevEventsState);
+        localStorage.setItem('member_calendar_events', JSON.stringify(prevEventsState));
+        setToast({ message: 'การบันทึกล้มเหลว ระบบทำการคืนค่าเดิมเรียบร้อยแล้ว', type: 'error' });
       }
+    } else {
+      logActivity(logAction, eventPayload, logDetails);
+      setToast({ message: 'บันทึกกิจกรรมในเครื่องสำเร็จ!', type: 'success' });
     }
   };
 
