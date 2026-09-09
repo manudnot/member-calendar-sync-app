@@ -495,7 +495,6 @@ export default function MissionModal({
                   type="button"
                   onClick={() => {
                     setColor(item.hex);
-                    setCategory(item.category);
                     setSelectedCategoryId(item.id || 'cat_work');
                   }}
                   className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer relative group ${

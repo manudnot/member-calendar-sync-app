@@ -689,8 +689,6 @@ export default function App() {
           description: eventPayload.description || '',
           location: eventPayload.location || eventPayload.url || '',
           category: eventPayload.category || 'General',
-          category_id: eventPayload.category_id || 'cat_work',
-          color: eventPayload.color || '#8b5cf6',
           member_ids: eventPayload.member_ids || [],
           alarm_minutes: eventPayload.alarm_minutes || 15
         };
@@ -761,8 +759,6 @@ export default function App() {
           description: updatedEvt.description || '',
           location: updatedEvt.location || updatedEvt.url || '',
           category: updatedEvt.category || 'General',
-          category_id: updatedEvt.category_id || 'cat_work',
-          color: updatedEvt.color || '#8b5cf6',
           member_ids: updatedEvt.member_ids || [],
           alarm_minutes: updatedEvt.alarm_minutes || 15
         };
@@ -819,8 +815,6 @@ export default function App() {
           description: newEvt.description || '',
           location: newEvt.location || newEvt.url || '',
           category: newEvt.category || 'General',
-          category_id: newEvt.category_id || 'cat_work',
-          color: newEvt.color || '#8b5cf6',
           member_ids: newEvt.member_ids || [],
           alarm_minutes: newEvt.alarm_minutes || 15
         };
