@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { formatDateKey, formatTimeShort, hexToRgba, isEventOnDate, getEventColor, isAllDayEvent } from '../../utils/helpers';
 import { Move, Copy, X } from 'lucide-react';
 
@@ -21,15 +21,16 @@ export default function MonthGrid({
   const [dragOverDateStr, setDragOverDateStr] = useState(null);
   const [dropMenu, setDropMenu] = useState(null);
 
+  // Dynamic max visible event slots based on row height
+  const [maxVisibleSlots, setMaxVisibleSlots] = useState(3);
+  const gridRef = useRef(null);
+
   const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
   const todayStr = formatDateKey(new Date());
 
   const getMemberById = (mId) => members.find(m => m.id === mId);
-
-  // Maximum event slots to show per cell in month view (to avoid bleeding into row below)
-  const MAX_VISIBLE_SLOTS = 2;
 
   // 1. Generate flat grid cells (Previous, Current, Next month)
   const gridCells = [];
@@ -112,6 +113,38 @@ export default function MonthGrid({
     setDragOverDateStr(null);
   };
 
+  // Calculate dynamic max visible event slots based on grid container row height
+  useEffect(() => {
+    if (!gridRef.current) return;
+
+    const updateSlots = () => {
+      if (!gridRef.current) return;
+      const containerHeight = gridRef.current.clientHeight;
+      const numWeeks = weeks.length || 5;
+      const weekRowHeight = containerHeight / numWeeks;
+      
+      // Reserve 24px top header space (date badge) + 20px bottom overflow badge buffer = 44px
+      // Each slot uses 21px (20px height + 1px vertical gap)
+      const availableHeight = weekRowHeight - 44;
+      const computedSlots = Math.max(1, Math.floor(availableHeight / 21));
+      setMaxVisibleSlots(computedSlots);
+    };
+
+    updateSlots();
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateSlots();
+    });
+
+    resizeObserver.observe(gridRef.current);
+    window.addEventListener('resize', updateSlots);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateSlots);
+    };
+  }, [weeks.length]);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-dark-card border-b border-slate-200 dark:border-dark-border relative">
       {/* Weekdays Header */}
@@ -127,6 +160,7 @@ export default function MonthGrid({
 
       {/* 7-Column Week Rows Container (Dynamic Height filling 100% space) */}
       <div
+        ref={gridRef}
         className="flex-1 grid bg-slate-200 dark:bg-dark-border gap-px overflow-y-auto no-scrollbar"
         style={{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }}
       >
@@ -195,7 +229,7 @@ export default function MonthGrid({
               {week.map((cell, colIdx) => {
                 const dayAllEvents = visibleEvents.filter(e => isEventOnDate(e, cell.dateStr));
                 const totalEventsOnDay = dayAllEvents.length;
-                const visibleInCellCount = itemsWithSlots.filter(item => item.startCol <= colIdx && item.endCol >= colIdx && item.slotIndex < MAX_VISIBLE_SLOTS).length;
+                const visibleInCellCount = itemsWithSlots.filter(item => item.startCol <= colIdx && item.endCol >= colIdx && item.slotIndex < maxVisibleSlots).length;
                 const overflowCount = totalEventsOnDay - visibleInCellCount;
                 const isDragTarget = dragOverDateStr === cell.dateStr;
 
@@ -276,7 +310,7 @@ export default function MonthGrid({
 
               {/* Unified Event Banners & Timed Cards Overlay (Strictly Clipped within Week Row) */}
               <div className="absolute inset-0 top-[22px] pointer-events-none grid grid-cols-7 gap-px p-0.5 overflow-hidden">
-                {itemsWithSlots.filter(item => item.slotIndex < MAX_VISIBLE_SLOTS).map(({ evt, startCol, span, isStartOfEvent, isEndOfEvent, slotIndex }) => {
+                {itemsWithSlots.filter(item => item.slotIndex < maxVisibleSlots).map(({ evt, startCol, span, isStartOfEvent, isEndOfEvent, slotIndex }) => {
                   const evtColor = getEventColor(evt, categories, members);
                   const gridColStart = startCol + 1;
                   const isAllDay = isAllDayEvent(evt) || span > 1;
