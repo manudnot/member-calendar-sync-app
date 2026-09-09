@@ -1,4 +1,4 @@
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://aevutuguijjakfhulgjd.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_8LNKQLJ6snj6AvxPGf2TmA_Sm8KCbhU';
@@ -59,7 +59,7 @@ function getTriggerString(alarmMins) {
   return `-PT${mins}M`;
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
@@ -69,7 +69,7 @@ module.exports = async (req, res) => {
     return res.status(200).end();
   }
 
-  const { memberId, team } = req.query;
+  const { memberId, team } = req.query || {};
   let events = [];
   let memberName = 'Team';
 
@@ -193,4 +193,4 @@ module.exports = async (req, res) => {
     console.error('Serverless function feed error:', err);
     return res.status(500).send(`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Error//EN\r\nX-WR-CALNAME:Error\r\nEND:VCALENDAR`);
   }
-};
+}
