@@ -87,6 +87,14 @@ export default function MissionModal({
   const [url, setUrl] = useState('');
   const [description, setDescription] = useState('');
 
+  // Derive color/category options list from categories prop or DEFAULT_COLOR_PALETTE
+  const colorOptions = (Array.isArray(categories) && categories.length > 0 ? categories : DEFAULT_COLOR_PALETTE).map(c => ({
+    id: c.id || 'cat_work',
+    hex: c.color || c.hex || '#8b5cf6',
+    category: c.name || c.category || 'งานทั่วไป',
+    name: c.name || c.category || 'งานทั่วไป'
+  }));
+
   // Track previous isOpen state to only reset form when modal transitions to open
   const prevIsOpenRef = useRef(false);
   const prevEditingIdRef = useRef(null);
