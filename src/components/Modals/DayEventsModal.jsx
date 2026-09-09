@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, Edit3, Trash2, Clock, MapPin, Link as LinkIcon, Calendar, X } from 'lucide-react';
 import { THAI_MONTHS, formatTimeShort, isEventOnDate, getEventColor, isAllDayEvent } from '../../utils/helpers';
-import { getHolidayForDate, FALLBACK_HOLIDAYS } from '../../utils/holidays';
+import { getHolidayForDate } from '../../utils/holidays';
 
 export default function DayEventsModal({
   isOpen,
@@ -10,7 +10,7 @@ export default function DayEventsModal({
   events,
   members,
   visibleMemberIds,
-  holidays = FALLBACK_HOLIDAYS,
+  holidays = {},
   onOpenAddEvent,
   onEditEvent,
   onDeleteEvent

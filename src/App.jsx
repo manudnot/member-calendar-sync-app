@@ -13,7 +13,7 @@ import AuthPinModal from './components/Modals/AuthPinModal';
 import ActivityLogModal from './components/Modals/ActivityLogModal';
 import ForgotPinModal from './components/Modals/ForgotPinModal';
 import DayEventsModal from './components/Modals/DayEventsModal';
-import { fetchLiveHolidays, FALLBACK_HOLIDAYS } from './utils/holidays';
+import { fetchLiveHolidays } from './utils/holidays';
 import { formatDateKey, formatThaiDateTime, sanitizeEventsTime, INITIAL_CATEGORIES, ensureEventCategoryAndColor, getLocalDateStr } from './utils/helpers';
 import { supabase } from './utils/supabase';
 import { hashPasscode } from './utils/crypto';
@@ -142,7 +142,7 @@ export default function App() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [memberToEdit, setMemberToEdit] = useState(null);
   const [toast, setToast] = useState(null);
-  const [holidays, setHolidays] = useState(FALLBACK_HOLIDAYS);
+  const [holidays, setHolidays] = useState({});
 
   useEffect(() => {
     fetchLiveHolidays().then(hData => {

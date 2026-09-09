@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { formatDateKey, formatTimeShort, hexToRgba, isEventOnDate, getEventColor, isAllDayEvent } from '../../utils/helpers';
-import { getHolidayForDate, FALLBACK_HOLIDAYS } from '../../utils/holidays';
+import { getHolidayForDate } from '../../utils/holidays';
 import { Move, Copy, X } from 'lucide-react';
 
 export default function MonthGrid({
@@ -12,7 +12,7 @@ export default function MonthGrid({
   members,
   categories,
   visibleMemberIds,
-  holidays = FALLBACK_HOLIDAYS,
+  holidays = {},
   onEditEvent,
   onMoveEvent,
   onCopyEvent,
