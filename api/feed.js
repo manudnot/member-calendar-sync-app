@@ -208,9 +208,9 @@ export default async function handler(req, res) {
 
       if (isAllDay) {
         const startStr = getBkkDateStr(evt.start_time);
-        const nextDayStr = getBkkNextDayStr(evt.end_time || evt.start_time);
+        const endStr = getBkkDateStr(evt.end_time || evt.start_time);
         lines.push(`DTSTART;VALUE=DATE:${startStr}`);
-        lines.push(`DTEND;VALUE=DATE:${nextDayStr}`);
+        lines.push(`DTEND;VALUE=DATE:${endStr}`);
       } else {
         lines.push(`DTSTART:${formatDateUtc(startDate)}`);
         lines.push(`DTEND:${formatDateUtc(endDate)}`);
