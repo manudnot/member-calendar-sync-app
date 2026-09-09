@@ -261,27 +261,30 @@ export default function MonthGrid({
                     } ${cell.isOtherMonth ? 'bg-slate-50/60 dark:bg-dark-card/40' : ''}`}
                     title="กดที่พื้นที่ว่างเพื่อสร้างภารกิจใหม่ในวันนี้"
                   >
-                    <div className="flex items-center justify-between z-20">
+                    {/* Day Header Strip Box (Centered Day Number + Clickable for Day Agenda Modal) */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (cell.dateStr) {
+                          onSelectDate(cell.dateStr);
+                          if (onOpenDayModal) onOpenDayModal(cell.dateStr);
+                        }
+                      }}
+                      className="w-full flex items-center justify-center py-0.5 rounded-t-lg hover:bg-slate-200/60 dark:hover:bg-slate-800/80 cursor-pointer transition-all z-20 pointer-events-auto group/header"
+                      title={`กดที่แถบหัววันที่เพื่อดูภารกิจทั้งหมดในวันที่ ${cell.dayNum}`}
+                    >
                       <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (cell.dateStr) {
-                            onSelectDate(cell.dateStr);
-                            if (onOpenDayModal) onOpenDayModal(cell.dateStr);
-                          }
-                        }}
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black font-mono cursor-pointer hover:scale-115 transition-transform pointer-events-auto shadow-2xs ${
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black font-mono transition-transform group-hover/header:scale-110 shadow-2xs ${
                           cell.isToday
                             ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-300'
                             : cell.isOtherMonth
                             ? 'text-slate-300 dark:text-slate-600'
                             : cell.dayOfWeek === 0
-                            ? 'text-rose-600 dark:text-rose-400'
+                            ? 'text-rose-600 dark:text-rose-400 font-black'
                             : cell.dayOfWeek === 6
-                            ? 'text-blue-600 dark:text-blue-400'
+                            ? 'text-blue-600 dark:text-blue-400 font-black'
                             : 'text-slate-700 dark:text-slate-300'
                         }`}
-                        title={`กดที่วงกลมตัวเลขเพื่อดูภารกิจทั้งหมดในวันที่ ${cell.dayNum}`}
                       >
                         {cell.dayNum}
                       </span>

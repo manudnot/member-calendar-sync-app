@@ -165,8 +165,8 @@ export function formatThaiDateTime(isoStr) {
 }
 
 export const INITIAL_CATEGORIES = [
-  { id: 'cat_royal', name: 'ภารกิจหมาย', color: '#ef4444', sort_order: 1 },
-  { id: 'cat_unit', name: 'ภารกิจหน่วย', color: '#f59e0b', sort_order: 2 },
+  { id: 'cat_unit', name: 'ภารกิจหน่วย', color: '#ef4444', sort_order: 1 },
+  { id: 'cat_royal', name: 'ภารกิจหมาย', color: '#f59e0b', sort_order: 2 },
   { id: 'cat_meeting', name: 'ประชุม', color: '#10b981', sort_order: 3 },
   { id: 'cat_work', name: 'งานหน่วย', color: '#8b5cf6', sort_order: 4 },
   { id: 'cat_training', name: 'การฝึก', color: '#795548', sort_order: 5 },
@@ -193,8 +193,11 @@ export function getEventColor(evt, categories = INITIAL_CATEGORIES, members = []
 
   // 3. By title keywords fallback
   const title = (evt.title || '').toLowerCase();
-  if (title.includes('หมาย') || title.includes('904') || title.includes('905') || title.includes('908') || title.includes('hmsv')) {
+  if (title.includes('หน่วย') || title.includes('จเร') || title.includes('ตรวจ')) {
     return '#ef4444';
+  }
+  if (title.includes('หมาย') || title.includes('904') || title.includes('905') || title.includes('908') || title.includes('hmsv')) {
+    return '#f59e0b';
   }
   if (title.includes('ประชุม') || title.includes('vtc') || title.includes('สัมภาษณ์') || title.includes('อบรม')) {
     return '#10b981';

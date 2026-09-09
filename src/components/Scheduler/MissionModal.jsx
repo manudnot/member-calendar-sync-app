@@ -3,8 +3,8 @@ import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Chec
 import { isAllDayEvent, convertMinutesToNotif, getLocalDateStr, getLocalTimeStr } from '../../utils/helpers';
 
 const DEFAULT_COLOR_PALETTE = [
-  { hex: '#f59e0b', category: 'ภารกิจหมาย', name: 'ภารกิจหมาย' },
   { hex: '#ef4444', category: 'ภารกิจหน่วย', name: 'ภารกิจหน่วย' },
+  { hex: '#f59e0b', category: 'ภารกิจหมาย', name: 'ภารกิจหมาย' },
   { hex: '#10b981', category: 'ประชุม', name: 'ประชุม' },
   { hex: '#8b5cf6', category: 'งานหน่วย', name: 'งานหน่วย' },
   { hex: '#795548', category: 'การฝึก', name: 'การฝึก' },

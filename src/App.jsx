@@ -700,17 +700,17 @@ export default function App() {
 
         // Success: Log activity & notify
         logActivity(logAction, eventPayload, logDetails);
-        setToast({ message: 'บันทึกกิจกรรมลงเซิร์ฟเวอร์สำเร็จแล้ว!', type: 'success' });
+        setToast({ message: 'บันทึกกิจกรรมเรียบร้อยแล้ว', type: 'success' });
       } catch (err) {
         console.error('Supabase save error:', err);
         // Rollback on error
         setEvents(prevEventsState);
         localStorage.setItem('member_calendar_events', JSON.stringify(prevEventsState));
-        setToast({ message: 'การบันทึกล้มเหลว ระบบทำการคืนค่าเดิมเรียบร้อยแล้ว', type: 'error' });
+        setToast({ message: 'การบันทึกล้มเหลว ระบบได้คืนค่าเดิมเรียบร้อยแล้ว', type: 'error' });
       }
     } else {
       logActivity(logAction, eventPayload, logDetails);
-      setToast({ message: 'บันทึกกิจกรรมในเครื่องสำเร็จ!', type: 'success' });
+      setToast({ message: 'บันทึกกิจกรรมเรียบร้อยแล้ว', type: 'success' });
     }
   };
 
@@ -883,7 +883,7 @@ export default function App() {
     if (!log || log.action !== 'UPDATE' || !log.event_id) return;
     const targetEvt = events.find(e => e.id === log.event_id);
     if (!targetEvt) {
-      setToast({ message: 'ไม่พบภารกิจนี้ในระบบ (อาจถูกลบถาวรไปแล้ว)', type: 'error' });
+      setToast({ message: 'ไม่พบภารกิจนี้ในระบบ', type: 'error' });
       return;
     }
 
@@ -925,7 +925,7 @@ export default function App() {
     }
 
     if (revertedChanges.length === 0) {
-      setToast({ message: 'ไม่พบประวัติการเปลี่ยนค่าที่สามารถย้อนกลับอัตโนมัติได้', type: 'info' });
+      setToast({ message: 'ไม่พบประวัติการแก้ไขที่สามารถย้อนกลับได้', type: 'info' });
       return;
     }
 
