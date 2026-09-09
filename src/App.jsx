@@ -738,7 +738,7 @@ export default function App() {
     setEvents(updated);
     localStorage.setItem('member_calendar_events', JSON.stringify(updated));
 
-    logActivity('DELETE', targetEvt, 'ย้ายกิจกรรมลงถังขยะ (กู้คืนได้ใน Activity Log)');
+    logActivity('DELETE', targetEvt, 'ย้ายกิจกรรมลงถังขยะ');
 
     if (supabase) {
       try {
@@ -747,7 +747,7 @@ export default function App() {
         console.warn('Supabase delete event warning:', e);
       }
     }
-    setToast({ message: 'ย้ายกิจกรรมไปถังขยะเรียบร้อยแล้ว (สามารถกู้คืนได้)', type: 'info' });
+    setToast({ message: 'ย้ายกิจกรรมไปถังขยะเรียบร้อยแล้ว', type: 'info' });
   };
 
   const handleRestoreEvent = async (eventId) => {
