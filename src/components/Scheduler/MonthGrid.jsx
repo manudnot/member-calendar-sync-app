@@ -9,6 +9,7 @@ export default function MonthGrid({
   onSelectDate,
   events,
   members,
+  categories,
   visibleMemberIds,
   onEditEvent,
   onMoveEvent,
@@ -276,7 +277,7 @@ export default function MonthGrid({
               {/* Unified Event Banners & Timed Cards Overlay (Strictly Clipped within Week Row) */}
               <div className="absolute inset-0 top-[22px] pointer-events-none grid grid-cols-7 gap-px p-0.5 overflow-hidden">
                 {itemsWithSlots.filter(item => item.slotIndex < MAX_VISIBLE_SLOTS).map(({ evt, startCol, span, isStartOfEvent, isEndOfEvent, slotIndex }) => {
-                  const evtColor = getEventColor(evt, members);
+                  const evtColor = getEventColor(evt, categories, members);
                   const gridColStart = startCol + 1;
                   const isAllDay = isAllDayEvent(evt) || span > 1;
                   const timeText = formatTimeShort(evt.start_time);

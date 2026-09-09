@@ -161,27 +161,93 @@ export function formatThaiDateTime(isoStr) {
   return `${day} ${month} ${year} ${hours}:${minutes} น.`;
 }
 
-export function getEventColor(evt, members = []) {
-  if (!evt) return '#10B981';
-  if (evt.color) return evt.color;
+export const INITIAL_CATEGORIES = [
+  { id: 'cat_royal', name: 'ภารกิจหมาย', color: '#ef4444', sort_order: 1 },
+  { id: 'cat_unit', name: 'ภารกิจหน่วย', color: '#f59e0b', sort_order: 2 },
+  { id: 'cat_meeting', name: 'ประชุม', color: '#10b981', sort_order: 3 },
+  { id: 'cat_work', name: 'งานหน่วย', color: '#8b5cf6', sort_order: 4 },
+  { id: 'cat_training', name: 'การฝึก', color: '#795548', sort_order: 5 },
+  { id: 'cat_special', name: 'กิจกรรมพิเศษ', color: '#ec4899', sort_order: 6 }
+];
 
-  if (evt.category) {
-    if (evt.category.includes('ภารกิจหมาย')) return '#F59E0B';
-    if (evt.category.includes('ภารกิจหน่วย')) return '#EF4444';
-    if (evt.category.includes('งานหน่วย')) return '#8B5CF6';
-    if (evt.category.includes('ประชุม')) return '#10B981';
-    if (evt.category.includes('การฝึก')) return '#795548';
-    if (evt.category.includes('กิจกรรมพิเศษ')) return '#EC4899';
-    if (evt.category.includes('ฝึกศึกษา')) return '#3B82F6';
-    if (evt.category.includes('งานอื่นๆ')) return '#009688';
+export function getEventColor(evt, categories = INITIAL_CATEGORIES, members = []) {
+  if (!evt) return '#10b981';
+
+  const catList = Array.isArray(categories) && categories.length > 0 ? categories : INITIAL_CATEGORIES;
+
+  // 1. By category_id match
+  if (evt.category_id) {
+    const matchedCat = catList.find(c => c.id === evt.category_id);
+    if (matchedCat && matchedCat.color) return matchedCat.color;
   }
 
-  if (Array.isArray(evt.member_ids) && evt.member_ids.length > 0) {
+  // 2. By legacy category text match
+  if (evt.category) {
+    const catName = evt.category.toLowerCase();
+    const matchedCat = catList.find(c => c.name && catName.includes(c.name.toLowerCase()));
+    if (matchedCat && matchedCat.color) return matchedCat.color;
+  }
+
+  // 3. By title keywords fallback
+  const title = (evt.title || '').toLowerCase();
+  if (title.includes('หมาย') || title.includes('904') || title.includes('905') || title.includes('908') || title.includes('hmsv')) {
+    return '#ef4444';
+  }
+  if (title.includes('ประชุม') || title.includes('vtc') || title.includes('สัมภาษณ์') || title.includes('อบรม')) {
+    return '#10b981';
+  }
+  if (title.includes('ฝึก') || title.includes('กฝร') || title.includes('staffex') || title.includes('cpx') || title.includes('calflex') || title.includes('unit school')) {
+    return '#795548';
+  }
+  if (title.includes('วันเด็ก') || title.includes('วันเกิด')) {
+    return '#ec4899';
+  }
+
+  // 4. By assigned member color
+  if (Array.isArray(evt.member_ids) && evt.member_ids.length > 0 && Array.isArray(members) && members.length > 0) {
     const firstMem = members.find(m => m.id === evt.member_ids[0]);
     if (firstMem && firstMem.color) return firstMem.color;
   }
 
-  return '#10B981';
+  // 5. Custom explicit color if valid
+  if (evt.color) return evt.color;
+
+  return '#8b5cf6';
+}
+
+export function ensureEventCategoryAndColor(evt, categories = INITIAL_CATEGORIES) {
+  if (!evt) return evt;
+
+  const catList = Array.isArray(categories) && categories.length > 0 ? categories : INITIAL_CATEGORIES;
+  let catId = evt.category_id;
+
+  if (!catId) {
+    const catStr = (evt.category || '').toLowerCase();
+    const titleStr = (evt.title || '').toLowerCase();
+
+    if (catStr.includes('หมาย') || titleStr.includes('หมาย') || titleStr.includes('904') || titleStr.includes('905') || titleStr.includes('908') || titleStr.includes('hmsv')) {
+      catId = 'cat_royal';
+    } else if (catStr.includes('หน่วย') || titleStr.includes('จิตอาสา') || titleStr.includes('ตรวจพื้นที่')) {
+      catId = 'cat_unit';
+    } else if (catStr.includes('ประชุม') || titleStr.includes('ประชุม') || titleStr.includes('vtc') || titleStr.includes('สัมภาษณ์') || titleStr.includes('อบรม')) {
+      catId = 'cat_meeting';
+    } else if (catStr.includes('ฝึก') || titleStr.includes('ฝึก') || titleStr.includes('กฝร') || titleStr.includes('staffex') || titleStr.includes('cpx') || titleStr.includes('calflex') || titleStr.includes('unit school')) {
+      catId = 'cat_training';
+    } else if (catStr.includes('กิจกรรม') || titleStr.includes('วันเด็ก') || titleStr.includes('วันเกิด')) {
+      catId = 'cat_special';
+    } else {
+      catId = 'cat_work';
+    }
+  }
+
+  const matchedCat = catList.find(c => c.id === catId) || catList[0];
+
+  return {
+    ...evt,
+    category_id: catId,
+    category: matchedCat ? matchedCat.name : (evt.category || 'งานหน่วย'),
+    color: matchedCat ? matchedCat.color : (evt.color || '#8b5cf6')
+  };
 }
 
 export function isAllDayEvent(evt) {

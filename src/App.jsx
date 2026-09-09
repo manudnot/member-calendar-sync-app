@@ -13,7 +13,7 @@ import AuthPinModal from './components/Modals/AuthPinModal';
 import ActivityLogModal from './components/Modals/ActivityLogModal';
 import ForgotPinModal from './components/Modals/ForgotPinModal';
 import DayEventsModal from './components/Modals/DayEventsModal';
-import { formatDateKey, formatThaiDateTime, sanitizeEventsTime } from './utils/helpers';
+import { formatDateKey, formatThaiDateTime, sanitizeEventsTime, INITIAL_CATEGORIES, ensureEventCategoryAndColor, getLocalDateStr } from './utils/helpers';
 import { supabase } from './utils/supabase';
 import { hashPasscode } from './utils/crypto';
 
@@ -89,6 +89,16 @@ export default function App() {
     return INITIAL_MEMBERS;
   });
 
+  const [categories, setCategories] = useState(() => {
+    const saved = localStorage.getItem('member_calendar_categories');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_CATEGORIES;
+  });
 
   const [events, setEvents] = useState(() => {
     const saved = localStorage.getItem('member_calendar_events');
@@ -134,6 +144,27 @@ export default function App() {
 
   const activeUser = members.find(m => m.id === activeUserId) || members[0];
 
+  const handleAddCategory = async (newCategory) => {
+    if (!newCategory || !newCategory.id) return;
+    const exists = categories.some(c => c.id === newCategory.id);
+    let updated;
+    if (exists) {
+      updated = categories.map(c => c.id === newCategory.id ? newCategory : c);
+    } else {
+      updated = [...categories, newCategory];
+    }
+    setCategories(updated);
+    localStorage.setItem('member_calendar_categories', JSON.stringify(updated));
+
+    if (supabase) {
+      try {
+        await supabase.from('categories').upsert([newCategory]);
+      } catch (e) {
+        console.warn('Supabase add category error:', e);
+      }
+    }
+  };
+
   // Theme manager
   useEffect(() => {
     const root = document.documentElement;
@@ -157,6 +188,20 @@ export default function App() {
       if (!supabase) return;
 
       try {
+        // Fetch categories from Supabase
+        const { data: supaCats, error: catErr } = await supabase.from('categories').select('*');
+        if (!catErr && supaCats && supaCats.length > 0) {
+          setCategories(prevCats => {
+            const catMap = new Map();
+            INITIAL_CATEGORIES.forEach(c => catMap.set(c.id, c));
+            prevCats.forEach(c => catMap.set(c.id, c));
+            supaCats.forEach(c => catMap.set(c.id, c));
+            const mergedCats = Array.from(catMap.values());
+            localStorage.setItem('member_calendar_categories', JSON.stringify(mergedCats));
+            return mergedCats;
+          });
+        }
+
         // Fetch members and activity logs from Supabase
         const { data: supaMembers, error: memErr } = await supabase.from('members').select('*');
         const { data: supaLogs } = await supabase.from('activity_logs').select('*').order('created_at', { ascending: false });
@@ -215,13 +260,11 @@ export default function App() {
           setEvents(prevEvents => {
             const merged = cleanEvents.map(supaEvt => {
               const localEvt = prevEvents.find(e => e.id === supaEvt.id);
-              if (!localEvt) return supaEvt;
-              return {
-                ...supaEvt,
-                ...localEvt,
-                all_day: localEvt.all_day !== undefined ? localEvt.all_day : (supaEvt.all_day ?? true),
-                color: localEvt.color || supaEvt.color || '#f59e0b'
-              };
+              const combined = localEvt ? { ...supaEvt, ...localEvt } : supaEvt;
+              return ensureEventCategoryAndColor({
+                ...combined,
+                all_day: localEvt?.all_day !== undefined ? localEvt.all_day : (supaEvt.all_day ?? true)
+              }, categories);
             });
             localStorage.setItem('member_calendar_events', JSON.stringify(merged));
             return merged;
@@ -646,6 +689,8 @@ export default function App() {
           description: eventPayload.description || '',
           location: eventPayload.location || eventPayload.url || '',
           category: eventPayload.category || 'General',
+          category_id: eventPayload.category_id || 'cat_work',
+          color: eventPayload.color || '#8b5cf6',
           member_ids: eventPayload.member_ids || [],
           alarm_minutes: eventPayload.alarm_minutes || 15
         };
@@ -716,6 +761,8 @@ export default function App() {
           description: updatedEvt.description || '',
           location: updatedEvt.location || updatedEvt.url || '',
           category: updatedEvt.category || 'General',
+          category_id: updatedEvt.category_id || 'cat_work',
+          color: updatedEvt.color || '#8b5cf6',
           member_ids: updatedEvt.member_ids || [],
           alarm_minutes: updatedEvt.alarm_minutes || 15
         };
@@ -772,6 +819,8 @@ export default function App() {
           description: newEvt.description || '',
           location: newEvt.location || newEvt.url || '',
           category: newEvt.category || 'General',
+          category_id: newEvt.category_id || 'cat_work',
+          color: newEvt.color || '#8b5cf6',
           member_ids: newEvt.member_ids || [],
           alarm_minutes: newEvt.alarm_minutes || 15
         };
@@ -890,6 +939,7 @@ export default function App() {
             onSelectDate={setSelectedDateStr}
             events={activeEvents}
             members={members}
+            categories={categories}
             visibleMemberIds={visibleMemberIds}
             onEditEvent={handleOpenEditEvent}
             onMoveEvent={handleMoveEvent}
@@ -956,6 +1006,8 @@ export default function App() {
         onClose={() => setIsMissionModalOpen(false)}
         editingEvent={editingEvent}
         members={members}
+        categories={categories}
+        onAddCategory={handleAddCategory}
         onSaveEvent={handleSaveEvent}
         onDeleteEvent={handleDeleteEvent}
         initialDateStr={selectedDateStr}

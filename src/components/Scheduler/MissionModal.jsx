@@ -50,6 +50,8 @@ export default function MissionModal({
   onClose,
   editingEvent,
   members,
+  categories = [],
+  onAddCategory,
   onSaveEvent,
   onDeleteEvent,
   initialDateStr
@@ -61,19 +63,8 @@ export default function MissionModal({
   const [endDate, setEndDate] = useState('');
   const [endTime, setEndTime] = useState('10:00');
   const [selectedMembers, setSelectedMembers] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [color, setColor] = useState('#f59e0b');
-
-  // Custom Palette State (persist custom colors to localStorage)
-  const [palette, setPalette] = useState(() => {
-    const saved = localStorage.getItem('member_calendar_custom_palette');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return DEFAULT_COLOR_PALETTE;
-  });
 
   const [isAddingCustomColor, setIsAddingCustomColor] = useState(false);
   const [customColorHex, setCustomColorHex] = useState('#06b6d4');
@@ -104,6 +95,8 @@ export default function MissionModal({
     const isJustOpened = isOpen && !prevIsOpenRef.current;
     const editingIdChanged = editingEvent?.id !== prevEditingIdRef.current;
 
+    const catList = Array.isArray(categories) && categories.length > 0 ? categories : DEFAULT_COLOR_PALETTE;
+
     if (isOpen && (isJustOpened || editingIdChanged)) {
       if (editingEvent) {
         setTitle(editingEvent.title || '');
@@ -120,20 +113,19 @@ export default function MissionModal({
 
         setSelectedMembers(Array.isArray(editingEvent.member_ids) ? editingEvent.member_ids : []);
         
-        let matchedColor = editingEvent.color;
-        if (editingEvent.category) {
-          const matchCat = palette.find(p => p.category && (
-            p.category.toLowerCase() === editingEvent.category.toLowerCase() ||
-            editingEvent.category.toLowerCase().includes(p.category.toLowerCase()) ||
-            p.category.toLowerCase().includes(editingEvent.category.toLowerCase())
-          ));
-          if (matchCat) matchedColor = matchCat.hex;
+        let matchedCat = catList.find(c => c.id === editingEvent.category_id);
+        if (!matchedCat && editingEvent.category) {
+          const eCatLower = editingEvent.category.toLowerCase();
+          matchedCat = catList.find(c => (c.name || c.category || '').toLowerCase().includes(eCatLower) || eCatLower.includes((c.name || c.category || '').toLowerCase()));
         }
-        if (!matchedColor && editingEvent.color) {
-          const matchHex = palette.find(p => p.hex.toLowerCase() === editingEvent.color.toLowerCase());
-          if (matchHex) matchedColor = matchHex.hex;
+        if (!matchedCat && editingEvent.color) {
+          const eColLower = editingEvent.color.toLowerCase();
+          matchedCat = catList.find(c => (c.color || c.hex || '').toLowerCase() === eColLower);
         }
-        setColor(matchedColor || editingEvent.color || '#f59e0b');
+
+        const activeCat = matchedCat || catList[0];
+        setSelectedCategoryId(activeCat.id || 'cat_work');
+        setColor(activeCat.color || activeCat.hex || '#8b5cf6');
         
         let initialRepeat = editingEvent.repeat;
         if (!initialRepeat || initialRepeat === 'none') {
@@ -235,13 +227,21 @@ export default function MissionModal({
       alert('กรุณาระบุชื่อประเภทงาน / หมวดหมู่');
       return;
     }
-    const newCategory = customCategoryName.trim();
-    const newHex = customColorHex;
-    const newItem = { hex: newHex, category: newCategory, name: newCategory };
-    const updatedPalette = [...palette, newItem];
-    setPalette(updatedPalette);
-    localStorage.setItem('member_calendar_custom_palette', JSON.stringify(updatedPalette));
-    setColor(newHex);
+    const newCatName = customCategoryName.trim();
+    const newCatHex = customColorHex;
+    const newCatObj = {
+      id: `cat_${Date.now()}`,
+      name: newCatName,
+      color: newCatHex,
+      sort_order: (categories ? categories.length : 6) + 1
+    };
+
+    if (onAddCategory) {
+      onAddCategory(newCatObj);
+    }
+
+    setSelectedCategoryId(newCatObj.id);
+    setColor(newCatHex);
     setCustomCategoryName('');
     setIsAddingCustomColor(false);
   };
@@ -270,9 +270,10 @@ export default function MissionModal({
     }
 
     const primaryAlarmMinutes = notifications.length > 0 ? getAlarmMinutesFromNotif(notifications[0]) : 15;
-    const selectedPalette = palette.find(item => item.hex.toLowerCase() === color.toLowerCase()) || 
-      (editingEvent?.category ? palette.find(item => item.category.toLowerCase().includes(editingEvent.category.toLowerCase())) : null) || 
-      palette[0];
+    const activeCategories = Array.isArray(categories) && categories.length > 0 ? categories : DEFAULT_COLOR_PALETTE;
+    const selectedCat = activeCategories.find(c => c.id === selectedCategoryId) || 
+      activeCategories.find(c => (c.color || c.hex || '').toLowerCase() === color.toLowerCase()) || 
+      activeCategories[0];
 
     const payload = {
       id: editingEvent ? editingEvent.id : `evt_${Date.now()}`,
@@ -280,8 +281,9 @@ export default function MissionModal({
       start_time: startIso,
       end_time: endIso,
       all_day: allDay,
-      color,
-      category: selectedPalette.category,
+      category_id: selectedCat.id || 'cat_work',
+      category: selectedCat.name || selectedCat.category || 'งานหน่วย',
+      color: selectedCat.color || selectedCat.hex || color,
       repeat,
       custom_repeat: repeat === 'custom' ? {
         interval: customInterval,
@@ -302,6 +304,8 @@ export default function MissionModal({
     onClose();
   };
 
+  const activePalette = Array.isArray(categories) && categories.length > 0 ? categories : DEFAULT_COLOR_PALETTE;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
       <div className="relative w-full max-w-md bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-2xl shadow-2xl overflow-hidden glass-panel max-h-[95vh] flex flex-col">
@@ -320,34 +324,35 @@ export default function MissionModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-dark-border transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Form Body */}
-        <form onSubmit={handleSubmit} className="p-4 overflow-y-auto no-scrollbar flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="p-5 flex-1 overflow-y-auto space-y-4 no-scrollbar">
           
           {/* Title Input */}
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
-              Event title (ชื่อกิจกรรม) *
+            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+              <Edit3 className="w-3.5 h-3.5 text-emerald-600" /> ชื่อกิจกรรม / งาน *
             </label>
             <input
               type="text"
-              className="input-field text-xs"
-              placeholder="เช่น ประชุมสรุปงานประจำสัปดาห์"
+              placeholder="ระบุชื่อกิจกรรม..."
+              className="input-field text-xs font-bold"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
+              autoFocus
             />
           </div>
 
           {/* All-day Toggle Switch */}
           <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl">
-            <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
-              All-day (กิจกรรมทั้งวัน)
+            <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-emerald-600" /> All-day (กิจกรรมทั้งวัน)
             </span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -471,23 +476,25 @@ export default function MissionModal({
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
-                Label Color (เลือกสีของงาน) *
+                Label Color (เลือกประเภทงานและสี) *
               </label>
             </div>
             
             <div className="flex flex-wrap gap-2.5 p-2.5 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl items-center">
-              {palette.map(item => (
+              {colorOptions.map((item) => (
                 <button
+                  key={item.hex + item.category}
                   type="button"
-                  key={item.hex}
-                  onClick={() => setColor(item.hex)}
-                  style={{ backgroundColor: item.hex }}
-                  className={`w-7 h-7 rounded-full border transition-all cursor-pointer relative group flex items-center justify-center ${
-                    color.toLowerCase() === item.hex.toLowerCase()
-                      ? 'ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-slate-900 border-white scale-110 shadow-md z-10'
-                      : 'border-transparent hover:scale-105 opacity-85'
+                  onClick={() => {
+                    setColor(item.hex);
+                    setCategory(item.category);
+                    setSelectedCategoryId(item.id || 'cat_work');
+                  }}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer relative group ${
+                    color.toLowerCase() === item.hex.toLowerCase() ? 'ring-2 ring-offset-2 ring-emerald-500 scale-110 shadow-md' : 'hover:scale-105 opacity-85 hover:opacity-100'
                   }`}
-                  title={`ประเภทงาน: ${item.category}`}
+                  style={{ backgroundColor: item.hex }}
+                  title={`${item.category} (${item.hex})`}
                 >
                   {color.toLowerCase() === item.hex.toLowerCase() && <Check className="w-3.5 h-3.5 text-white drop-shadow-xs" />}
                   
