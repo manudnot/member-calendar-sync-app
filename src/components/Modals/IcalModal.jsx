@@ -48,23 +48,58 @@ export default function IcalModal({ isOpen, onClose, members }) {
             นำลิงก์ iCal ไป Subscribe บนสมาร์ทโฟน (Apple Calendar บน iPhone, Google Calendar, หรือ TimeTree) กิจกรรมจะซิงค์และแจ้งเตือนผ่าน Push Notification อัตโนมัติ 24 ชั่วโมง!
           </p>
 
-          {/* Member Selector */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
-              เลือกสมาชิกสำหรับลิงก์เฉพาะบุคคล:
+          {/* Member Selector (Visual Avatar Chips) */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+              <span>เลือกปฏิทินที่ต้องการสมัครรับ:</span>
+              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                {selectedMember === 'team' ? 'ปฏิทินรวมภารกิจ' : `ปฏิทินคุณ ${members.find(m => m.id === selectedMember)?.name || ''}`}
+              </span>
             </label>
-            <select
-              className="input-field font-semibold"
-              value={selectedMember}
-              onChange={(e) => setSelectedMember(e.target.value)}
-            >
-              <option value="team">👥 ลิงก์รวมกิจกรรมของทั้งทีม (All Team)</option>
-              {members.filter(m => m.member_type !== 'virtual' && !m.is_archived && m.status !== 'resigned').map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.initials || m.name.substring(0, 2).toUpperCase()} - {m.name}
-                </option>
-              ))}
-            </select>
+
+            <div className="p-2 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl flex flex-wrap gap-2 max-h-40 overflow-y-auto no-scrollbar">
+              {/* All Team Button */}
+              <button
+                type="button"
+                onClick={() => setSelectedMember('team')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all border cursor-pointer ${
+                  selectedMember === 'team'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                    : 'bg-white dark:bg-dark-card border-slate-200 dark:border-dark-border text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                }`}
+              >
+                <span>👥</span>
+                <span>ปฏิทินรวมภารกิจ</span>
+                {selectedMember === 'team' && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
+              </button>
+
+              {/* Regular Members */}
+              {members.filter(m => m.member_type !== 'virtual' && !m.is_archived && m.status !== 'resigned').map(mem => {
+                const isSelected = selectedMember === mem.id;
+
+                return (
+                  <button
+                    type="button"
+                    key={mem.id}
+                    onClick={() => setSelectedMember(mem.id)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                      isSelected
+                        ? 'bg-white dark:bg-dark-card border-emerald-500 text-slate-900 dark:text-slate-100 ring-2 ring-emerald-500/20 shadow-xs'
+                        : 'bg-white dark:bg-dark-card border-slate-200 dark:border-dark-border text-slate-600 dark:text-slate-400 hover:text-slate-800'
+                    }`}
+                  >
+                    <span
+                      className="w-5 h-5 rounded-full text-white flex items-center justify-center text-[10px] font-mono font-black shrink-0 shadow-2xs"
+                      style={{ backgroundColor: mem.color }}
+                    >
+                      {mem.initials || mem.name.substring(0, 2).toUpperCase()}
+                    </span>
+                    <span>{mem.name}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* URL & Copy Input */}

@@ -120,6 +120,10 @@ export default async function handler(req, res) {
       });
     }
 
+    const calTitle = (memberId && (team !== 'true' && team !== '1'))
+      ? `ปฏิทินคุณ ${memberName}`
+      : 'ปฏิทินรวมภารกิจ';
+
     // Build iCal Stream Lines
     const lines = [
       'BEGIN:VCALENDAR',
@@ -127,8 +131,10 @@ export default async function handler(req, res) {
       'PRODID:-//Member Calendar Sync App//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
-      foldLine(`X-WR-CALNAME:${escapeIcsText(memberName)} Calendar Feed`),
-      'X-WR-TIMEZONE:Asia/Bangkok'
+      foldLine(`X-WR-CALNAME:${escapeIcsText(calTitle)}`),
+      'X-WR-TIMEZONE:Asia/Bangkok',
+      'X-PUBLISHED-TTL:PT1H',
+      'REFRESH-INTERVAL;VALUE=DURATION:PT1H'
     ];
 
     const nowIso = formatDateUtc(new Date());
