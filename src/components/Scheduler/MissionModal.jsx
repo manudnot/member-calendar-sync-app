@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Check, Users, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Check, Users, Plus, Trash2, Palette } from 'lucide-react';
 import { isAllDayEvent, convertMinutesToNotif } from '../../utils/helpers';
 
-const COLOR_PALETTE = [
-  { hex: '#f59e0b', category: '🟡 ภารกิจหมาย (Yellow)', name: 'ภารกิจหมาย (Yellow)' },
-  { hex: '#ef4444', category: '🔴 ภารกิจหน่วย (Red)', name: 'ภารกิจหน่วย (Red)' },
-  { hex: '#10b981', category: '🟢 ประชุม (Emerald)', name: 'ประชุม (Emerald)' },
-  { hex: '#8b5cf6', category: '🟣 งานหน่วย (Purple)', name: 'งานหน่วย (Purple)' },
-  { hex: '#795548', category: '🟤 การฝึก (Brown)', name: 'การฝึก (Brown)' },
-  { hex: '#ec4899', category: '💗 กิจกรรมพิเศษ (Pink)', name: 'กิจกรรมพิเศษ (Pink)' },
-  { hex: '#3b82f6', category: '🔵 ฝึกศึกษา / ทั่วไป (Blue)', name: 'ฝึกศึกษา / ทั่วไป (Blue)' },
-  { hex: '#009688', category: '🟢 งานอื่นๆ (Teal)', name: 'งานอื่นๆ (Teal)' }
+const DEFAULT_COLOR_PALETTE = [
+  { hex: '#f59e0b', category: 'ภารกิจหมาย', name: 'ภารกิจหมาย' },
+  { hex: '#ef4444', category: 'ภารกิจหน่วย', name: 'ภารกิจหน่วย' },
+  { hex: '#10b981', category: 'ประชุม', name: 'ประชุม' },
+  { hex: '#8b5cf6', category: 'งานหน่วย', name: 'งานหน่วย' },
+  { hex: '#795548', category: 'การฝึก', name: 'การฝึก' },
+  { hex: '#ec4899', category: 'กิจกรรมพิเศษ', name: 'กิจกรรมพิเศษ' },
+  { hex: '#3b82f6', category: 'ฝึกศึกษา / ทั่วไป', name: 'ฝึกศึกษา / ทั่วไป' },
+  { hex: '#009688', category: 'งานอื่นๆ', name: 'งานอื่นๆ' }
 ];
 
 function getRepeatOptionsForDate(dateStr) {
@@ -63,9 +63,24 @@ export default function MissionModal({
   const [endDate, setEndDate] = useState('');
   const [endTime, setEndTime] = useState('10:00');
   const [selectedMembers, setSelectedMembers] = useState([]);
-  const [color, setColor] = useState('#10b981');
+  const [color, setColor] = useState('#f59e0b');
 
-  
+  // Custom Palette State (persist custom colors to localStorage)
+  const [palette, setPalette] = useState(() => {
+    const saved = localStorage.getItem('member_calendar_custom_palette');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return DEFAULT_COLOR_PALETTE;
+  });
+
+  const [isAddingCustomColor, setIsAddingCustomColor] = useState(false);
+  const [customColorHex, setCustomColorHex] = useState('#06b6d4');
+  const [customCategoryName, setCustomCategoryName] = useState('');
+
   // Repeat States
   const [repeat, setRepeat] = useState('none');
   const [customInterval, setCustomInterval] = useState(1);
@@ -83,88 +98,102 @@ export default function MissionModal({
   const [url, setUrl] = useState('');
   const [description, setDescription] = useState('');
 
+  // Track previous isOpen state to only reset form when modal transitions to open
+  const prevIsOpenRef = useRef(false);
+  const prevEditingIdRef = useRef(null);
+
   useEffect(() => {
-    if (editingEvent) {
-      setTitle(editingEvent.title || '');
-      setAllDay(isAllDayEvent(editingEvent));
-      const sKey = editingEvent.start_time ? editingEvent.start_time.split('T')[0] : initialDateStr;
-      const eKey = editingEvent.end_time ? editingEvent.end_time.split('T')[0] : sKey;
-      setStartDate(sKey);
-      setEndDate(eKey);
-      setCustomEndsOnDate(eKey);
+    const isJustOpened = isOpen && !prevIsOpenRef.current;
+    const editingIdChanged = editingEvent?.id !== prevEditingIdRef.current;
 
-      if (editingEvent.start_time && editingEvent.start_time.includes('T')) {
-        const timePart = editingEvent.start_time.split('T')[1].substring(0, 5);
-        setStartTime(timePart);
-      }
-      if (editingEvent.end_time && editingEvent.end_time.includes('T')) {
-        const timePart = editingEvent.end_time.split('T')[1].substring(0, 5);
-        setEndTime(timePart);
-      }
+    if (isOpen && (isJustOpened || editingIdChanged)) {
+      if (editingEvent) {
+        setTitle(editingEvent.title || '');
+        setAllDay(isAllDayEvent(editingEvent));
+        const sKey = editingEvent.start_time ? editingEvent.start_time.split('T')[0] : initialDateStr;
+        const eKey = editingEvent.end_time ? editingEvent.end_time.split('T')[0] : sKey;
+        setStartDate(sKey);
+        setEndDate(eKey);
+        setCustomEndsOnDate(eKey);
 
-      setSelectedMembers(Array.isArray(editingEvent.member_ids) ? editingEvent.member_ids : []);
-      setColor(editingEvent.color || '#10b981');
-      let initialRepeat = editingEvent.repeat;
-      if (!initialRepeat || initialRepeat === 'none') {
-        const tLower = (editingEvent.title || '').toLowerCase();
-        const dLower = (editingEvent.description || '').toLowerCase();
-        if (tLower.includes('วันเกิด') || tLower.includes('เกิด') || dLower.includes('yearly')) {
-          initialRepeat = 'yearly';
-        } else {
-          initialRepeat = 'none';
+        if (editingEvent.start_time && editingEvent.start_time.includes('T')) {
+          const timePart = editingEvent.start_time.split('T')[1].substring(0, 5);
+          setStartTime(timePart);
         }
-      }
-      setRepeat(initialRepeat);
+        if (editingEvent.end_time && editingEvent.end_time.includes('T')) {
+          const timePart = editingEvent.end_time.split('T')[1].substring(0, 5);
+          setEndTime(timePart);
+        }
 
-      if (editingEvent.custom_repeat) {
-        setCustomInterval(editingEvent.custom_repeat.interval || 1);
-        setCustomUnit(editingEvent.custom_repeat.unit || 'week');
-        setCustomEndsMode(editingEvent.custom_repeat.ends_mode || 'never');
-        setCustomEndsOnDate(editingEvent.custom_repeat.ends_on || eKey);
-        setCustomEndsOccurrences(editingEvent.custom_repeat.ends_occurrences || 10);
-      }
+        setSelectedMembers(Array.isArray(editingEvent.member_ids) ? editingEvent.member_ids : []);
+        setColor(editingEvent.color || '#f59e0b');
+        
+        let initialRepeat = editingEvent.repeat;
+        if (!initialRepeat || initialRepeat === 'none') {
+          const tLower = (editingEvent.title || '').toLowerCase();
+          const dLower = (editingEvent.description || '').toLowerCase();
+          if (tLower.includes('วันเกิด') || tLower.includes('เกิด') || dLower.includes('yearly')) {
+            initialRepeat = 'yearly';
+          } else {
+            initialRepeat = 'none';
+          }
+        }
+        setRepeat(initialRepeat);
 
-      if (Array.isArray(editingEvent.notifications) && editingEvent.notifications.length > 0) {
-        setNotifications(editingEvent.notifications.map(n => {
-          const totalMins = getAlarmMinutesFromNotif(n);
-          const converted = convertMinutesToNotif(totalMins);
-          return { ...n, value: converted.value, unit: converted.unit };
-        }));
-      } else if (Array.isArray(editingEvent.alarm_triggers) && editingEvent.alarm_triggers.length > 0) {
-        setNotifications(editingEvent.alarm_triggers.map((trig, idx) => {
-          const converted = convertMinutesToNotif(trig);
-          return { id: `notif_${idx + 1}`, value: converted.value, unit: converted.unit };
-        }));
-      } else if (editingEvent.alarm_minutes !== undefined && editingEvent.alarm_minutes !== null) {
-        const converted = convertMinutesToNotif(editingEvent.alarm_minutes);
-        setNotifications([{ id: 'notif_1', value: converted.value, unit: converted.unit }]);
-      }
+        if (editingEvent.custom_repeat) {
+          setCustomInterval(editingEvent.custom_repeat.interval || 1);
+          setCustomUnit(editingEvent.custom_repeat.unit || 'week');
+          setCustomEndsMode(editingEvent.custom_repeat.ends_mode || 'never');
+          setCustomEndsOnDate(editingEvent.custom_repeat.ends_on || eKey);
+          setCustomEndsOccurrences(editingEvent.custom_repeat.ends_occurrences || 10);
+        }
 
-      setLocation(editingEvent.location || '');
-      setUrl(editingEvent.url || '');
-      setDescription(editingEvent.description || '');
-    } else {
-      const defaultDate = initialDateStr || new Date().toISOString().split('T')[0];
-      setTitle('');
-      setAllDay(true);
-      setStartDate(defaultDate);
-      setEndDate(defaultDate);
-      setCustomEndsOnDate(defaultDate);
-      setStartTime('09:00');
-      setEndTime('10:00');
-      setSelectedMembers(members.length > 0 ? [members[0].id] : []);
-      setColor('#10b981');
-      setRepeat('none');
-      setCustomInterval(1);
-      setCustomUnit('week');
-      setCustomEndsMode('never');
-      setCustomEndsOccurrences(10);
-      setNotifications([{ id: 'notif_1', value: 15, unit: 'min before' }]);
-      setLocation('');
-      setUrl('');
-      setDescription('');
+        if (Array.isArray(editingEvent.notifications) && editingEvent.notifications.length > 0) {
+          setNotifications(editingEvent.notifications.map(n => {
+            const totalMins = getAlarmMinutesFromNotif(n);
+            const converted = convertMinutesToNotif(totalMins);
+            return { ...n, value: converted.value, unit: converted.unit };
+          }));
+        } else if (Array.isArray(editingEvent.alarm_triggers) && editingEvent.alarm_triggers.length > 0) {
+          setNotifications(editingEvent.alarm_triggers.map((trig, idx) => {
+            const converted = convertMinutesToNotif(trig);
+            return { id: `notif_${idx + 1}`, value: converted.value, unit: converted.unit };
+          }));
+        } else if (editingEvent.alarm_minutes !== undefined && editingEvent.alarm_minutes !== null) {
+          const converted = convertMinutesToNotif(editingEvent.alarm_minutes);
+          setNotifications([{ id: 'notif_1', value: converted.value, unit: converted.unit }]);
+        }
+
+        setLocation(editingEvent.location || '');
+        setUrl(editingEvent.url || '');
+        setDescription(editingEvent.description || '');
+      } else {
+        const defaultDate = initialDateStr || new Date().toISOString().split('T')[0];
+        setTitle('');
+        setAllDay(true);
+        setStartDate(defaultDate);
+        setEndDate(defaultDate);
+        setCustomEndsOnDate(defaultDate);
+        setStartTime('09:00');
+        setEndTime('10:00');
+        setSelectedMembers(members.length > 0 ? [members[0].id] : []);
+        setColor('#f59e0b');
+        setRepeat('none');
+        setCustomInterval(1);
+        setCustomUnit('week');
+        setCustomEndsMode('never');
+        setCustomEndsOccurrences(10);
+        setNotifications([{ id: 'notif_1', value: 15, unit: 'min before' }]);
+        setLocation('');
+        setUrl('');
+        setDescription('');
+      }
+      setIsAddingCustomColor(false);
     }
-  }, [editingEvent, initialDateStr, members, isOpen]);
+
+    prevIsOpenRef.current = isOpen;
+    prevEditingIdRef.current = editingEvent?.id || null;
+  }, [isOpen, editingEvent?.id, initialDateStr]);
 
   if (!isOpen) return null;
 
@@ -193,6 +222,23 @@ export default function MissionModal({
     setNotifications(notifications.map(n => n.id === notifId ? { ...n, [field]: value } : n));
   };
 
+  const handleAddCustomColor = (e) => {
+    e.preventDefault();
+    if (!customCategoryName.trim()) {
+      alert('กรุณาระบุชื่อประเภทงาน / หมวดหมู่');
+      return;
+    }
+    const newCategory = customCategoryName.trim();
+    const newHex = customColorHex;
+    const newItem = { hex: newHex, category: newCategory, name: newCategory };
+    const updatedPalette = [...palette, newItem];
+    setPalette(updatedPalette);
+    localStorage.setItem('member_calendar_custom_palette', JSON.stringify(updatedPalette));
+    setColor(newHex);
+    setCustomCategoryName('');
+    setIsAddingCustomColor(false);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -210,7 +256,7 @@ export default function MissionModal({
     const endIso = new Date(`${endDate}T${allDay ? '10:00' : endTime}:00`).toISOString();
 
     const primaryAlarmMinutes = notifications.length > 0 ? getAlarmMinutesFromNotif(notifications[0]) : 15;
-    const selectedPalette = COLOR_PALETTE.find(item => item.hex.toLowerCase() === color.toLowerCase()) || COLOR_PALETTE[0];
+    const selectedPalette = palette.find(item => item.hex.toLowerCase() === color.toLowerCase()) || palette[0];
 
     const payload = {
       id: editingEvent ? editingEvent.id : `evt_${Date.now()}`,
@@ -233,8 +279,7 @@ export default function MissionModal({
       location,
       url,
       description,
-      member_ids: selectedMembers,
-      is_memo: activeTab === 'memo'
+      member_ids: selectedMembers
     };
 
     onSaveEvent(payload);
@@ -410,26 +455,12 @@ export default function MissionModal({
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
-                Label Color (เลือกสีและประเภทงาน) *
+                Label Color (เลือกสีของงาน) *
               </label>
-              {(() => {
-                const currentPalette = COLOR_PALETTE.find(item => item.hex.toLowerCase() === color.toLowerCase()) || COLOR_PALETTE[0];
-                return (
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 shadow-2xs"
-                        style={{
-                          backgroundColor: `${currentPalette.hex}1a`,
-                          borderColor: currentPalette.hex,
-                          color: currentPalette.hex
-                        }}>
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: currentPalette.hex }} />
-                    <span>{currentPalette.category}</span>
-                  </span>
-                );
-              })()}
             </div>
             
-            <div className="flex flex-wrap gap-2.5 p-2.5 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl">
-              {COLOR_PALETTE.map(item => (
+            <div className="flex flex-wrap gap-2.5 p-2.5 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl items-center">
+              {palette.map(item => (
                 <button
                   type="button"
                   key={item.hex}
@@ -450,7 +481,70 @@ export default function MissionModal({
                   </span>
                 </button>
               ))}
+
+              {/* Add Custom Color Button "+" */}
+              <button
+                type="button"
+                onClick={() => setIsAddingCustomColor(!isAddingCustomColor)}
+                className="w-7 h-7 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-emerald-500 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center justify-center transition-all cursor-pointer hover:scale-105"
+                title="เพิ่มสีและหมวดหมู่ใหม่"
+              >
+                <Plus className="w-4 h-4 font-bold" />
+              </button>
             </div>
+
+            {/* Custom Color Inline Form Popover */}
+            {isAddingCustomColor && (
+              <div className="p-3 bg-white dark:bg-dark-bg border border-slate-200 dark:border-dark-border rounded-xl shadow-md flex flex-col gap-2.5 animate-fade-in">
+                <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-200">
+                  <span className="flex items-center gap-1">
+                    <Palette className="w-3.5 h-3.5 text-emerald-600" /> เพิ่มประเภทงานและสีใหม่
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingCustomColor(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    className="w-9 h-9 rounded-lg border border-slate-200 dark:border-dark-border cursor-pointer bg-transparent"
+                    value={customColorHex}
+                    onChange={(e) => setCustomColorHex(e.target.value)}
+                    title="เลือกเฉดสี"
+                  />
+                  <input
+                    type="text"
+                    className="input-field text-xs flex-1"
+                    placeholder="ชื่อหมวดหมู่ / ประเภทงาน (เช่น ภารกิจพิเศษ กกล.)"
+                    value={customCategoryName}
+                    onChange={(e) => setCustomCategoryName(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingCustomColor(false)}
+                    className="btn-secondary py-1 px-3 text-[11px]"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddCustomColor}
+                    className="btn-primary py-1 px-3 text-[11px]"
+                  >
+                    เพิ่มสีและหมวดหมู่
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Repeat Section */}

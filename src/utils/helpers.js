@@ -133,12 +133,14 @@ export function getEventColor(evt, members = []) {
   if (evt.color) return evt.color;
 
   if (evt.category) {
-    if (evt.category.includes('ภารกิจหมาย') || evt.category.includes('Yellow')) return '#F59E0B';
-    if (evt.category.includes('ภารกิจหน่วย') || evt.category.includes('Red')) return '#EF4444';
-    if (evt.category.includes('งานหน่วย') || evt.category.includes('Purple')) return '#8B5CF6';
-    if (evt.category.includes('ประชุม') || evt.category.includes('Emerald')) return '#10B981';
-    if (evt.category.includes('การฝึก') || evt.category.includes('Brown')) return '#795548';
-    if (evt.category.includes('กิจกรรมพิเศษ') || evt.category.includes('Pink')) return '#EC4899';
+    if (evt.category.includes('ภารกิจหมาย')) return '#F59E0B';
+    if (evt.category.includes('ภารกิจหน่วย')) return '#EF4444';
+    if (evt.category.includes('งานหน่วย')) return '#8B5CF6';
+    if (evt.category.includes('ประชุม')) return '#10B981';
+    if (evt.category.includes('การฝึก')) return '#795548';
+    if (evt.category.includes('กิจกรรมพิเศษ')) return '#EC4899';
+    if (evt.category.includes('ฝึกศึกษา')) return '#3B82F6';
+    if (evt.category.includes('งานอื่นๆ')) return '#009688';
   }
 
   if (Array.isArray(evt.member_ids) && evt.member_ids.length > 0) {
