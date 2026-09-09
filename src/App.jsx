@@ -61,7 +61,7 @@ export default function App() {
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('member_calendar_theme') || 'light';
   });
-  const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Per-Device Active User Identity State
   const [activeUserId, setActiveUserId] = useState(() => {
@@ -851,16 +851,6 @@ export default function App() {
             onMoveEvent={handleMoveEvent}
             onCopyEvent={handleCopyEvent}
             onOpenDayModal={handleOpenDayModal}
-          />
-
-          <DailyAgenda
-            selectedDateStr={selectedDateStr}
-            events={activeEvents}
-            members={members}
-            visibleMemberIds={visibleMemberIds}
-            onOpenAddEvent={handleOpenAddEvent}
-            onEditEvent={handleOpenEditEvent}
-            onDeleteEvent={handleDeleteEvent}
           />
         </main>
 
