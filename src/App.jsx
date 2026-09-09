@@ -12,6 +12,7 @@ import FirstTimeUserModal from './components/Modals/FirstTimeUserModal';
 import AuthPinModal from './components/Modals/AuthPinModal';
 import ActivityLogModal from './components/Modals/ActivityLogModal';
 import ForgotPinModal from './components/Modals/ForgotPinModal';
+import DayEventsModal from './components/Modals/DayEventsModal';
 import { formatDateKey, formatThaiDateTime } from './utils/helpers';
 import { supabase } from './utils/supabase';
 import { hashPasscode } from './utils/crypto';
