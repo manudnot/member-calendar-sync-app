@@ -78,29 +78,6 @@ export default function Header({
         >
           วันนี้
         </button>
-
-        <div className="hidden md:flex items-center bg-slate-100 dark:bg-dark-bg p-1 rounded-xl border border-slate-200 dark:border-dark-border">
-          <button
-            onClick={() => setViewMode('monthly')}
-            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-              viewMode === 'monthly'
-                ? 'bg-white dark:bg-dark-card text-emerald-600 dark:text-emerald-400 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setViewMode('weekly')}
-            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-              viewMode === 'weekly'
-                ? 'bg-white dark:bg-dark-card text-emerald-600 dark:text-emerald-400 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            Weekly
-          </button>
-        </div>
       </div>
 
       {/* Right: User Identity Chip, Log & Theme Switcher & Actions */}

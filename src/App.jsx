@@ -533,7 +533,7 @@ export default function App() {
 
     if (nextArchived) {
       logActivity('MEMBER_ARCHIVE', null, `แจ้งลาออกสมาชิก: คุณ ${targetMember.name}`);
-      setToast({ message: `แจ้งลาออกสมาชิก ${targetMember.name} เรียบร้อยแล้ว (ประวัติงานเดิมยังคงอยู่)`, type: 'info' });
+      setToast({ message: `แจ้งลาออกสมาชิก ${targetMember.name} เรียบร้อยแล้ว`, type: 'info' });
     } else {
       logActivity('MEMBER_RESTORE', null, `คืนสภาพสมาชิก: คุณ ${targetMember.name}`);
       setToast({ message: `คืนสภาพสมาชิก ${targetMember.name} สำเร็จ!`, type: 'success' });

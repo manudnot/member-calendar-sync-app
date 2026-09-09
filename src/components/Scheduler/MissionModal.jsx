@@ -80,7 +80,7 @@ export default function MissionModal({
 
   // Notification States
   const [notifications, setNotifications] = useState([
-    { id: 'notif_1', value: 15, unit: 'min before' }
+    { id: 'notif_1', value: 1, unit: 'day before' }
   ]);
 
   const [location, setLocation] = useState('');
@@ -190,7 +190,7 @@ export default function MissionModal({
         setCustomUnit('week');
         setCustomEndsMode('never');
         setCustomEndsOccurrences(10);
-        setNotifications([{ id: 'notif_1', value: 15, unit: 'min before' }]);
+        setNotifications([{ id: 'notif_1', value: 1, unit: 'day before' }]);
         setLocation('');
         setUrl('');
         setDescription('');
@@ -201,6 +201,17 @@ export default function MissionModal({
     prevIsOpenRef.current = isOpen;
     prevEditingIdRef.current = editingEvent?.id || null;
   }, [isOpen, editingEvent?.id, initialDateStr]);
+
+  const handleAllDayToggle = (checked) => {
+    setAllDay(checked);
+    if (!editingEvent) {
+      if (checked) {
+        setNotifications([{ id: 'notif_1', value: 1, unit: 'day before' }]);
+      } else {
+        setNotifications([{ id: 'notif_1', value: 1, unit: 'hour before' }]);
+      }
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -360,14 +371,14 @@ export default function MissionModal({
           {/* All-day Toggle Switch */}
           <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl">
             <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-emerald-600" /> All-day (กิจกรรมทั้งวัน)
+              <Clock className="w-3.5 h-3.5 text-emerald-600" /> All-day
             </span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 className="sr-only peer"
                 checked={allDay}
-                onChange={(e) => setAllDay(e.target.checked)}
+                onChange={(e) => handleAllDayToggle(e.target.checked)}
               />
               <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
             </label>
@@ -437,7 +448,7 @@ export default function MissionModal({
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                <Users className="w-3.5 h-3.5 text-emerald-600" /> Members (ผู้รับผิดชอบ) *
+                <Users className="w-3.5 h-3.5 text-emerald-600" /> Members *
               </label>
               <button
                 type="button"
@@ -484,7 +495,7 @@ export default function MissionModal({
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
-                Label Color (เลือกประเภทงานและสี) *
+                Label Color *
               </label>
             </div>
             
@@ -580,7 +591,7 @@ export default function MissionModal({
           {/* Repeat Section */}
           <div className="flex flex-col gap-2">
             <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-              <Repeat className="w-3.5 h-3.5 text-emerald-600" /> Repeat (การทำซ้ำ)
+              <Repeat className="w-3.5 h-3.5 text-emerald-600" /> Repeat
             </label>
             <select
               className="input-field text-xs cursor-pointer"
@@ -691,7 +702,7 @@ export default function MissionModal({
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                <Bell className="w-3.5 h-3.5 text-emerald-600" /> Notification (การแจ้งเตือน)
+                <Bell className="w-3.5 h-3.5 text-emerald-600" /> Notification
               </label>
               <button
                 type="button"
