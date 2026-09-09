@@ -59,9 +59,9 @@ export default function IcalModal({ isOpen, onClose, members }) {
               onChange={(e) => setSelectedMember(e.target.value)}
             >
               <option value="team">👥 ลิงก์รวมกิจกรรมของทั้งทีม (All Team)</option>
-              {members.map(m => (
+              {members.filter(m => m.member_type !== 'virtual' && !m.is_archived && m.status !== 'resigned').map(m => (
                 <option key={m.id} value={m.id}>
-                  {m.initials} - {m.name}
+                  {m.initials || m.name.substring(0, 2).toUpperCase()} - {m.name}
                 </option>
               ))}
             </select>
