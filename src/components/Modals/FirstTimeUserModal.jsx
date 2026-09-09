@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, KeyRound, ShieldCheck, Fingerprint, Check, AlertCircle, Sparkles, Lock, ArrowRight, RefreshCw, X, Plus, Users, QrCode, Activity, UserCheck } from 'lucide-react';
 import { verifyMasterPasscode, verifyPinCode } from '../../utils/crypto';
 
@@ -25,6 +25,19 @@ export default function FirstTimeUserModal({
   const [successMsg, setSuccessMsg] = useState('');
   const [enableBiometrics, setEnableBiometrics] = useState(true);
   const [isResetMode, setIsResetMode] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep('select_user');
+      setSelectedMember(null);
+      setErrorMsg('');
+      setSuccessMsg('');
+      setPinInput(['', '', '', '']);
+      setConfirmPinInput(['', '', '', '']);
+      setMasterPasscodeInput('');
+      setIsResetMode(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
