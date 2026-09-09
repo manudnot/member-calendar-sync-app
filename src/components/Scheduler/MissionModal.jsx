@@ -8,9 +8,7 @@ const DEFAULT_COLOR_PALETTE = [
   { hex: '#10b981', category: 'ประชุม', name: 'ประชุม' },
   { hex: '#8b5cf6', category: 'งานหน่วย', name: 'งานหน่วย' },
   { hex: '#795548', category: 'การฝึก', name: 'การฝึก' },
-  { hex: '#ec4899', category: 'กิจกรรมพิเศษ', name: 'กิจกรรมพิเศษ' },
-  { hex: '#3b82f6', category: 'ฝึกศึกษา / ทั่วไป', name: 'ฝึกศึกษา / ทั่วไป' },
-  { hex: '#009688', category: 'งานอื่นๆ', name: 'งานอื่นๆ' }
+  { hex: '#ec4899', category: 'กิจกรรมพิเศษ', name: 'กิจกรรมพิเศษ' }
 ];
 
 function getRepeatOptionsForDate(dateStr) {
@@ -109,7 +107,8 @@ export default function MissionModal({
     if (isOpen && (isJustOpened || editingIdChanged)) {
       if (editingEvent) {
         setTitle(editingEvent.title || '');
-        setAllDay(isAllDayEvent(editingEvent));
+        const isAllDay = editingEvent.all_day !== false && isAllDayEvent(editingEvent);
+        setAllDay(isAllDay);
         const sKey = getLocalDateStr(editingEvent.start_time) || initialDateStr;
         const eKey = getLocalDateStr(editingEvent.end_time) || sKey;
         setStartDate(sKey);
@@ -120,7 +119,21 @@ export default function MissionModal({
         setEndTime(getLocalTimeStr(editingEvent.end_time));
 
         setSelectedMembers(Array.isArray(editingEvent.member_ids) ? editingEvent.member_ids : []);
-        setColor(editingEvent.color || '#f59e0b');
+        
+        let matchedColor = editingEvent.color;
+        if (editingEvent.category) {
+          const matchCat = palette.find(p => p.category && (
+            p.category.toLowerCase() === editingEvent.category.toLowerCase() ||
+            editingEvent.category.toLowerCase().includes(p.category.toLowerCase()) ||
+            p.category.toLowerCase().includes(editingEvent.category.toLowerCase())
+          ));
+          if (matchCat) matchedColor = matchCat.hex;
+        }
+        if (!matchedColor && editingEvent.color) {
+          const matchHex = palette.find(p => p.hex.toLowerCase() === editingEvent.color.toLowerCase());
+          if (matchHex) matchedColor = matchHex.hex;
+        }
+        setColor(matchedColor || editingEvent.color || '#f59e0b');
         
         let initialRepeat = editingEvent.repeat;
         if (!initialRepeat || initialRepeat === 'none') {
@@ -246,11 +259,20 @@ export default function MissionModal({
       return;
     }
 
-    const startIso = new Date(`${startDate}T${allDay ? '09:00' : startTime}:00`).toISOString();
-    const endIso = new Date(`${endDate}T${allDay ? '10:00' : endTime}:00`).toISOString();
+    let startIso;
+    let endIso;
+    if (allDay) {
+      startIso = `${startDate}T00:00:00.000Z`;
+      endIso = `${endDate}T23:59:59.000Z`;
+    } else {
+      startIso = new Date(`${startDate}T${startTime}:00`).toISOString();
+      endIso = new Date(`${endDate}T${endTime}:00`).toISOString();
+    }
 
     const primaryAlarmMinutes = notifications.length > 0 ? getAlarmMinutesFromNotif(notifications[0]) : 15;
-    const selectedPalette = palette.find(item => item.hex.toLowerCase() === color.toLowerCase()) || palette[0];
+    const selectedPalette = palette.find(item => item.hex.toLowerCase() === color.toLowerCase()) || 
+      (editingEvent?.category ? palette.find(item => item.category.toLowerCase().includes(editingEvent.category.toLowerCase())) : null) || 
+      palette[0];
 
     const payload = {
       id: editingEvent ? editingEvent.id : `evt_${Date.now()}`,

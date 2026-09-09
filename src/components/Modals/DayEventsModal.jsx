@@ -111,11 +111,6 @@ export default function DayEventsModal({
                       <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                         {evt.title}
                       </span>
-                      {evt.category && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-dark-card text-slate-600 dark:text-slate-300">
-                          {evt.category}
-                        </span>
-                      )}
                     </div>
 
                     <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex-wrap">

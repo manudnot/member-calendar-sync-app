@@ -566,10 +566,20 @@ export default function App() {
         if (oldEvt.title !== eventPayload.title) {
           changes.push(`เปลี่ยนชื่อกิจกรรม: จากเดิม "${oldEvt.title}" ➔ เป็น "${eventPayload.title}"`);
         }
-        if (oldEvt.start_time !== eventPayload.start_time || oldEvt.end_time !== eventPayload.end_time) {
-          const oldStr = `${formatThaiDateTime(oldEvt.start_time)} - ${formatThaiDateTime(oldEvt.end_time)}`;
-          const newStr = `${formatThaiDateTime(eventPayload.start_time)} - ${formatThaiDateTime(eventPayload.end_time)}`;
-          changes.push(`เปลี่ยนกำหนดเวลา: จาก "${oldStr}" ➔ เป็น "${newStr}"`);
+        if (oldEvt.start_time !== eventPayload.start_time || oldEvt.end_time !== eventPayload.end_time || oldEvt.all_day !== eventPayload.all_day) {
+          const oldIsAllDay = Boolean(oldEvt.all_day);
+          const newIsAllDay = Boolean(eventPayload.all_day);
+          const formatEvtTime = (evt, isAllDay) => {
+            const sDate = getLocalDateStr(evt.start_time);
+            const eDate = getLocalDateStr(evt.end_time) || sDate;
+            if (isAllDay) return `${sDate} (ตลอดวัน)`;
+            return `${formatThaiDateTime(evt.start_time)} - ${formatThaiDateTime(evt.end_time)}`;
+          };
+          const oldStr = formatEvtTime(oldEvt, oldIsAllDay);
+          const newStr = formatEvtTime(eventPayload, newIsAllDay);
+          if (oldStr !== newStr) {
+            changes.push(`เปลี่ยนกำหนดเวลา: จาก "${oldStr}" ➔ เป็น "${newStr}"`);
+          }
         }
         if ((oldEvt.location || '') !== (eventPayload.location || '')) {
           if (!oldEvt.location && eventPayload.location) {
