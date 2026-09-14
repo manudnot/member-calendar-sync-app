@@ -29,8 +29,9 @@ export default function MemberManagementModal({
   const [editingMemberId, setEditingMemberId] = useState(null);
   const [memberName, setMemberName] = useState('');
   const [memberRank, setMemberRank] = useState('');
+  const [memberFirstName, setMemberFirstName] = useState('');
+  const [memberLastName, setMemberLastName] = useState('');
   const [memberNickname, setMemberNickname] = useState('');
-  const [memberFullName, setMemberFullName] = useState('');
   const [memberColor, setMemberColor] = useState('#10b981');
   const [memberType, setMemberType] = useState('member'); // 'member' | 'virtual'
 
@@ -39,8 +40,9 @@ export default function MemberManagementModal({
       setEditingMemberId(memberToEdit.id);
       setMemberName(memberToEdit.name || '');
       setMemberRank(memberToEdit.rank || '');
+      setMemberFirstName(memberToEdit.first_name || (memberToEdit.full_name ? memberToEdit.full_name.split(' ')[0] : ''));
+      setMemberLastName(memberToEdit.last_name || (memberToEdit.full_name ? memberToEdit.full_name.split(' ').slice(1).join(' ') : ''));
       setMemberNickname(memberToEdit.nickname || '');
-      setMemberFullName(memberToEdit.full_name || '');
       setMemberColor(memberToEdit.color || '#10b981');
       setMemberType(memberToEdit.member_type === 'virtual' ? 'virtual' : 'member');
       setShowForm(true);
@@ -52,6 +54,8 @@ export default function MemberManagementModal({
   const filteredMembers = members.filter(m =>
     (m.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
      m.rank?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     m.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     m.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
      m.nickname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
      m.full_name?.toLowerCase().includes(searchTerm.toLowerCase())) &&
     !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
@@ -70,8 +74,9 @@ export default function MemberManagementModal({
     setEditingMemberId(null);
     setMemberName('');
     setMemberRank('');
+    setMemberFirstName('');
+    setMemberLastName('');
     setMemberNickname('');
-    setMemberFullName('');
     setMemberColor('#10b981');
     setMemberType('member');
     setShowForm(true);
@@ -81,8 +86,9 @@ export default function MemberManagementModal({
     setEditingMemberId(mem.id);
     setMemberName(mem.name || '');
     setMemberRank(mem.rank || '');
+    setMemberFirstName(mem.first_name || (mem.full_name ? mem.full_name.split(' ')[0] : ''));
+    setMemberLastName(mem.last_name || (mem.full_name ? mem.full_name.split(' ').slice(1).join(' ') : ''));
     setMemberNickname(mem.nickname || '');
-    setMemberFullName(mem.full_name || '');
     setMemberColor(mem.color || '#10b981');
     setMemberType(mem.member_type === 'virtual' ? 'virtual' : 'member');
     setShowForm(true);
@@ -93,6 +99,7 @@ export default function MemberManagementModal({
     if (!memberName.trim()) return;
 
     const initials = memberName.trim().substring(0, 2).toUpperCase();
+    const fullName = [memberFirstName.trim(), memberLastName.trim()].filter(Boolean).join(' ');
 
     if (editingMemberId) {
       const existingMem = members.find(m => m.id === editingMemberId);
@@ -101,8 +108,10 @@ export default function MemberManagementModal({
         id: editingMemberId,
         name: memberName.trim(),
         rank: memberRank.trim(),
+        first_name: memberFirstName.trim(),
+        last_name: memberLastName.trim(),
         nickname: memberNickname.trim(),
-        full_name: memberFullName.trim(),
+        full_name: fullName,
         initials,
         color: memberColor,
         member_type: memberType
@@ -113,8 +122,10 @@ export default function MemberManagementModal({
         id: `mem_${Date.now()}`,
         name: memberName.trim(),
         rank: memberRank.trim(),
+        first_name: memberFirstName.trim(),
+        last_name: memberLastName.trim(),
         nickname: memberNickname.trim(),
-        full_name: memberFullName.trim(),
+        full_name: fullName,
         initials,
         color: memberColor,
         member_type: memberType,
@@ -125,8 +136,9 @@ export default function MemberManagementModal({
 
     setMemberName('');
     setMemberRank('');
+    setMemberFirstName('');
+    setMemberLastName('');
     setMemberNickname('');
-    setMemberFullName('');
     setEditingMemberId(null);
     setShowForm(false);
   };
@@ -235,23 +247,53 @@ export default function MemberManagementModal({
               </div>
 
               {memberType === 'member' && (
-                <div className="grid grid-cols-3 gap-2 pt-1">
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  {/* Field 1: ยศ */}
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-bold text-slate-500">
-                      ยศ (Military Rank):
+                      ยศ (Rank):
                     </label>
                     <input
                       type="text"
-                      placeholder="ยศ (เช่น จ.ส.อ., ร.อ.)"
+                      placeholder="ยศ (เช่น จ.ส.อ.)"
                       className="input-field text-xs"
                       value={memberRank}
                       onChange={(e) => setMemberRank(e.target.value)}
                     />
                   </div>
 
+                  {/* Field 2: ชื่อจริง */}
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-bold text-slate-500">
-                      ชื่อเล่น (Thai Nickname):
+                      ชื่อจริง (First Name):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ชื่อจริง (เช่น มนุษย์นอต)"
+                      className="input-field text-xs"
+                      value={memberFirstName}
+                      onChange={(e) => setMemberFirstName(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Field 3: นามสกุล */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500">
+                      นามสกุล (Last Name):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="นามสกุล (เช่น สื่อสาร)"
+                      className="input-field text-xs"
+                      value={memberLastName}
+                      onChange={(e) => setMemberLastName(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Field 4: ชื่อเล่น */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500">
+                      ชื่อเล่น (Nickname):
                     </label>
                     <input
                       type="text"
@@ -259,19 +301,6 @@ export default function MemberManagementModal({
                       className="input-field text-xs"
                       value={memberNickname}
                       onChange={(e) => setMemberNickname(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500">
-                      ชื่อ-นามสกุลจริง:
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="ชื่อจริง สกุลจริง"
-                      className="input-field text-xs"
-                      value={memberFullName}
-                      onChange={(e) => setMemberFullName(e.target.value)}
                     />
                   </div>
                 </div>
@@ -328,6 +357,14 @@ export default function MemberManagementModal({
               const isResigned = Boolean(mem.is_archived || mem.status === 'resigned');
               const isVirtual = mem.member_type === 'virtual';
 
+              const memRank = mem.rank || '';
+              const memFirst = mem.first_name || (mem.full_name ? mem.full_name.split(' ')[0] : '');
+              const memLast = mem.last_name || (mem.full_name ? mem.full_name.split(' ').slice(1).join(' ') : '');
+              const memNick = mem.nickname || '';
+
+              const namePart = [memRank, memFirst, memLast].filter(Boolean).join(' ');
+              const cardSubtext = [namePart, memNick ? `(${memNick})` : ''].filter(Boolean).join(' ');
+
               return (
                 <div
                   key={mem.id}
@@ -348,9 +385,9 @@ export default function MemberManagementModal({
                       <span className={`text-xs font-black ${isResigned ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-100'}`}>
                         {mem.name} {isResigned && '(ลาออก)'}
                       </span>
-                      {(mem.rank || mem.nickname || mem.full_name) && (
+                      {cardSubtext && (
                         <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
-                          {[mem.rank, mem.nickname, mem.full_name ? `(${mem.full_name})` : ''].filter(Boolean).join(' ')}
+                          {cardSubtext}
                         </span>
                       )}
                       {isVirtual && (

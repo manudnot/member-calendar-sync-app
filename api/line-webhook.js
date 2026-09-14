@@ -14,7 +14,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 // Dynamic Supabase member fetch & matching
 async function fetchMembersFromSupabase() {
   try {
-    const { data, error } = await supabase.from('members').select('id, name, rank, nickname, full_name, member_type');
+    const { data, error } = await supabase.from('members').select('id, name, rank, first_name, last_name, nickname, full_name, member_type');
     if (!error && Array.isArray(data) && data.length > 0) {
       return data;
     }
@@ -22,15 +22,15 @@ async function fetchMembersFromSupabase() {
     console.error('Error fetching members from Supabase:', e);
   }
   return [
-    { id: 'mem_manudnot', name: 'Not', rank: 'จ.ส.อ.', nickname: 'นอต', full_name: 'มนุษย์นอต สื่อสาร' },
-    { id: 'mem_phak_ek', name: 'เอก', rank: 'ร.อ.', nickname: 'เอก', full_name: 'ภาคเอก' },
-    { id: 'mem_thanatat', name: 'Top', rank: 'ร.อ.', nickname: 'ท็อป', full_name: 'ธนทัต' },
-    { id: 'mem_third', name: 'Third', rank: 'ร.ท.', nickname: 'สุภณัฐ', full_name: 'สุภณัฐ' },
-    { id: 'mem_june', name: 'June', rank: 'ร.ต.หญิง', nickname: 'จูน', full_name: 'จูน' },
-    { id: 'mem_keng', name: 'เก่ง', rank: 'ส.อ.', nickname: 'เก่ง', full_name: 'เก่งการ' },
-    { id: 'mem_tum', name: 'ตั้ม', rank: 'ส.อ.', nickname: 'ตั้ม', full_name: 'ตั้ม' },
-    { id: 'mem_woooddy', name: 'Champ', rank: 'พ.อ.', nickname: 'แชมป์', full_name: 'แชมป์' },
-    { id: 'mem_wm', name: 'เวรหมาย', rank: 'เวร', nickname: 'เวรหมาย', full_name: 'เวรปฏิบัติการหมาย' }
+    { id: 'mem_manudnot', name: 'Not', rank: 'จ.ส.อ.', first_name: 'มนุษย์นอต', last_name: 'สื่อสาร', nickname: 'นอต', full_name: 'มนุษย์นอต สื่อสาร' },
+    { id: 'mem_phak_ek', name: 'เอก', rank: 'ร.อ.', first_name: 'ภาคเอก', last_name: '', nickname: 'เอก', full_name: 'ภาคเอก' },
+    { id: 'mem_thanatat', name: 'Top', rank: 'ร.อ.', first_name: 'ธนทัต', last_name: '', nickname: 'ท็อป', full_name: 'ธนทัต' },
+    { id: 'mem_third', name: 'Third', rank: 'ร.ท.', first_name: 'สุภณัฐ', last_name: '', nickname: 'สุภณัฐ', full_name: 'สุภณัฐ' },
+    { id: 'mem_june', name: 'June', rank: 'ร.ต.หญิง', first_name: 'จูน', last_name: '', nickname: 'จูน', full_name: 'จูน' },
+    { id: 'mem_keng', name: 'เก่ง', rank: 'ส.อ.', first_name: 'เก่งการ', last_name: '', nickname: 'เก่ง', full_name: 'เก่งการ' },
+    { id: 'mem_tum', name: 'ตั้ม', rank: 'ส.อ.', first_name: 'ตั้ม', last_name: '', nickname: 'ตั้ม', full_name: 'ตั้ม' },
+    { id: 'mem_woooddy', name: 'Champ', rank: 'พ.อ.', first_name: 'แชมป์', last_name: '', nickname: 'แชมป์', full_name: 'แชมป์' },
+    { id: 'mem_wm', name: 'เวรหมาย', rank: 'เวร', first_name: 'เวรปฏิบัติการหมาย', last_name: '', nickname: 'เวรหมาย', full_name: 'เวรปฏิบัติการหมาย' }
   ];
 }
 
@@ -45,9 +45,12 @@ function matchMemberIds(memberNamesArray, dbMembers = []) {
     dbMembers.forEach(mem => {
       const searchTerms = [
         mem.name,
+        mem.first_name,
+        mem.last_name,
         mem.nickname,
         mem.full_name,
         mem.rank ? `${mem.rank} ${mem.name}` : '',
+        mem.rank ? `${mem.rank} ${mem.first_name}` : '',
         mem.rank ? `${mem.rank} ${mem.nickname}` : '',
         mem.rank ? `${mem.rank} ${mem.full_name}` : ''
       ].filter(Boolean).map(t => String(t).toLowerCase());
