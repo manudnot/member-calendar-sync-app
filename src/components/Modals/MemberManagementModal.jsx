@@ -247,61 +247,63 @@ export default function MemberManagementModal({
               </div>
 
               {memberType === 'member' && (
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  {/* Field 1: ยศ */}
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500">
-                      ยศ (Rank):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="ยศ (เช่น จ.ส.อ.)"
-                      className="input-field text-xs"
-                      value={memberRank}
-                      onChange={(e) => setMemberRank(e.target.value)}
-                    />
+                <div className="flex flex-col gap-2 pt-1">
+                  {/* Row 1: ยศ & ชื่อเล่น */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-500">
+                        ยศ (Rank):
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="ยศ (เช่น จ.ส.อ.)"
+                        className="input-field text-xs"
+                        value={memberRank}
+                        onChange={(e) => setMemberRank(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-500">
+                        ชื่อเล่น (Nickname):
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="ชื่อเล่น (เช่น นอต)"
+                        className="input-field text-xs"
+                        value={memberNickname}
+                        onChange={(e) => setMemberNickname(e.target.value)}
+                      />
+                    </div>
                   </div>
 
-                  {/* Field 2: ชื่อจริง */}
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500">
-                      ชื่อจริง (First Name):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="ชื่อจริง (เช่น มนุษย์นอต)"
-                      className="input-field text-xs"
-                      value={memberFirstName}
-                      onChange={(e) => setMemberFirstName(e.target.value)}
-                    />
-                  </div>
+                  {/* Row 2: ชื่อจริง & นามสกุล (First Name & Last Name 2 Columns) */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-500">
+                        ชื่อจริง (First Name):
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="ชื่อจริง (เช่น มนุษย์นอต)"
+                        className="input-field text-xs"
+                        value={memberFirstName}
+                        onChange={(e) => setMemberFirstName(e.target.value)}
+                      />
+                    </div>
 
-                  {/* Field 3: นามสกุล */}
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500">
-                      นามสกุล (Last Name):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="นามสกุล (เช่น สื่อสาร)"
-                      className="input-field text-xs"
-                      value={memberLastName}
-                      onChange={(e) => setMemberLastName(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Field 4: ชื่อเล่น */}
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500">
-                      ชื่อเล่น (Nickname):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="ชื่อเล่น (เช่น นอต)"
-                      className="input-field text-xs"
-                      value={memberNickname}
-                      onChange={(e) => setMemberNickname(e.target.value)}
-                    />
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-500">
+                        นามสกุล (Last Name):
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="นามสกุล (เช่น สื่อสาร)"
+                        className="input-field text-xs"
+                        value={memberLastName}
+                        onChange={(e) => setMemberLastName(e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
               )}

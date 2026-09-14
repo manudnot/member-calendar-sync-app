@@ -3,11 +3,13 @@
 -- Executable in Supabase SQL Editor (https://app.supabase.com -> SQL Editor)
 -- ==============================================================================
 
--- 1. Create Members Table (With Rank, Full Name & Nickname)
+-- 1. Create Members Table (With Rank, First Name, Last Name, Full Name & Nickname)
 CREATE TABLE IF NOT EXISTS public.members (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,                           -- Display Name / Nickname (e.g. "Not", "เอก", "Top")
     rank TEXT,                                   -- Military Rank (ยศ e.g. "จ.ส.อ.", "ร.อ.", "ร.ต.", "ส.อ.")
+    first_name TEXT,                             -- First Name (ชื่อจริง)
+    last_name TEXT,                              -- Last Name (นามสกุล)
     full_name TEXT,                              -- Official Full Name (ชื่อ-นามสกุลจริง)
     color TEXT NOT NULL DEFAULT '#3B82F6',
     avatar TEXT NOT NULL DEFAULT '👤',
@@ -21,6 +23,8 @@ CREATE TABLE IF NOT EXISTS public.members (
 
 -- Ensure columns exist if table was previously created
 ALTER TABLE public.members ADD COLUMN IF NOT EXISTS rank TEXT;
+ALTER TABLE public.members ADD COLUMN IF NOT EXISTS first_name TEXT;
+ALTER TABLE public.members ADD COLUMN IF NOT EXISTS last_name TEXT;
 ALTER TABLE public.members ADD COLUMN IF NOT EXISTS full_name TEXT;
 ALTER TABLE public.members ADD COLUMN IF NOT EXISTS member_type TEXT DEFAULT 'real';
 
