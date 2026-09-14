@@ -8,7 +8,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || '5yYbM9jVR9aNZS6RvDhS8D0ow/t7VHSpE3kX5PQXqK4h0OpEbaqIxj+Oy1eKAYfFBsMF+twQeDmtj0lwfSa30tJJtYHZqeTX35Z7V/9wOpWD5d3Mq0tAt96uWMXfKRDBCcFstKpuSXG26xG+Uy3SWQdB04t89/1O/w1cDnyilFU=';
 const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || '21ce08aa85816d7feb7c0d62f500e779';
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.TYPHOON_API_KEY || '';
+const TYPHOON_API_KEY = process.env.TYPHOON_API_KEY || 'sk-JfnzdevrTSBsAw9GRBda4zhHtTNMkEFM9GEnLjc4Pyu0WPaS';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
 // Member mapping dictionary (Nicknames & Full names & Ranks)
 const MEMBER_MAPPING = [
@@ -19,7 +20,7 @@ const MEMBER_MAPPING = [
   { id: 'mem_june', names: ['จูน', 'ร.ต.หญิง'] },
   { id: 'mem_keng', names: ['เก่ง', 'ส.อ. เก่ง'] },
   { id: 'mem_tum', names: ['ตั้ม', 'ส.อ. ตั้ม'] },
-  { id: 'mem_woooddy', 'names': ['แชมป์', 'วู้ดดี้', 'พ.อ.'] },
+  { id: 'mem_woooddy', names: ['แชมป์', 'วู้ดดี้', 'พ.อ.'] },
   { id: 'mem_wm', names: ['เวรหมาย', 'เวร'] }
 ];
 
@@ -74,10 +75,9 @@ async function fetchLineBinary(messageId) {
   return Buffer.from(arrayBuffer);
 }
 
-// AI Parsing with Persona "เสมียนกองร้อยสายและวิทยุถ่ายทอด"
+// AI Parsing with Persona "เสมียนกองร้อยสายและวิทยุถ่ายทอด" using Opentyphoon API
 async function analyzeMissionOrderWithAI(text, imageBase64 = null) {
-  const promptText = `คุณคือเสมียนกองร้อยสายและวิทยุถ่ายทอด มีหน้าที่จัดทำเอกสารและวิเคราะห์คำสั่งปฏิบัติงาน ภารกิจ รูปภาพ หรือเอกสารข่าวสาร
-กรุณาวิเคราะห์และสกัดข้อมูลภารกิจตอบกลับเป็น JSON บริสุทธิ์ (ไม่ต้องใส่ markdown codeblock) มีฟิลด์ดังนี้:
+  const systemPrompt = `คุณคือเสมียนกองร้อยสายและวิทยุถ่ายทอด มีหน้าที่จัดทำเอกสารและวิเคราะห์คำสั่งปฏิบัติงาน ภารกิจ รูปภาพ หรือเอกสารข่าวสาร กรุณาวิเคราะห์และสกัดข้อมูลภารกิจตอบกลับเฉพาะ JSON บริสุทธิ์ (ไม่ต้องใส่ markdown codeblock และไม่ใส่คำขึ้นต้นใดๆ) มีโครงสร้างดังนี้:
 {
   "title": "ชื่อภารกิจหรือเรื่อง",
   "start_date": "YYYY-MM-DD",
@@ -88,14 +88,59 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null) {
   "dress_code": "ชุดการแต่งกาย (เช่น ชุดฝึก, ชุดเครื่องแบบ, ชุดสุภาพ)",
   "location": "สถานที่ปฏิบัติงานหรือลิงก์ประชุม (ถ้ามี)",
   "members": ["รายชื่อผู้รับผิดชอบ เช่น นอต, เอก, ท็อป, เวรหมาย"]
-}
+}`;
 
-ข้อความ/ข้อมูลที่ต้องวิเคราะห์:
-${text || 'กรุณาวิเคราะห์รูปภาพเอกสารสั่งการนี้'}`;
+  // 1. Try Opentyphoon API (typhoon-v2.5-30b-a3b-instruct)
+  if (TYPHOON_API_KEY) {
+    try {
+      const messages = [
+        { role: 'system', content: systemPrompt }
+      ];
 
+      if (imageBase64) {
+        messages.push({
+          role: 'user',
+          content: [
+            { type: 'text', text: text || 'กรุณาวิเคราะห์เอกสารคำสั่งภารกิจจากรูปภาพนี้' },
+            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
+          ]
+        });
+      } else {
+        messages.push({
+          role: 'user',
+          content: text || 'วิเคราะห์ภารกิจ'
+        });
+      }
+
+      const res = await fetch('https://api.opentyphoon.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${TYPHOON_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'typhoon-v2.5-30b-a3b-instruct',
+          messages,
+          temperature: 0.2,
+          max_completion_tokens: 512
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const rawJsonText = data.choices?.[0]?.message?.content || '';
+        const cleanJson = rawJsonText.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(cleanJson);
+      }
+    } catch (e) {
+      console.error('Opentyphoon API error:', e);
+    }
+  }
+
+  // 2. Fallback to Gemini 2.5 Flash if available
   if (GEMINI_API_KEY) {
     try {
-      const parts = [{ text: promptText }];
+      const parts = [{ text: systemPrompt + '\n' + (text || '') }];
       if (imageBase64) {
         parts.push({
           inline_data: {
@@ -120,11 +165,11 @@ ${text || 'กรุณาวิเคราะห์รูปภาพเอก
         return JSON.parse(cleanJson);
       }
     } catch (e) {
-      console.error('AI Processing error:', e);
+      console.error('Gemini API fallback error:', e);
     }
   }
 
-  // Smart Regex Fallback Parser if AI API Key is not set or network delay
+  // 3. Fallback Smart Parser
   const todayStr = new Date().toISOString().split('T')[0];
   return {
     title: text ? text.slice(0, 50) : 'ภารกิจสั่งการจาก LINE',
