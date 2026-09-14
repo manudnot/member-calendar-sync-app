@@ -11,18 +11,56 @@ const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || '21ce08aa85816d7f
 const TYPHOON_API_KEY = process.env.TYPHOON_API_KEY || 'sk-JfnzdevrTSBsAw9GRBda4zhHtTNMkEFM9GEnLjc4Pyu0WPaS';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
-// Member mapping dictionary (Nicknames & Full names & Ranks)
-const MEMBER_MAPPING = [
-  { id: 'mem_manudnot', names: ['นอต', 'มนุษย์นอต', 'นพดล', 'จ.ส.อ.'] },
-  { id: 'mem_phak_ek', names: ['เอก', 'ภาคเอก', 'ร.อ. ภาคเอก'] },
-  { id: 'mem_thanatat', names: ['ท็อป', 'ธนทัต', 'ร.อ. ธนทัต'] },
-  { id: 'mem_third', names: ['สุภณัฐ', 'เพิร์ธ', 'เดิร์ด', 'ร.ท.'] },
-  { id: 'mem_june', names: ['จูน', 'ร.ต.หญิง'] },
-  { id: 'mem_keng', names: ['เก่ง', 'ส.อ. เก่ง'] },
-  { id: 'mem_tum', names: ['ตั้ม', 'ส.อ. ตั้ม'] },
-  { id: 'mem_woooddy', names: ['แชมป์', 'วู้ดดี้', 'พ.อ.'] },
-  { id: 'mem_wm', names: ['เวรหมาย', 'เวร'] }
-];
+// Dynamic Supabase member fetch & matching
+async function fetchMembersFromSupabase() {
+  try {
+    const { data, error } = await supabase.from('members').select('id, name, rank, nickname, full_name, member_type');
+    if (!error && Array.isArray(data) && data.length > 0) {
+      return data;
+    }
+  } catch (e) {
+    console.error('Error fetching members from Supabase:', e);
+  }
+  return [
+    { id: 'mem_manudnot', name: 'Not', rank: 'จ.ส.อ.', nickname: 'นอต', full_name: 'มนุษย์นอต สื่อสาร' },
+    { id: 'mem_phak_ek', name: 'เอก', rank: 'ร.อ.', nickname: 'เอก', full_name: 'ภาคเอก' },
+    { id: 'mem_thanatat', name: 'Top', rank: 'ร.อ.', nickname: 'ท็อป', full_name: 'ธนทัต' },
+    { id: 'mem_third', name: 'Third', rank: 'ร.ท.', nickname: 'สุภณัฐ', full_name: 'สุภณัฐ' },
+    { id: 'mem_june', name: 'June', rank: 'ร.ต.หญิง', nickname: 'จูน', full_name: 'จูน' },
+    { id: 'mem_keng', name: 'เก่ง', rank: 'ส.อ.', nickname: 'เก่ง', full_name: 'เก่งการ' },
+    { id: 'mem_tum', name: 'ตั้ม', rank: 'ส.อ.', nickname: 'ตั้ม', full_name: 'ตั้ม' },
+    { id: 'mem_woooddy', name: 'Champ', rank: 'พ.อ.', nickname: 'แชมป์', full_name: 'แชมป์' },
+    { id: 'mem_wm', name: 'เวรหมาย', rank: 'เวร', nickname: 'เวรหมาย', full_name: 'เวรปฏิบัติการหมาย' }
+  ];
+}
+
+function matchMemberIds(memberNamesArray, dbMembers = []) {
+  if (!Array.isArray(memberNamesArray)) return ['mem_phak_ek'];
+  const matched = new Set();
+
+  memberNamesArray.forEach(nameStr => {
+    const s = String(nameStr).toLowerCase().trim();
+    if (!s) return;
+
+    dbMembers.forEach(mem => {
+      const searchTerms = [
+        mem.name,
+        mem.nickname,
+        mem.full_name,
+        mem.rank ? `${mem.rank} ${mem.name}` : '',
+        mem.rank ? `${mem.rank} ${mem.nickname}` : '',
+        mem.rank ? `${mem.rank} ${mem.full_name}` : ''
+      ].filter(Boolean).map(t => String(t).toLowerCase());
+
+      if (searchTerms.some(term => s.includes(term) || term.includes(s))) {
+        matched.add(mem.id);
+      }
+    });
+  });
+
+  if (matched.size === 0) matched.add('mem_phak_ek');
+  return Array.from(matched);
+}
 
 export const config = {
   api: {
@@ -239,6 +277,7 @@ export default async function handler(req, res) {
   }
 
   const events = body.events || [];
+  const dbMembers = await fetchMembersFromSupabase();
 
   for (const event of events) {
     if (event.type !== 'message') continue;
@@ -333,12 +372,12 @@ export default async function handler(req, res) {
       }
 
       // Member Correction match
-      if (userText.includes('ผู้รับผิดชอบ') || userText.includes('นอต') || userText.includes('เอก') || userText.includes('ท็อป')) {
-        const newMemberIds = matchMemberIds([userText]);
+      const newMemberIds = matchMemberIds([userText], dbMembers);
+      if (newMemberIds.length > 0) {
         activeDraft.member_ids = Array.from(new Set([...(activeDraft.member_ids || []), ...newMemberIds]));
         activeDraft.member_names = activeDraft.member_ids.map(id => {
-          const m = MEMBER_MAPPING.find(x => x.id === id);
-          return m ? m.names[0] : id;
+          const m = dbMembers.find(x => x.id === id);
+          return m ? (m.rank ? `${m.rank} ${m.name}` : m.name) : id;
         }).join(', ');
       }
 
@@ -387,10 +426,10 @@ export default async function handler(req, res) {
     }
 
     if (analyzedData) {
-      const memberIds = matchMemberIds(analyzedData.members);
+      const memberIds = matchMemberIds(analyzedData.members, dbMembers);
       const memberNames = memberIds.map(id => {
-        const m = MEMBER_MAPPING.find(x => x.id === id);
-        return m ? m.names[0] : id;
+        const m = dbMembers.find(x => x.id === id);
+        return m ? (m.rank ? `${m.rank} ${m.name}` : m.name) : id;
       }).join(', ');
 
       const newDraft = {

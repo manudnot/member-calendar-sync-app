@@ -20,15 +20,15 @@ import { hashPasscode } from './utils/crypto';
 
 // INITIAL TEAM MEMBERS (9 MEMBERS: MEMBERS & VIRTUAL MEMBERS)
 const INITIAL_MEMBERS = [
-  { id: 'mem_manudnot', name: 'Not', initials: 'NO', color: '#8b5cf6', member_type: 'member' },
-  { id: 'mem_third', name: 'Third', initials: 'TH', color: '#0ea5e9', member_type: 'member' },
-  { id: 'mem_june', name: 'June', initials: 'JU', color: '#ec4899', member_type: 'member' },
-  { id: 'mem_thanatat', name: 'Top', initials: 'TO', color: '#f59e0b', member_type: 'member' },
-  { id: 'mem_phak_ek', name: 'เอก', initials: 'PE', color: '#ef4444', member_type: 'member' },
-  { id: 'mem_keng', name: 'เก่ง', initials: 'KG', color: '#06b6d4', member_type: 'member' },
-  { id: 'mem_tum', name: 'ตั้ม', initials: 'TM', color: '#84cc16', member_type: 'member' },
-  { id: 'mem_woooddy', name: 'Champ', initials: 'CH', color: '#10b981', member_type: 'member' },
-  { id: 'mem_wm', name: 'เวรหมาย', initials: 'WM', color: '#64748b', member_type: 'virtual' }
+  { id: 'mem_manudnot', name: 'Not', rank: 'จ.ส.อ.', nickname: 'นอต', full_name: 'มนุษย์นอต สื่อสาร', initials: 'NO', color: '#8b5cf6', member_type: 'member' },
+  { id: 'mem_third', name: 'Third', rank: 'ร.ท.', nickname: 'สุภณัฐ', full_name: 'สุภณัฐ', initials: 'TH', color: '#0ea5e9', member_type: 'member' },
+  { id: 'mem_june', name: 'June', rank: 'ร.ต.หญิง', nickname: 'จูน', full_name: 'จูน', initials: 'JU', color: '#ec4899', member_type: 'member' },
+  { id: 'mem_thanatat', name: 'Top', rank: 'ร.อ.', nickname: 'ท็อป', full_name: 'ธนทัต', initials: 'TO', color: '#f59e0b', member_type: 'member' },
+  { id: 'mem_phak_ek', name: 'เอก', rank: 'ร.อ.', nickname: 'เอก', full_name: 'ภาคเอก', initials: 'PE', color: '#ef4444', member_type: 'member' },
+  { id: 'mem_keng', name: 'เก่ง', rank: 'ส.อ.', nickname: 'เก่ง', full_name: 'เก่งการ', initials: 'KG', color: '#06b6d4', member_type: 'member' },
+  { id: 'mem_tum', name: 'ตั้ม', rank: 'ส.อ.', nickname: 'ตั้ม', full_name: 'ตั้ม', initials: 'TM', color: '#84cc16', member_type: 'member' },
+  { id: 'mem_woooddy', name: 'Champ', rank: 'พ.อ.', nickname: 'แชมป์', full_name: 'แชมป์', initials: 'CH', color: '#10b981', member_type: 'member' },
+  { id: 'mem_wm', name: 'เวรหมาย', rank: 'เวร', nickname: 'เวรหมาย', full_name: 'เวรปฏิบัติการหมาย', initials: 'WM', color: '#64748b', member_type: 'virtual' }
 ];
 
 
@@ -455,7 +455,11 @@ export default function App() {
           color: newMember.color,
           email: '',
           status: newMember.status || 'active',
-          is_archived: Boolean(newMember.is_archived)
+          is_archived: Boolean(newMember.is_archived),
+          rank: newMember.rank || '',
+          nickname: newMember.nickname || '',
+          full_name: newMember.full_name || '',
+          member_type: newMember.member_type || 'member'
         };
         await supabase.from('members').upsert([supaPayload]);
       } catch (e) {
@@ -499,7 +503,11 @@ export default function App() {
           color: updatedMember.color,
           email: '',
           status: updatedMember.status || 'active',
-          is_archived: Boolean(updatedMember.is_archived)
+          is_archived: Boolean(updatedMember.is_archived),
+          rank: updatedMember.rank || '',
+          nickname: updatedMember.nickname || '',
+          full_name: updatedMember.full_name || '',
+          member_type: updatedMember.member_type || 'member'
         };
         if (updatedMember.pin_code) supaPayload.pin_code = updatedMember.pin_code;
         await supabase.from('members').upsert([supaPayload]);
@@ -535,7 +543,11 @@ export default function App() {
           color: updatedMember.color,
           email: '',
           status: updatedMember.status,
-          is_archived: updatedMember.is_archived
+          is_archived: updatedMember.is_archived,
+          rank: updatedMember.rank || '',
+          nickname: updatedMember.nickname || '',
+          full_name: updatedMember.full_name || '',
+          member_type: updatedMember.member_type || 'member'
         };
         if (updatedMember.pin_code) supaPayload.pin_code = updatedMember.pin_code;
         await supabase.from('members').upsert([supaPayload]);

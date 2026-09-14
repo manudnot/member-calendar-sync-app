@@ -28,13 +28,19 @@ export default function MemberManagementModal({
   const [showForm, setShowForm] = useState(false);
   const [editingMemberId, setEditingMemberId] = useState(null);
   const [memberName, setMemberName] = useState('');
+  const [memberRank, setMemberRank] = useState('');
+  const [memberNickname, setMemberNickname] = useState('');
+  const [memberFullName, setMemberFullName] = useState('');
   const [memberColor, setMemberColor] = useState('#10b981');
   const [memberType, setMemberType] = useState('member'); // 'member' | 'virtual'
 
   useEffect(() => {
     if (memberToEdit) {
       setEditingMemberId(memberToEdit.id);
-      setMemberName(memberToEdit.name);
+      setMemberName(memberToEdit.name || '');
+      setMemberRank(memberToEdit.rank || '');
+      setMemberNickname(memberToEdit.nickname || '');
+      setMemberFullName(memberToEdit.full_name || '');
       setMemberColor(memberToEdit.color || '#10b981');
       setMemberType(memberToEdit.member_type === 'virtual' ? 'virtual' : 'member');
       setShowForm(true);
@@ -44,7 +50,10 @@ export default function MemberManagementModal({
   if (!isOpen) return null;
 
   const filteredMembers = members.filter(m =>
-    m.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    (m.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     m.rank?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     m.nickname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     m.full_name?.toLowerCase().includes(searchTerm.toLowerCase())) &&
     !['สมชาย', 'สมศรี', 'สมศักดิ์', 'สมใจ'].some(mockName => m.name.includes(mockName))
   );
 
@@ -60,6 +69,9 @@ export default function MemberManagementModal({
   const handleOpenAdd = () => {
     setEditingMemberId(null);
     setMemberName('');
+    setMemberRank('');
+    setMemberNickname('');
+    setMemberFullName('');
     setMemberColor('#10b981');
     setMemberType('member');
     setShowForm(true);
@@ -67,7 +79,10 @@ export default function MemberManagementModal({
 
   const handleOpenEdit = (mem) => {
     setEditingMemberId(mem.id);
-    setMemberName(mem.name);
+    setMemberName(mem.name || '');
+    setMemberRank(mem.rank || '');
+    setMemberNickname(mem.nickname || '');
+    setMemberFullName(mem.full_name || '');
     setMemberColor(mem.color || '#10b981');
     setMemberType(mem.member_type === 'virtual' ? 'virtual' : 'member');
     setShowForm(true);
@@ -85,6 +100,9 @@ export default function MemberManagementModal({
         ...existingMem,
         id: editingMemberId,
         name: memberName.trim(),
+        rank: memberRank.trim(),
+        nickname: memberNickname.trim(),
+        full_name: memberFullName.trim(),
         initials,
         color: memberColor,
         member_type: memberType
@@ -94,6 +112,9 @@ export default function MemberManagementModal({
       const newMember = {
         id: `mem_${Date.now()}`,
         name: memberName.trim(),
+        rank: memberRank.trim(),
+        nickname: memberNickname.trim(),
+        full_name: memberFullName.trim(),
         initials,
         color: memberColor,
         member_type: memberType,
@@ -103,6 +124,9 @@ export default function MemberManagementModal({
     }
 
     setMemberName('');
+    setMemberRank('');
+    setMemberNickname('');
+    setMemberFullName('');
     setEditingMemberId(null);
     setShowForm(false);
   };
@@ -187,21 +211,71 @@ export default function MemberManagementModal({
             </div>
 
             {/* Live Avatar Preview & Name Input */}
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-full text-white flex items-center justify-center font-mono font-black text-sm shadow-md shrink-0 transition-all duration-200"
-                style={{ backgroundColor: memberColor }}
-              >
-                {previewInitials}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-full text-white flex items-center justify-center font-mono font-black text-sm shadow-md shrink-0 transition-all duration-200"
+                  style={{ backgroundColor: memberColor }}
+                >
+                  {previewInitials}
+                </div>
+                <div className="flex flex-col flex-1 gap-1">
+                  <label className="text-[10px] font-bold text-slate-500">
+                    ชื่อแสดงผลในระบบ (Display Name *):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={memberType === 'member' ? "ชื่อแสดงผล (เช่น Not, Third, June)" : "ชื่อแสดงผลตำแหน่งเวร (เช่น เวรหมาย)"}
+                    className="input-field text-xs flex-1"
+                    value={memberName}
+                    onChange={(e) => setMemberName(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-              <input
-                type="text"
-                placeholder={memberType === 'member' ? "ระบุชื่อสมาชิก (เช่น Not, Third, June)" : "ระบุชื่อตำแหน่งเวรเสมือน (เช่น เวรหมาย)"}
-                className="input-field text-xs flex-1"
-                value={memberName}
-                onChange={(e) => setMemberName(e.target.value)}
-                required
-              />
+
+              {memberType === 'member' && (
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500">
+                      ยศ (Military Rank):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ยศ (เช่น จ.ส.อ., ร.อ.)"
+                      className="input-field text-xs"
+                      value={memberRank}
+                      onChange={(e) => setMemberRank(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500">
+                      ชื่อเล่น (Thai Nickname):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ชื่อเล่น (เช่น นอต)"
+                      className="input-field text-xs"
+                      value={memberNickname}
+                      onChange={(e) => setMemberNickname(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500">
+                      ชื่อ-นามสกุลจริง:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ชื่อจริง สกุลจริง"
+                      className="input-field text-xs"
+                      value={memberFullName}
+                      onChange={(e) => setMemberFullName(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Color Palette Selector */}
@@ -242,7 +316,7 @@ export default function MemberManagementModal({
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="ค้นหาชื่อสมาชิก..."
+              placeholder="ค้นหาชื่อสมาชิก ยศ หรือชื่อจริง..."
               className="input-field pl-9 text-xs"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -265,7 +339,7 @@ export default function MemberManagementModal({
                 >
                   <div className="flex items-center gap-2.5">
                     <span
-                      className="w-8 h-8 rounded-full text-white flex items-center justify-center font-mono font-black text-xs shadow-xs"
+                      className="w-8 h-8 rounded-full text-white flex items-center justify-center font-mono font-black text-xs shadow-xs shrink-0"
                       style={{ backgroundColor: mem.color }}
                     >
                       {mem.initials || mem.name.substring(0, 2).toUpperCase()}
@@ -274,6 +348,11 @@ export default function MemberManagementModal({
                       <span className={`text-xs font-black ${isResigned ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-100'}`}>
                         {mem.name} {isResigned && '(ลาออก)'}
                       </span>
+                      {(mem.rank || mem.nickname || mem.full_name) && (
+                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
+                          {[mem.rank, mem.nickname, mem.full_name ? `(${mem.full_name})` : ''].filter(Boolean).join(' ')}
+                        </span>
+                      )}
                       {isVirtual && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50 flex items-center gap-1 w-fit mt-0.5">
                           <Bot className="w-3 h-3" /> Virtual Member
