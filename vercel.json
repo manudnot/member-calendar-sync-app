@@ -8,8 +8,12 @@
       "dest": "/api/feed.js"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/api/feed.js"
+      "src": "/api/line-webhook(.*)",
+      "dest": "/api/line-webhook.js"
+    },
+    {
+      "src": "/api/holidays(.*)",
+      "dest": "/api/holidays.js"
     },
     {
       "handle": "filesystem"
