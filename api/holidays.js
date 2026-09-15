@@ -1,5 +1,6 @@
 // api/holidays.js - Vercel Serverless Function fetching exclusively from myhora live ics links
 export default async function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=43200');
@@ -18,10 +19,15 @@ export default async function handler(req, res) {
     ];
 
     const holidays = {};
+    const fetchOptions = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    };
 
     for (const url of urls) {
       try {
-        const response = await fetch(url);
+        const response = await fetch(url, fetchOptions);
         if (response.ok) {
           const icsText = await response.text();
           const vevents = icsText.split('BEGIN:VEVENT');

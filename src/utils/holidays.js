@@ -15,9 +15,14 @@ export async function fetchLiveHolidays(year = new Date().getFullYear()) {
   const targetYear = parseInt(year) || new Date().getFullYear();
   const yearBE = targetYear + 543;
 
-  // 1. Try Serverless Function /api/holidays?year=...
+  // 1. Try Vercel Serverless Function via window.location.origin
   try {
-    const res = await fetch(`/api/holidays?year=${targetYear}`);
+    const origin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : '';
+    const apiUrl = `${origin}/api/holidays?year=${targetYear}`;
+    const res = await fetch(apiUrl, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.holidays && Object.keys(data.holidays).length > 0) {
@@ -25,19 +30,20 @@ export async function fetchLiveHolidays(year = new Date().getFullYear()) {
       }
     }
   } catch (err) {
-    console.warn('Network notice fetching /api/holidays:', err);
+    console.warn('Vercel API notice:', err);
   }
 
-  // 2. Direct client-side fetch from MyHora website link (BE year + latest.ics)
+  // 2. Client-side CORS Proxy Fallback
   const holidays = {};
-  const urls = [
+  const rawUrls = [
     `https://myhora.com/calendar/ical/holiday.aspx?${yearBE}.ics`,
     'https://myhora.com/calendar/ical/holiday.aspx?latest.ics'
   ];
 
-  for (const url of urls) {
+  for (const rawUrl of rawUrls) {
     try {
-      const res = await fetch(url);
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
+      const res = await fetch(proxyUrl);
       if (res.ok) {
         const text = await res.text();
         const vevents = text.split('BEGIN:VEVENT');
@@ -53,7 +59,7 @@ export async function fetchLiveHolidays(year = new Date().getFullYear()) {
         }
       }
     } catch (e) {
-      console.warn('Direct fetch notice for', url, e);
+      console.warn('CORS Proxy notice for', rawUrl, e);
     }
   }
 
