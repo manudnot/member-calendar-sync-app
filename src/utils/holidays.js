@@ -1,8 +1,111 @@
-// src/utils/holidays.js - Official Thai Holidays Helper (100% Live Fetching EXCLUSIVELY from MyHora website)
+// src/utils/holidays.js - Official Thai Public Holidays Engine with DutyRoster Hybrid Architecture
+
+export const BUILTIN_HOLIDAYS = {
+  // 2024 (พ.ศ. 2567)
+  '2024-01-01': 'วันขึ้นปีใหม่',
+  '2024-02-26': 'วันหยุดชดเชยวันมาฆบูชา',
+  '2024-04-06': 'วันจักรี',
+  '2024-04-08': 'วันหยุดชดเชยวันจักรี',
+  '2024-04-13': 'วันสงกรานต์',
+  '2024-04-14': 'วันสงกรานต์',
+  '2024-04-15': 'วันสงกรานต์',
+  '2024-04-16': 'วันหยุดชดเชยวันสงกรานต์',
+  '2024-05-01': 'วันแรงงานแห่งชาติ',
+  '2024-05-04': 'วันฉัตรมงคล',
+  '2024-05-06': 'วันหยุดชดเชยวันฉัตรมงคล',
+  '2024-05-22': 'วันวิสาขบูชา',
+  '2024-06-03': 'วันเฉลิมพระชนมพรรษา สมเด็จพระนางเจ้าฯ พระบรมราชินี',
+  '2024-07-20': 'วันอาสาฬหบูชา',
+  '2024-07-21': 'วันเข้าพรรษา',
+  '2024-07-22': 'วันหยุดชดเชยวันอาสาฬหบูชา',
+  '2024-07-28': 'วันเฉลิมพระชนมพรรษา พระบาทสมเด็จพระเจ้าอยู่หัว',
+  '2024-07-29': 'วันหยุดชดเชยวันเฉลิมพระชนมพรรษา ร.10',
+  '2024-08-12': 'วันแม่แห่งชาติ',
+  '2024-10-13': 'วันนวมินทรมหาราช',
+  '2024-10-14': 'วันหยุดชดเชยวันนวมินทรมหาราช',
+  '2024-10-23': 'วันปิยมหาราช',
+  '2024-12-05': 'วันพ่อแห่งชาติ',
+  '2024-12-10': 'วันรัฐธรรมนูญ',
+  '2024-12-30': 'วันหยุดพิเศษ',
+  '2024-12-31': 'วันสิ้นปี',
+
+  // 2025 (พ.ศ. 2568)
+  '2025-01-01': 'วันขึ้นปีใหม่',
+  '2025-02-12': 'วันมาฆบูชา',
+  '2025-04-06': 'วันจักรี',
+  '2025-04-07': 'วันหยุดชดเชยวันจักรี',
+  '2025-04-13': 'วันสงกรานต์',
+  '2025-04-14': 'วันสงกรานต์',
+  '2025-04-15': 'วันสงกรานต์',
+  '2025-04-16': 'วันหยุดชดเชยวันสงกรานต์',
+  '2025-05-01': 'วันแรงงานแห่งชาติ',
+  '2025-05-04': 'วันฉัตรมงคล',
+  '2025-05-05': 'วันหยุดชดเชยวันฉัตรมงคล',
+  '2025-05-11': 'วันวิสาขบูชา',
+  '2025-05-12': 'วันหยุดชดเชยวันวิสาขบูชา',
+  '2025-06-03': 'วันเฉลิมพระชนมพรรษา สมเด็จพระนางเจ้าฯ พระบรมราชินี',
+  '2025-07-10': 'วันอาสาฬหบูชา',
+  '2025-07-11': 'วันเข้าพรรษา',
+  '2025-07-28': 'วันเฉลิมพระชนมพรรษา พระบาทสมเด็จพระเจ้าอยู่หัว',
+  '2025-08-12': 'วันแม่แห่งชาติ',
+  '2025-10-13': 'วันนวมินทรมหาราช',
+  '2025-10-23': 'วันปิยมหาราช',
+  '2025-12-05': 'วันพ่อแห่งชาติ',
+  '2025-12-10': 'วันรัฐธรรมนูญ',
+  '2025-12-31': 'วันสิ้นปี',
+
+  // 2026 (พ.ศ. 2569)
+  '2026-01-01': 'วันขึ้นปีใหม่',
+  '2026-01-02': 'วันหยุดพิเศษ (ครม.)',
+  '2026-03-03': 'วันมาฆบูชา',
+  '2026-04-06': 'วันจักรี',
+  '2026-04-13': 'วันสงกรานต์',
+  '2026-04-14': 'วันสงกรานต์',
+  '2026-04-15': 'วันสงกรานต์',
+  '2026-05-01': 'วันแรงงานแห่งชาติ',
+  '2026-05-04': 'วันฉัตรมงคล',
+  '2026-05-31': 'วันวิสาขบูชา',
+  '2026-06-01': 'วันหยุดชดเชยวันวิสาขบูชา',
+  '2026-06-03': 'วันเฉลิมพระชนมพรรษา สมเด็จพระนางเจ้าฯ พระบรมราชินี',
+  '2026-07-28': 'วันเฉลิมพระชนมพรรษา พระบาทสมเด็จพระเจ้าอยู่หัว',
+  '2026-07-29': 'วันอาสาฬหบูชา',
+  '2026-07-30': 'วันเข้าพรรษา',
+  '2026-08-12': 'วันแม่แห่งชาติ',
+  '2026-10-13': 'วันนวมินทรมหาราช',
+  '2026-10-23': 'วันปิยมหาราช',
+  '2026-12-05': 'วันพ่อแห่งชาติ',
+  '2026-12-07': 'วันหยุดชดเชยวันพ่อแห่งชาติ',
+  '2026-12-10': 'วันรัฐธรรมนูญ',
+  '2026-12-31': 'วันสิ้นปี',
+
+  // 2027 (พ.ศ. 2570)
+  '2027-01-01': 'วันขึ้นปีใหม่',
+  '2027-02-21': 'วันมาฆบูชา',
+  '2027-02-22': 'วันหยุดชดเชยวันมาฆบูชา',
+  '2027-04-06': 'วันจักรี',
+  '2027-04-13': 'วันสงกรานต์',
+  '2027-04-14': 'วันสงกรานต์',
+  '2027-04-15': 'วันสงกรานต์',
+  '2027-05-01': 'วันแรงงานแห่งชาติ',
+  '2027-05-04': 'วันฉัตรมงคล',
+  '2027-05-20': 'วันวิสาขบูชา',
+  '2027-06-03': 'วันเฉลิมพระชนมพรรษา สมเด็จพระนางเจ้าฯ พระบรมราชินี',
+  '2027-07-18': 'วันอาสาฬหบูชา',
+  '2027-07-19': 'วันหยุดชดเชยวันอาสาฬหบูชา',
+  '2027-07-28': 'วันเฉลิมพระชนมพรรษา พระบาทสมเด็จพระเจ้าอยู่หัว',
+  '2027-08-12': 'วันแม่แห่งชาติ',
+  '2027-10-13': 'วันนวมินทรมหาราช',
+  '2027-10-23': 'วันปิยมหาราช',
+  '2027-10-25': 'วันหยุดชดเชยวันปิยมหาราช',
+  '2027-12-05': 'วันพ่อแห่งชาติ',
+  '2027-12-06': 'วันหยุดชดเชยวันพ่อแห่งชาติ',
+  '2027-12-10': 'วันรัฐธรรมนูญ',
+  '2027-12-31': 'วันสิ้นปี'
+};
 
 export function getHolidayForDate(dateStr, holidayMap = {}) {
-  if (!dateStr || !holidayMap) return null;
-  const name = holidayMap[dateStr];
+  if (!dateStr) return null;
+  const name = holidayMap[dateStr] || BUILTIN_HOLIDAYS[dateStr];
   if (!name) return null;
   return {
     date: dateStr,
@@ -13,55 +116,44 @@ export function getHolidayForDate(dateStr, holidayMap = {}) {
 
 export async function fetchLiveHolidays(year = new Date().getFullYear()) {
   const targetYear = parseInt(year) || new Date().getFullYear();
-  const yearBE = targetYear + 543;
+  const mergedHolidays = { ...BUILTIN_HOLIDAYS };
 
-  // 1. Try Vercel Serverless Function via window.location.origin
+  // 1. Live Sync via /api/holidays?year=...
   try {
-    const origin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : '';
-    const apiUrl = `${origin}/api/holidays?year=${targetYear}`;
-    const res = await fetch(apiUrl, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' }
-    });
+    const res = await fetch(`/api/holidays?year=${targetYear}`);
     if (res.ok) {
       const data = await res.json();
-      if (data.success && data.holidays && Object.keys(data.holidays).length > 0) {
-        return data.holidays;
+      if (data && data.success && data.holidays) {
+        Object.assign(mergedHolidays, data.holidays);
       }
     }
   } catch (err) {
-    console.warn('Vercel API notice:', err);
+    console.warn('Live API fetch notice:', err);
   }
 
-  // 2. Client-side CORS Proxy Fallback
-  const holidays = {};
-  const rawUrls = [
-    `https://myhora.com/calendar/ical/holiday.aspx?${yearBE}.ics`,
-    'https://myhora.com/calendar/ical/holiday.aspx?latest.ics'
-  ];
-
-  for (const rawUrl of rawUrls) {
-    try {
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
-      const res = await fetch(proxyUrl);
-      if (res.ok) {
-        const text = await res.text();
-        const vevents = text.split('BEGIN:VEVENT');
-        vevents.shift();
-        for (const vevt of vevents) {
-          const dtMatch = vevt.match(/DTSTART(?:;VALUE=DATE)?:(\d{8})/);
-          const summaryMatch = vevt.match(/SUMMARY:(.+)/);
-          if (dtMatch && summaryMatch) {
-            const rawDt = dtMatch[1];
-            const dateStr = `${rawDt.substring(0,4)}-${rawDt.substring(4,6)}-${rawDt.substring(6,8)}`;
-            holidays[dateStr] = summaryMatch[1].trim();
-          }
+  // 2. Client-side Proxy fallback (https://api.allorigins.win)
+  try {
+    const yearBE = targetYear + 543;
+    const rawUrl = `https://myhora.com/calendar/ical/holiday.aspx?${yearBE}.ics`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rawUrl)}`;
+    const res = await fetch(proxyUrl);
+    if (res.ok) {
+      const text = await res.text();
+      const vevents = text.split('BEGIN:VEVENT');
+      vevents.shift();
+      for (const vevt of vevents) {
+        const dtMatch = vevt.match(/DTSTART(?:;VALUE=DATE)?:(\d{8})/);
+        const summaryMatch = vevt.match(/SUMMARY:(.+)/);
+        if (dtMatch && summaryMatch) {
+          const rawDt = dtMatch[1];
+          const dateStr = `${rawDt.substring(0,4)}-${rawDt.substring(4,6)}-${rawDt.substring(6,8)}`;
+          mergedHolidays[dateStr] = summaryMatch[1].trim();
         }
       }
-    } catch (e) {
-      console.warn('CORS Proxy notice for', rawUrl, e);
     }
+  } catch (e) {
+    console.warn('Proxy fallback notice:', e);
   }
 
-  return holidays;
+  return mergedHolidays;
 }
