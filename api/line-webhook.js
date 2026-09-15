@@ -547,17 +547,39 @@ export default async function handler(req, res) {
     if (event.type !== 'message') continue;
 
     const replyToken = event.replyToken;
-    const userId = event.source?.userId || 'unknown_user';
+    const userId = event.source?.userId || event.source?.groupId || event.source?.roomId || 'default_user';
     const msgType = event.message.type;
 
-    // Check existing draft from Supabase
-    const { data: existingDraftRow } = await supabase
-      .from('draft_events')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+    // Fetch active draft for this user/group, or fallback to latest system draft
+    let activeDraft = null;
+    let activeDraftRowId = null;
 
-    let activeDraft = existingDraftRow ? existingDraftRow.draft_data : null;
+    try {
+      const { data: userDrafts } = await supabase
+        .from('draft_events')
+        .select('*')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false });
+
+      if (userDrafts && userDrafts.length > 0) {
+        activeDraft = userDrafts[0].draft_data;
+        activeDraftRowId = userDrafts[0].id;
+      } else {
+        // Fallback: check latest draft in draft_events table (for LINE group/room compatibility)
+        const { data: latestDrafts } = await supabase
+          .from('draft_events')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(1);
+
+        if (latestDrafts && latestDrafts.length > 0) {
+          activeDraft = latestDrafts[0].draft_data;
+          activeDraftRowId = latestDrafts[0].id;
+        }
+      }
+    } catch (e) {
+      console.warn('Error fetching draft_events:', e);
+    }
 
     // 1. User Command: Confirming Save (✅ ยืนยันบันทึก / ยืนยัน)
     if (msgType === 'text' && (event.message.text.includes('ยืนยัน') || event.message.text.includes('บันทึก'))) {
@@ -597,6 +619,9 @@ export default async function handler(req, res) {
       }
 
       // Clear draft table
+      if (activeDraftRowId) {
+        await supabase.from('draft_events').delete().eq('id', activeDraftRowId);
+      }
       await supabase.from('draft_events').delete().eq('user_id', userId);
 
       const confirmText = insertedEvents.length === 1
@@ -612,6 +637,9 @@ export default async function handler(req, res) {
 
     // 2. User Command: Cancel Draft (❌ ยกเลิก)
     if (msgType === 'text' && event.message.text.includes('ยกเลิก')) {
+      if (activeDraftRowId) {
+        await supabase.from('draft_events').delete().eq('id', activeDraftRowId);
+      }
       await supabase.from('draft_events').delete().eq('user_id', userId);
       await replyLineMessage(replyToken, {
         type: 'text',
