@@ -261,7 +261,7 @@ export default function MonthGrid({
                         : cell.isSelected
                         ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-50/30 dark:bg-emerald-950/20'
                         : holiday
-                        ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200/80 dark:border-rose-900/60 hover:bg-rose-100/70 dark:hover:bg-rose-950/60'
+                        ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/60 hover:bg-rose-100/80 dark:hover:bg-rose-950/40'
                         : 'bg-white dark:bg-dark-card hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     } ${cell.isOtherMonth ? 'bg-slate-50/60 dark:bg-dark-card/40 opacity-60' : ''}`}
                     title={holiday ? `🎉 ${holiday.name} (วันหยุดราชการ)` : 'กดที่พื้นที่ว่างเพื่อสร้างภารกิจใหม่ในวันนี้'}
