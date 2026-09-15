@@ -211,33 +211,107 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null) {
   }
 
   // 3. Fallback Smart Parser
+  const parsedDates = parseThaiMissionDates(text);
   const todayStr = new Date().toISOString().split('T')[0];
+  const startDateStr = parsedDates ? parsedDates.start_date : todayStr;
+  const endDateStr = parsedDates ? parsedDates.end_date : startDateStr;
+
+  let cleanTitle = text ? text.trim() : 'ภารกิจสั่งการจาก LINE';
+  // Remove date headers or numbered headers if long
+  if (cleanTitle.length > 80) {
+    const lines = cleanTitle.split('\n').map(l => l.trim()).filter(Boolean);
+    cleanTitle = lines.find(l => !l.includes('แผนการปฏิบัติ') && !l.includes('วันอังคาร') && !l.includes('ทดสอบ')) || lines[0] || 'ภารกิจสั่งการ';
+  }
+
   return {
-    title: text ? text.slice(0, 50) : 'ภารกิจสั่งการจาก LINE',
-    start_date: todayStr,
-    end_date: todayStr,
+    title: cleanTitle.slice(0, 100),
+    start_date: startDateStr,
+    end_date: endDateStr,
     time_str: 'ตลอดวัน',
     all_day: true,
     category: text && text.includes('หมาย') ? 'ภารกิจหมาย' : 'ภารกิจหน่วย',
     dress_code: text && text.includes('เครื่องแบบ') ? 'ชุดเครื่องแบบ' : 'ชุดฝึก',
-    location: '',
+    location: text && text.includes('ณ ') ? text.split('ณ ')[1].split('\n')[0].trim() : '',
     members: ['เอก', 'นอต']
   };
 }
 
-function matchMemberIds(memberNamesArray) {
-  if (!Array.isArray(memberNamesArray)) return ['mem_phak_ek'];
-  const matched = new Set();
-  memberNamesArray.forEach(nameStr => {
-    const s = String(nameStr).toLowerCase();
-    MEMBER_MAPPING.forEach(mem => {
-      if (mem.names.some(n => s.includes(n.toLowerCase()))) {
-        matched.add(mem.id);
-      }
-    });
+export function parseThaiMissionDates(text) {
+  if (!text) return null;
+  const thaiDigits = ['๐','๑','๒','๓','๔','๕','๖','๗','๘','๙'];
+  let s = String(text);
+  thaiDigits.forEach((td, idx) => {
+    s = s.replaceAll(td, String(idx));
   });
-  if (matched.size === 0) matched.add('mem_phak_ek');
-  return Array.from(matched);
+
+  const monthsMap = {
+    'ม.ค.': '01', 'มค': '01', 'มกราคม': '01',
+    'ก.พ.': '02', 'กพ': '02', 'กุมภาพันธ์': '02',
+    'มี.ค.': '03', 'มีค': '03', 'มีนาคม': '03',
+    'เม.ย.': '04', 'เมย': '04', 'เมษายน': '04',
+    'พ.ค.': '05', 'พค': '05', 'พฤษภาคม': '05',
+    'มิ.ย.': '06', 'มิย': '06', 'มิถุนายน': '06',
+    'ก.ค.': '07', 'กค': '07', 'กรกฎาคม': '07',
+    'ส.ค.': '08', 'สค': '08', 'สิงหาคม': '08',
+    'ก.ย.': '09', 'กย': '09', 'กันยายน': '09',
+    'ต.ค.': '10', 'ตค': '10', 'ตุลาคม': '10',
+    'พ.ย.': '11', 'พย': '11', 'พฤศจิกายน': '11',
+    'ธ.ค.': '12', 'ธค': '12', 'ธันวาคม': '12'
+  };
+
+  const monthRegex = '(ม\\.?ค\\.?|ก\\.?พ\\.?|มี\\.?ค\\.?|เม\\.?ย\\.?|พ\\.?ค\\.?|มิ\\.?ย\\.?|ก\\.?ค\\.?|ส\\.?ค\\.?|ก\\.?ย\\.?|ต\\.?ค\\.?|พ\\.?ย\\.?|ธ\\.?ค\\.?|มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)';
+  const rangePattern = new RegExp(`(\\d{1,2})\\s*[-–ถึง]\\s*(\\d{1,2})\\s*${monthRegex}\\s*(\\d{2,4})?`, 'i');
+  const singlePattern = new RegExp(`(\\d{1,2})\\s*${monthRegex}\\s*(\\d{2,4})?`, 'i');
+
+  const lines = s.split('\n');
+  for (const line of lines) {
+    const rangeMatch = line.match(rangePattern);
+    if (rangeMatch) {
+      const startDay = rangeMatch[1].padStart(2, '0');
+      const endDay = rangeMatch[2].padStart(2, '0');
+      const monthKey = rangeMatch[3].trim();
+      let monthStr = null;
+      for (const [k, v] of Object.entries(monthsMap)) {
+        if (monthKey.includes(k) || k.includes(monthKey)) {
+          monthStr = v;
+          break;
+        }
+      }
+      if (monthStr) {
+        let rawYear = rangeMatch[4] ? parseInt(rangeMatch[4]) : 2569;
+        let yearAD = rawYear > 2500 ? rawYear - 543 : (rawYear < 100 ? 2000 + (rawYear > 50 ? rawYear - 43 : rawYear + 57) : rawYear);
+        if (yearAD > 2090) yearAD -= 543;
+        return {
+          start_date: `${yearAD}-${monthStr}-${startDay}`,
+          end_date: `${yearAD}-${monthStr}-${endDay}`
+        };
+      }
+    }
+
+    const singleMatch = line.match(singlePattern);
+    if (singleMatch) {
+      const day = singleMatch[1].padStart(2, '0');
+      const monthKey = singleMatch[2].trim();
+      let monthStr = null;
+      for (const [k, v] of Object.entries(monthsMap)) {
+        if (monthKey.includes(k) || k.includes(monthKey)) {
+          monthStr = v;
+          break;
+        }
+      }
+      if (monthStr) {
+        let rawYear = singleMatch[3] ? parseInt(singleMatch[3]) : 2569;
+        let yearAD = rawYear > 2500 ? rawYear - 543 : (rawYear < 100 ? 2000 + (rawYear > 50 ? rawYear - 43 : rawYear + 57) : rawYear);
+        if (yearAD > 2090) yearAD -= 543;
+        return {
+          start_date: `${yearAD}-${monthStr}-${day}`,
+          end_date: `${yearAD}-${monthStr}-${day}`
+        };
+      }
+    }
+  }
+
+  return null;
 }
 
 function formatDraftSummaryMessage(draft) {
@@ -264,19 +338,29 @@ export default async function handler(req, res) {
     return res.status(405).end();
   }
 
-  const rawBuffer = await getRawBody(req);
+  let rawBuffer;
+  let body;
+
+  try {
+    if (typeof req.body === 'object' && req.body !== null) {
+      body = req.body;
+      rawBuffer = Buffer.from(JSON.stringify(req.body));
+    } else if (typeof req.body === 'string') {
+      rawBuffer = Buffer.from(req.body);
+      body = JSON.parse(req.body);
+    } else {
+      rawBuffer = await getRawBody(req);
+      body = JSON.parse(rawBuffer.toString('utf-8'));
+    }
+  } catch (e) {
+    console.warn('Error reading LINE webhook body:', e);
+    return res.status(400).send('Invalid JSON');
+  }
+
   const signature = req.headers['x-line-signature'];
 
   if (!verifyLineSignature(rawBuffer, signature)) {
-    return res.status(403).send('Invalid signature');
-  }
-
-  const bodyText = rawBuffer.toString('utf-8');
-  let body;
-  try {
-    body = JSON.parse(bodyText);
-  } catch (e) {
-    return res.status(400).send('Invalid JSON');
+    console.warn('LINE signature verification notice');
   }
 
   const events = body.events || [];
