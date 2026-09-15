@@ -4,7 +4,6 @@ import Sidebar from './components/Sidebar';
 import RightToolbar from './components/RightToolbar';
 import Toast from './components/Toast';
 import MonthGrid from './components/Scheduler/MonthGrid';
-import DailyAgenda from './components/Scheduler/DailyAgenda';
 import MissionModal from './components/Scheduler/MissionModal';
 import IcalModal from './components/Modals/IcalModal';
 import MemberManagementModal from './components/Modals/MemberManagementModal';
@@ -1032,7 +1031,7 @@ export default function App() {
           isOpen={isSidebarOpen}
         />
 
-        {/* Center Workspace (Month Grid & Daily Agenda Drawer) */}
+        {/* Center Workspace (Month Grid - Full Height) */}
         <main className="flex-1 flex flex-col bg-white dark:bg-dark-card overflow-hidden">
           <MonthGrid
             currentYear={currentYear}
@@ -1049,16 +1048,6 @@ export default function App() {
             onCopyEvent={handleCopyEvent}
             onOpenDayModal={handleOpenDayModal}
             onOpenAddEvent={handleOpenAddEvent}
-          />
-          <DailyAgenda
-            selectedDateStr={selectedDateStr}
-            events={activeEvents}
-            members={members}
-            visibleMemberIds={visibleMemberIds}
-            holidays={holidays}
-            onOpenAddEvent={handleOpenAddEvent}
-            onEditEvent={handleOpenEditEvent}
-            onDeleteEvent={handleDeleteEvent}
           />
         </main>
 

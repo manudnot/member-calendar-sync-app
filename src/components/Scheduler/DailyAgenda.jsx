@@ -51,16 +51,11 @@ export default function DailyAgenda({
       <div className="flex-1 p-3 overflow-y-auto no-scrollbar flex flex-col gap-2.5">
         {/* Holiday Banner Badge */}
         {holidayName && (
-          <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex items-center gap-2.5 text-rose-700 dark:text-rose-300 shadow-2xs">
-            <span className="text-base">🎉</span>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-extrabold text-rose-500 dark:text-rose-400 uppercase tracking-wider">
-                วันหยุดราชการ
-              </span>
-              <span className="text-xs font-black">
-                {holidayName}
-              </span>
-            </div>
+          <div className="p-2 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex items-center gap-2 text-rose-700 dark:text-rose-300 shadow-2xs">
+            <span className="text-sm">🎉</span>
+            <span className="text-xs font-black">
+              {holidayName}
+            </span>
           </div>
         )}
         {dayEvents.length === 0 ? (
