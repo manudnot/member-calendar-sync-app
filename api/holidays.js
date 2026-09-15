@@ -1,4 +1,4 @@
-// api/holidays.js - Vercel Serverless Function fetching exclusively from myhora live ics link
+// api/holidays.js - Vercel Serverless Function fetching exclusively from myhora live ics links
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -8,30 +8,46 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  const reqYear = req.query?.year ? parseInt(req.query.year) : new Date().getFullYear();
+  const yearBE = reqYear + 543;
+
   try {
-    const response = await fetch('https://myhora.com/calendar/ical/holiday.aspx?latest.ics');
-    if (!response.ok) {
-      throw new Error(`Myhora HTTP ${response.status}`);
-    }
-    const icsText = await response.text();
+    const urls = [
+      `https://myhora.com/calendar/ical/holiday.aspx?${yearBE}.ics`,
+      'https://myhora.com/calendar/ical/holiday.aspx?latest.ics'
+    ];
 
     const holidays = {};
-    const vevents = icsText.split('BEGIN:VEVENT');
-    vevents.shift();
 
-    for (const vevt of vevents) {
-      const dtMatch = vevt.match(/DTSTART(?:;VALUE=DATE)?:(\d{8})/);
-      const summaryMatch = vevt.match(/SUMMARY:(.+)/);
-      if (dtMatch && summaryMatch) {
-        const rawDt = dtMatch[1];
-        const dateStr = `${rawDt.substring(0,4)}-${rawDt.substring(4,6)}-${rawDt.substring(6,8)}`;
-        holidays[dateStr] = summaryMatch[1].trim();
+    for (const url of urls) {
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          const icsText = await response.text();
+          const vevents = icsText.split('BEGIN:VEVENT');
+          vevents.shift();
+
+          for (const vevt of vevents) {
+            const dtMatch = vevt.match(/DTSTART(?:;VALUE=DATE)?:(\d{8})/);
+            const summaryMatch = vevt.match(/SUMMARY:(.+)/);
+            if (dtMatch && summaryMatch) {
+              const rawDt = dtMatch[1];
+              const dateStr = `${rawDt.substring(0,4)}-${rawDt.substring(4,6)}-${rawDt.substring(6,8)}`;
+              holidays[dateStr] = summaryMatch[1].trim();
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Sub-fetch error for', url, e);
       }
     }
 
     return res.status(200).json({
       success: true,
+      year: reqYear,
+      year_be: yearBE,
       updated_at: new Date().toISOString(),
+      count: Object.keys(holidays).length,
       holidays
     });
   } catch (error) {

@@ -299,7 +299,7 @@ export default function MonthGrid({
                       {/* Holiday Badge Pill on Month Cell Header */}
                       {holiday && (
                         <span
-                          className="text-[9px] font-black text-rose-600 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/60 px-1 py-0.2 rounded-md truncate max-w-[65px] sm:max-w-[90px] shadow-2xs hidden sm:inline"
+                          className="text-[9px] font-black text-rose-600 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/60 px-1 py-0.2 rounded-md truncate max-w-[50px] sm:max-w-[90px] shadow-2xs inline-block"
                           title={holiday.name}
                         >
                           {holiday.name}

@@ -7,12 +7,14 @@ export default function DailyAgenda({
   events,
   members,
   visibleMemberIds,
+  holidays = {},
   onOpenAddEvent,
   onEditEvent,
   onDeleteEvent
 }) {
   const d = new Date(selectedDateStr);
   const formattedThaiDate = `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
+  const holidayName = holidays[selectedDateStr];
 
   const getMemberById = (mId) => members.find(m => m.id === mId);
 
@@ -47,6 +49,20 @@ export default function DailyAgenda({
 
       {/* Daily Events List */}
       <div className="flex-1 p-3 overflow-y-auto no-scrollbar flex flex-col gap-2.5">
+        {/* Holiday Banner Badge */}
+        {holidayName && (
+          <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex items-center gap-2.5 text-rose-700 dark:text-rose-300 shadow-2xs">
+            <span className="text-base">🎉</span>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-extrabold text-rose-500 dark:text-rose-400 uppercase tracking-wider">
+                วันหยุดราชการ
+              </span>
+              <span className="text-xs font-black">
+                {holidayName}
+              </span>
+            </div>
+          </div>
+        )}
         {dayEvents.length === 0 ? (
           <div className="m-auto text-center py-6">
             <p className="text-xs font-bold text-slate-400 dark:text-slate-500">

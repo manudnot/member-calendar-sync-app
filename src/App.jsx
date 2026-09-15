@@ -145,10 +145,10 @@ export default function App() {
   const [holidays, setHolidays] = useState({});
 
   useEffect(() => {
-    fetchLiveHolidays().then(hData => {
+    fetchLiveHolidays(currentYear).then(hData => {
       if (hData) setHolidays(hData);
     });
-  }, []);
+  }, [currentYear]);
 
   const activeUser = members.find(m => m.id === activeUserId && m.member_type !== 'virtual') || 
                      members.find(m => m.member_type !== 'virtual') || 
@@ -1049,6 +1049,16 @@ export default function App() {
             onCopyEvent={handleCopyEvent}
             onOpenDayModal={handleOpenDayModal}
             onOpenAddEvent={handleOpenAddEvent}
+          />
+          <DailyAgenda
+            selectedDateStr={selectedDateStr}
+            events={activeEvents}
+            members={members}
+            visibleMemberIds={visibleMemberIds}
+            holidays={holidays}
+            onOpenAddEvent={handleOpenAddEvent}
+            onEditEvent={handleOpenEditEvent}
+            onDeleteEvent={handleDeleteEvent}
           />
         </main>
 
