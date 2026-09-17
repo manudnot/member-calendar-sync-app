@@ -1,6 +1,7 @@
 // api/line-webhook.js - Vercel Serverless Endpoint for LINE Messaging Bot (AI เสมียนกองร้อย)
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { PDFParse } from 'pdf-parse';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://aevutuguijjakfhulgjd.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_8LNKQLJ6snj6AvxPGf2TmA_Sm8KCbhU';
@@ -244,7 +245,7 @@ export function formatCategoryWithBadge(catStr) {
   return `🔵 ${catStr}`;
 }
 
-async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = []) {
+async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [], mimeType = 'image/jpeg') {
   const systemPrompt = `คุณคือเสมียนกองร้อยสายและวิทยุถ่ายทอด มีหน้าที่วิเคราะห์คำสั่งปฏิบัติงาน ภารกิจ รูปภาพ หรือเอกสารข่าวสาร 
 สำคัญที่สุด:
 1. หากในข้อความต้นฉบับมีสัญลักษณ์หรือตัวเลขหัวข้อ เช่น ๑. หรือ ๒.๒.๑ หรือข้อหัวข้อแยกรายการ ให้สกัด 1 รายการภารกิจ ต่อ 1 ข้อหัวข้อเด็ดขาด! ห้ามแยกประโยคย่อยในข้อเดียวกันที่เชื่อมด้วยคำว่า 'และ' หรือ 'และซักซ้อม...' ออกเป็นหลายภารกิจเด็ดขาด
@@ -286,8 +287,8 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [
         messages.push({
           role: 'user',
           content: [
-            { type: 'text', text: text || 'กรุณาวิเคราะห์เอกสารคำสั่งภารกิจจากรูปภาพนี้' },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
+            { type: 'text', text: text || 'กรุณาวิเคราะห์เอกสารคำสั่งภารกิจจากไฟล์หรือรูปภาพนี้' },
+            { type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageBase64}` } }
           ]
         });
       } else {
@@ -333,7 +334,7 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [
       if (imageBase64) {
         parts.push({
           inline_data: {
-            mime_type: 'image/jpeg',
+            mime_type: mimeType || 'image/jpeg',
             data: imageBase64
           }
         });
@@ -882,15 +883,33 @@ export default async function handler(req, res) {
       }
     } else if (msgType === 'file') {
       try {
-        const fileName = event.message.fileName || '';
+        const fileName = (event.message.fileName || '').toLowerCase();
         const fileBuf = await fetchLineBinary(event.message.id);
         
-        if (fileName.toLowerCase().endsWith('.txt') || fileName.toLowerCase().endsWith('.csv')) {
+        if (fileName.endsWith('.pdf') || (fileBuf && fileBuf.toString('ascii', 0, 4) === '%PDF')) {
+          let pdfText = '';
+          try {
+            const parser = new PDFParse({ data: fileBuf });
+            const textResult = await parser.getText();
+            pdfText = (textResult?.text || '').trim();
+            await parser.destroy();
+          } catch (pdfErr) {
+            console.warn('PDF text extraction warning:', pdfErr?.message || pdfErr);
+          }
+
+          if (pdfText && pdfText.length > 10) {
+            analyzedData = await analyzeMissionOrderWithAI(pdfText, null, dbMembers);
+          }
+          if (!analyzedData) {
+            const base64Str = fileBuf.toString('base64');
+            analyzedData = await analyzeMissionOrderWithAI(null, base64Str, dbMembers, 'application/pdf');
+          }
+        } else if (fileName.endsWith('.txt') || fileName.endsWith('.csv')) {
           const fileText = fileBuf.toString('utf-8');
           analyzedData = await analyzeMissionOrderWithAI(fileText, null, dbMembers);
         } else {
           const base64Str = fileBuf.toString('base64');
-          analyzedData = await analyzeMissionOrderWithAI(null, base64Str, dbMembers);
+          analyzedData = await analyzeMissionOrderWithAI(null, base64Str, dbMembers, 'image/jpeg');
         }
       } catch (err) {
         console.error('File analysis error:', err);
@@ -898,7 +917,7 @@ export default async function handler(req, res) {
       if (!analyzedData) {
         await replyLineMessage(replyToken, {
           type: 'text',
-          text: '❌ ไม่สามารถวิเคราะห์ไฟล์เอกสารที่ส่งมาได้ครับ กรุณาลองส่งเป็นไฟล์ข้อความ (.txt) หรือพิมพ์เนื้อหาภารกิจเข้ามาได้เลยครับ'
+          text: '❌ ไม่สามารถวิเคราะห์ไฟล์เอกสารที่ส่งมาได้ครับ กรุณาลองส่งภาพถ่ายคำสั่งภารกิจ หรือพิมพ์เนื้อหาภารกิจเข้ามาได้เลยครับ'
         });
         continue;
       }
