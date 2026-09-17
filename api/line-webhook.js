@@ -889,7 +889,7 @@ export default async function handler(req, res) {
       if (event.type !== 'message') continue;
 
     const replyToken = event.replyToken;
-    const userId = event.source?.userId || event.source?.groupId || event.source?.roomId || 'default_user';
+    const userId = event.source?.groupId || event.source?.roomId || event.source?.userId || 'default_user';
     const msgType = event.message.type;
 
     // Fetch active draft for this user/group (with in-memory fallback)
