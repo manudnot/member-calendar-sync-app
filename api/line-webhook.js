@@ -165,7 +165,9 @@ export function formatCategoryWithBadge(catStr) {
 
 async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = []) {
   const systemPrompt = `คุณคือเสมียนกองร้อยสายและวิทยุถ่ายทอด มีหน้าที่วิเคราะห์คำสั่งปฏิบัติงาน ภารกิจ รูปภาพ หรือเอกสารข่าวสาร 
-สำคัญที่สุด: หากในคำสั่งมีหลายหัวข้อ/หลายภารกิจ ให้สกัดแยกเป็นรายการภารกิจในอาร์เรย์ "missions" ห้ามนำวันมารวมกันเป็นภารกิจเดียวเด็ดขาด!
+สำคัญที่สุด:
+1. หากในข้อความต้นฉบับมีสัญลักษณ์หรือตัวเลขหัวข้อ เช่น ๑. หรือ ๒.๒.๑ หรือข้อหัวข้อแยกรายการ ให้สกัด 1 รายการภารกิจ ต่อ 1 ข้อหัวข้อเด็ดขาด! ห้ามแยกประโยคย่อยในข้อเดียวกันที่เชื่อมด้วยคำว่า 'และ' หรือ 'และซักซ้อม...' ออกเป็นหลายภารกิจเด็ดขาด
+2. หากมีหลายวันในหัวข้อคนละข้อกัน ให้สกัดแยกเป็นรายการภารกิจในอาร์เรย์ "missions" ตามจำนวนหัวข้อต้นฉบับ ห้ามนำวันมารวมกันเป็นภารกิจเดียวเด็ดขาด
 กรุณาวิเคราะห์และสกัดข้อมูลภารกิจตอบกลับเฉพาะ JSON บริสุทธิ์ (ไม่ต้องใส่ markdown codeblock และไม่ใส่คำขึ้นต้นใดๆ) มีโครงสร้างดังนี้:
 {
   "missions": [
@@ -183,8 +185,13 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [
   ]
 }`;
 
-  // Check smart parser fallback first for multi-line text
-  const multiMissions = parseAllThaiMissions(text, dbMembers);
+  // Check smart parser first for multi-line text input (guarantees 1-to-1 bullet point count)
+  if (text && !imageBase64) {
+    const multiMissions = parseAllThaiMissions(text, dbMembers);
+    if (Array.isArray(multiMissions) && multiMissions.length >= 1) {
+      return { missions: multiMissions };
+    }
+  }
 
   // 1. Try Opentyphoon API (typhoon-v2.5-30b-a3b-instruct)
   if (TYPHOON_API_KEY) {
