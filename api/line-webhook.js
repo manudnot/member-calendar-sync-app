@@ -245,7 +245,7 @@ export function formatCategoryWithBadge(catStr) {
   return `🔵 ${catStr}`;
 }
 
-async function extractPdfTextWithTimeout(fileBuf, timeoutMs = 3000) {
+async function extractPdfTextWithTimeout(fileBuf, timeoutMs = 3500, maxChars = 5000) {
   return new Promise((resolve) => {
     let isResolved = false;
     const timer = setTimeout(() => {
@@ -259,8 +259,20 @@ async function extractPdfTextWithTimeout(fileBuf, timeoutMs = 3000) {
     try {
       const uint8 = new Uint8Array(fileBuf);
       const parser = new PDFParse({ data: uint8 });
-      parser.getText().then(textResult => {
-        const txt = (textResult?.text || '').trim();
+      parser.getText({
+        parsePageInfo: true,
+        pageJoiner: '\n--- [หน้า page_number / total_number] ---\n'
+      }).then(textResult => {
+        let txt = (textResult?.text || '')
+          .replace(/\r\n/g, '\n')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
+
+        if (txt.length > maxChars) {
+          console.log(`Truncating PDF text from ${txt.length} to ${maxChars} chars.`);
+          txt = txt.substring(0, maxChars);
+        }
+
         parser.destroy().catch(() => {});
         if (!isResolved) {
           isResolved = true;
