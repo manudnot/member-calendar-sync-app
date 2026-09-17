@@ -245,7 +245,7 @@ async function fetchLineBinary(messageId) {
   return Buffer.from(arrayBuffer);
 }
 
-// In-Memory Draft Fallback Engine (Guarantees draft retention even if Supabase draft_events table is missing)
+// Draft Engine (Uses Supabase events table + In-Memory Fallback to guarantee draft retention)
 if (!globalThis.inMemoryDraftStore) {
   globalThis.inMemoryDraftStore = new Map();
 }
@@ -256,14 +256,18 @@ async function saveDraft(userId, draftData) {
   globalThis.inMemoryDraftStore.set('latest', draftData);
 
   try {
-    await supabase.from('draft_events').upsert({
-      id: userId,
-      user_id: userId,
-      draft_data: draftData,
-      updated_at: new Date().toISOString()
+    const draftId = 'draft_' + userId;
+    await supabase.from('events').upsert({
+      id: draftId,
+      title: '[DRAFT]',
+      description: JSON.stringify(draftData),
+      category: 'DRAFT',
+      start_time: '2099-01-01T00:00:00Z',
+      end_time: '2099-01-01T00:00:00Z',
+      alarm_minutes: 0
     });
   } catch (e) {
-    console.warn('Supabase draft_events upsert notice:', e?.message || e);
+    console.warn('Supabase draft upsert notice:', e?.message || e);
   }
 }
 
@@ -271,32 +275,38 @@ async function getActiveDraft(userId) {
   if (globalThis.inMemoryDraftStore.has(userId)) {
     return globalThis.inMemoryDraftStore.get(userId);
   }
-  if (globalThis.inMemoryDraftStore.has('latest')) {
-    return globalThis.inMemoryDraftStore.get('latest');
-  }
 
   try {
+    const draftId = 'draft_' + userId;
     const { data: userDrafts } = await supabase
-      .from('draft_events')
-      .select('*')
-      .eq('user_id', userId)
-      .order('updated_at', { ascending: false });
+      .from('events')
+      .select('description')
+      .eq('id', draftId)
+      .limit(1);
 
-    if (userDrafts && userDrafts.length > 0) {
-      return userDrafts[0].draft_data;
+    if (userDrafts && userDrafts.length > 0 && userDrafts[0].description) {
+      const parsed = JSON.parse(userDrafts[0].description);
+      globalThis.inMemoryDraftStore.set(userId, parsed);
+      return parsed;
     }
 
     const { data: latestDrafts } = await supabase
-      .from('draft_events')
-      .select('*')
-      .order('updated_at', { ascending: false })
+      .from('events')
+      .select('description')
+      .eq('category', 'DRAFT')
+      .order('created_at', { ascending: false })
       .limit(1);
 
-    if (latestDrafts && latestDrafts.length > 0) {
-      return latestDrafts[0].draft_data;
+    if (latestDrafts && latestDrafts.length > 0 && latestDrafts[0].description) {
+      const parsed = JSON.parse(latestDrafts[0].description);
+      return parsed;
     }
   } catch (e) {
-    console.warn('Supabase draft_events select notice:', e?.message || e);
+    console.warn('Supabase draft select notice:', e?.message || e);
+  }
+
+  if (globalThis.inMemoryDraftStore.has('latest')) {
+    return globalThis.inMemoryDraftStore.get('latest');
   }
 
   return null;
@@ -307,10 +317,11 @@ async function clearActiveDraft(userId) {
   globalThis.inMemoryDraftStore.delete('latest');
 
   try {
-    await supabase.from('draft_events').delete().eq('user_id', userId);
-    await supabase.from('draft_events').delete().eq('id', userId);
+    const draftId = 'draft_' + userId;
+    await supabase.from('events').delete().eq('id', draftId);
+    await supabase.from('events').delete().eq('category', 'DRAFT');
   } catch (e) {
-    console.warn('Supabase draft_events delete notice:', e?.message || e);
+    console.warn('Supabase draft delete notice:', e?.message || e);
   }
 }
 
@@ -329,7 +340,8 @@ export async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pd
   if (!TYPHOON_API_KEY) return '';
   try {
     const uint8 = new Uint8Array(fileBuf);
-    const file = new File([uint8], filename, { type: mimeType });
+    const safeFilename = 'document.pdf';
+    const file = new File([uint8], safeFilename, { type: mimeType });
     const formData = new FormData();
     formData.append('file', file);
     formData.append('model', 'typhoon-ocr');
@@ -949,52 +961,111 @@ export default async function handler(req, res) {
         ? activeDraft.missions
         : [activeDraft];
 
-      const hasSpecificTarget = userText.includes('ภารกิจที่ 1') || userText.includes('ภารกิจที่ 2') ||
-                                userText.includes('ภารกิจ 1') || userText.includes('ภารกิจ 2') ||
-                                userText.includes('ข้อ 1') || userText.includes('ข้อ 2') ||
-                                userText.includes('รายการ 1') || userText.includes('รายการ 2');
+      const lines = userText.split('\n').map(l => l.trim()).filter(Boolean);
+      let isItemizedEdit = false;
 
-      const applyToAll = !hasSpecificTarget || userText.includes('ทั้งหมด') || userText.includes('ทุกภารกิจ') || userText.includes('ทั้ง 2 ภารกิจ') || userText.includes('ทั้งสองภารกิจ');
+      lines.forEach(line => {
+        const numMatch = line.match(/(?:ภารกิจ\s*|ข้อ\s*|รายการ\s*)?(\d{1,2})[\:\.\)\s]+(.+)/i);
+        if (numMatch) {
+          const missionIdx = parseInt(numMatch[1]) - 1;
+          const editContent = numMatch[2].trim();
 
-      // Date Correction match
-      const dateMatch = userText.match(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})|(\d{1,2}\/\d{1,2})/);
+          if (missionIdx >= 0 && missionIdx < targetMissions.length) {
+            isItemizedEdit = true;
+            const mItem = targetMissions[missionIdx];
 
-      // Dress Code Correction match
-      let newDressCode = null;
-      if (userText.includes('เครื่องแบบ')) newDressCode = 'ชุดเครื่องแบบ';
-      else if (userText.includes('ชุดฝึก')) newDressCode = 'ชุดฝึก';
-      else if (userText.includes('สุภาพ')) newDressCode = 'ชุดสุภาพ';
-      else if (userText.includes('ชุดอ่อน')) newDressCode = 'ชุดอ่อน (กำหนดอัตโนมัติ)';
-
-      // Member Correction match
-      const newMemberIds = matchMemberIds([userText], dbMembers);
-
-      targetMissions.forEach((mItem, idx) => {
-        // Apply edits if applyToAll or if mission 1 specifically targeted
-        if (applyToAll || idx === 0) {
-          if (dateMatch) {
-            const raw = dateMatch[0];
-            if (raw.includes('-')) mItem.start_date = raw;
-            else if (raw.includes('/')) {
-              const parts = raw.split('/');
-              const dStr = parts[0].padStart(2, '0');
-              const mStr = parts[1].padStart(2, '0');
-              const yStr = parts[2] ? (parseInt(parts[2]) > 2500 ? parseInt(parts[2]) - 543 : parts[2]) : new Date().getFullYear();
-              mItem.start_date = `${yStr}-${mStr}-${dStr}`;
-              mItem.end_date = mItem.start_date;
+            // Check date in editContent
+            const dateMatch = editContent.match(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})|(\d{1,2}\/\d{1,2})/);
+            if (dateMatch) {
+              const raw = dateMatch[0];
+              if (raw.includes('-')) mItem.start_date = raw;
+              else if (raw.includes('/')) {
+                const parts = raw.split('/');
+                const dStr = parts[0].padStart(2, '0');
+                const mStr = parts[1].padStart(2, '0');
+                const yStr = parts[2] ? (parseInt(parts[2]) > 2500 ? parseInt(parts[2]) - 543 : parts[2]) : new Date().getFullYear();
+                mItem.start_date = `${yStr}-${mStr}-${dStr}`;
+                mItem.end_date = mItem.start_date;
+              }
             }
-          }
 
-          if (newDressCode) {
-            mItem.dress_code = newDressCode;
-          }
+            // Check dress code
+            if (editContent.includes('เครื่องแบบ')) mItem.dress_code = 'ชุดเครื่องแบบ';
+            else if (editContent.includes('ชุดฝึก')) mItem.dress_code = 'ชุดฝึก';
+            else if (editContent.includes('สุภาพ')) mItem.dress_code = 'ชุดสุภาพ';
 
-          if (newMemberIds.length > 0) {
-            mItem.member_ids = newMemberIds;
-            mItem.member_names = formatMemberNamesForDisplay(newMemberIds, dbMembers);
+            // Check member
+            const mMemberIds = matchMemberIds([editContent], dbMembers);
+            if (mMemberIds.length > 0) {
+              mItem.member_ids = mMemberIds;
+              mItem.member_names = formatMemberNamesForDisplay(mMemberIds, dbMembers);
+            }
+
+            // Clean title
+            let cleanTitle = editContent
+              .replace(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})|(\d{1,2}\/\d{1,2})/, '')
+              .replace(/เครื่องแบบ|ชุดฝึก|ชุดสุภาพ|ชุดอ่อน/g, '')
+              .replace(/^ภารกิจ\s*/, '')
+              .trim();
+
+            if (mMemberIds.length > 0) {
+              mMemberIds.forEach(id => {
+                const nameStr = formatMemberNamesForDisplay([id], dbMembers);
+                if (nameStr && nameStr !== 'ไม่ระบุ') cleanTitle = cleanTitle.replace(new RegExp(nameStr, 'gi'), '').trim();
+              });
+            }
+
+            if (cleanTitle && cleanTitle.length > 1) {
+              mItem.title = cleanTitle;
+            }
           }
         }
       });
+
+      if (!isItemizedEdit) {
+        const hasSpecificTarget = userText.includes('ภารกิจที่ 1') || userText.includes('ภารกิจที่ 2') ||
+                                  userText.includes('ภารกิจ 1') || userText.includes('ภารกิจ 2') ||
+                                  userText.includes('ข้อ 1') || userText.includes('ข้อ 2') ||
+                                  userText.includes('รายการ 1') || userText.includes('รายการ 2');
+
+        const applyToAll = !hasSpecificTarget || userText.includes('ทั้งหมด') || userText.includes('ทุกภารกิจ') || userText.includes('ทั้ง 2 ภารกิจ') || userText.includes('ทั้งสองภารกิจ');
+
+        const dateMatch = userText.match(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})|(\d{1,2}\/\d{1,2})/);
+
+        let newDressCode = null;
+        if (userText.includes('เครื่องแบบ')) newDressCode = 'ชุดเครื่องแบบ';
+        else if (userText.includes('ชุดฝึก')) newDressCode = 'ชุดฝึก';
+        else if (userText.includes('สุภาพ')) newDressCode = 'ชุดสุภาพ';
+        else if (userText.includes('ชุดอ่อน')) newDressCode = 'ชุดอ่อน (กำหนดอัตโนมัติ)';
+
+        const newMemberIds = matchMemberIds([userText], dbMembers);
+
+        targetMissions.forEach((mItem, idx) => {
+          if (applyToAll || idx === 0) {
+            if (dateMatch) {
+              const raw = dateMatch[0];
+              if (raw.includes('-')) mItem.start_date = raw;
+              else if (raw.includes('/')) {
+                const parts = raw.split('/');
+                const dStr = parts[0].padStart(2, '0');
+                const mStr = parts[1].padStart(2, '0');
+                const yStr = parts[2] ? (parseInt(parts[2]) > 2500 ? parseInt(parts[2]) - 543 : parts[2]) : new Date().getFullYear();
+                mItem.start_date = `${yStr}-${mStr}-${dStr}`;
+                mItem.end_date = mItem.start_date;
+              }
+            }
+
+            if (newDressCode) {
+              mItem.dress_code = newDressCode;
+            }
+
+            if (newMemberIds.length > 0) {
+              mItem.member_ids = newMemberIds;
+              mItem.member_names = formatMemberNamesForDisplay(newMemberIds, dbMembers);
+            }
+          }
+        });
+      }
 
       activeDraft = { missions: targetMissions };
 
