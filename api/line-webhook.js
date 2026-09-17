@@ -325,7 +325,7 @@ export function formatCategoryWithBadge(catStr) {
   return `🔵 ${catStr}`;
 }
 
-async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mimeType = 'application/pdf') {
+export async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mimeType = 'application/pdf') {
   if (!TYPHOON_API_KEY) return '';
   try {
     const uint8 = new Uint8Array(fileBuf);
@@ -429,7 +429,7 @@ async function extractPdfTextWithTimeout(fileBuf, timeoutMs = 3500, maxChars = 5
   });
 }
 
-async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [], mimeType = 'image/jpeg') {
+export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [], mimeType = 'image/jpeg') {
   const systemPrompt = `คุณคือเสมียนกองร้อยสายและวิทยุถ่ายทอด มีหน้าที่วิเคราะห์คำสั่งปฏิบัติงาน ภารกิจ รูปภาพ หรือเอกสารข่าวสาร 
 สำคัญที่สุด:
 1. หากในข้อความต้นฉบับมีสัญลักษณ์หรือตัวเลขหัวข้อ เช่น ๑. หรือ ๒.๒.๑ หรือข้อหัวข้อแยกรายการ ให้สกัด 1 รายการภารกิจ ต่อ 1 ข้อหัวข้อเด็ดขาด! ห้ามแยกประโยคย่อยในข้อเดียวกันที่เชื่อมด้วยคำว่า 'และ' หรือ 'และซักซ้อม...' ออกเป็นหลายภารกิจเด็ดขาด
@@ -452,15 +452,7 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [
   ]
 }`;
 
-  // Check smart parser first for multi-line text input (guarantees 1-to-1 bullet point count)
-  if (text && !imageBase64) {
-    const multiMissions = parseAllThaiMissions(text, dbMembers);
-    if (Array.isArray(multiMissions) && multiMissions.length >= 1) {
-      return { missions: multiMissions };
-    }
-  }
-
-  // 1. Opentyphoon API (typhoon-v2.5-30b-a3b-instruct)
+  // 1. Opentyphoon API (typhoon-v2.5-30b-a3b-instruct) - Primary AI Analyzer
   if (TYPHOON_API_KEY) {
     try {
       const messages = [
@@ -505,7 +497,11 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [
         const parsedObj = JSON.parse(cleanJson);
         if (parsedObj) {
           const rawMissions = Array.isArray(parsedObj.missions) ? parsedObj.missions : [parsedObj];
-          return { missions: rawMissions };
+          // Filter out empty or broken missions
+          const validMissions = rawMissions.filter(m => m && m.title && m.start_date && !m.start_date.includes('-00'));
+          if (validMissions.length > 0) {
+            return { missions: validMissions };
+          }
         }
       }
     } catch (e) {
@@ -513,8 +509,9 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [
     }
   }
 
-  // 2. Fallback Smart Multi-Mission Parser
-  if (multiMissions && multiMissions.length > 0) {
+  // 2. Fallback Smart Multi-Mission Parser (If Typhoon AI is unavailable or fails)
+  const multiMissions = parseAllThaiMissions(text, dbMembers);
+  if (Array.isArray(multiMissions) && multiMissions.length > 0) {
     return { missions: multiMissions };
   }
 
@@ -682,6 +679,16 @@ export function parseAllThaiMissions(text, dbMembers = []) {
         member_ids: memberIds,
         member_names: memberNames
       });
+    } else if (missions.length > 0) {
+      const subText = line.replace(/^[\*\-\.\s\d]+/g, '').trim();
+      if (subText && subText.length > 1 && !subText.includes('ครับ') && !subText.includes('ค่ะ')) {
+        const lastM = missions[missions.length - 1];
+        if (!lastM.title || lastM.title.startsWith('วันที่') || lastM.title.length < 3) {
+          lastM.title = subText;
+        } else {
+          lastM.title = `${lastM.title} / ${subText}`;
+        }
+      }
     }
   }
 
