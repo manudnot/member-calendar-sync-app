@@ -844,9 +844,6 @@ export default async function handler(req, res) {
 
   const events = body.events || [];
 
-  // Immediately respond HTTP 200 OK to LINE Webhook so LINE server never times out or drops connection!
-  res.status(200).json({ status: 'success' });
-
   try {
     const dbMembers = await fetchMembersFromSupabase();
 
@@ -1171,4 +1168,6 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('Async webhook event processing error:', err);
   }
+
+  return res.status(200).json({ status: 'success' });
 }
