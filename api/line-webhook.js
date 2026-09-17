@@ -135,6 +135,30 @@ function verifyLineSignature(bodyBuffer, signature) {
   return calculated === signature;
 }
 
+async function pushLineMessage(toId, messages) {
+  if (!toId) return;
+  const body = JSON.stringify({
+    to: toId,
+    messages: Array.isArray(messages) ? messages : [messages]
+  });
+  try {
+    const res = await fetch('https://api.line.me/v2/bot/message/push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+      },
+      body
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.warn('pushLineMessage failed:', res.status, errText);
+    }
+  } catch (e) {
+    console.error('pushLineMessage error:', e);
+  }
+}
+
 async function replyLineMessage(replyToken, messages) {
   if (!replyToken) return;
   const body = JSON.stringify({
@@ -150,6 +174,36 @@ async function replyLineMessage(replyToken, messages) {
     },
     body
   });
+}
+
+async function replyOrPushLineMessage(replyToken, toId, messages) {
+  let replySuccess = false;
+  if (replyToken) {
+    try {
+      const res = await fetch('https://api.line.me/v2/bot/message/reply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+        },
+        body: JSON.stringify({
+          replyToken,
+          messages: Array.isArray(messages) ? messages : [messages]
+        })
+      });
+      if (res.ok) {
+        replySuccess = true;
+      } else {
+        const errText = await res.text();
+        console.warn('replyLineMessage failed (likely expired token), falling back to LINE Push API:', res.status, errText);
+      }
+    } catch (e) {
+      console.warn('replyLineMessage error, falling back to LINE Push API:', e);
+    }
+  }
+  if (!replySuccess && toId) {
+    await pushLineMessage(toId, messages);
+  }
 }
 
 async function fetchLineBinary(messageId) {
@@ -248,7 +302,8 @@ export function formatCategoryWithBadge(catStr) {
 async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mimeType = 'application/pdf') {
   if (!TYPHOON_API_KEY) return '';
   try {
-    const blob = new Blob([fileBuf], { type: mimeType });
+    const uint8 = new Uint8Array(fileBuf);
+    const blob = new Blob([uint8], { type: mimeType });
     const formData = new FormData();
     formData.append('file', blob, filename);
     formData.append('model', 'typhoon-ocr');
@@ -281,6 +336,9 @@ async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mim
         }
       }
       return extractedTexts.join('\n\n').trim();
+    } else {
+      const errBody = await res.text();
+      console.warn('Typhoon OCR API returned non-OK status:', res.status, errBody);
     }
   } catch (err) {
     console.warn('Typhoon OCR error:', err?.message || err);
@@ -806,7 +864,7 @@ export default async function handler(req, res) {
     // 1. User Command: Confirming Save (✅ ยืนยันบันทึก / ยืนยัน)
     if (msgType === 'text' && (event.message.text.includes('ยืนยัน') || event.message.text.includes('บันทึก'))) {
       if (!activeDraft) {
-        await replyLineMessage(replyToken, {
+        await replyOrPushLineMessage(replyToken, userId, {
           type: 'text',
           text: '❌ ไม่พบร่างภารกิจที่ค้างอยู่ เจ้านายสามารถส่งรูปภาพคำสั่ง หรือข้อความภารกิจใหม่เข้ามาได้เลยครับ'
         });
@@ -854,7 +912,7 @@ export default async function handler(req, res) {
         ? `✅ ยืนยันบันทึกภารกิจเข้าปฏิทินเรียบร้อยแล้วครับ!\n\n📌 ภารกิจ: ${insertedEvents[0].title}\n📅 วันที่: ${insertedEvents[0].start_date}\n👥 ผู้รับผิดชอบ: ${insertedEvents[0].member_names || 'ไม่ระบุ'}\n\n🔗 ดูปฏิทินสด: https://member-calendar-sync-app.vercel.app`
         : `✅ ยืนยันบันทึก ${insertedEvents.length} ภารกิจเข้าปฏิทินเรียบร้อยแล้วครับ!\n\n` + insertedEvents.map((item, idx) => `${idx + 1}. 📌 ${item.title} (${item.start_date})`).join('\n') + '\n\n🔗 ดูปฏิทินสด: https://member-calendar-sync-app.vercel.app';
 
-      await replyLineMessage(replyToken, {
+      await replyOrPushLineMessage(replyToken, userId, {
         type: 'text',
         text: confirmText
       });
@@ -864,7 +922,7 @@ export default async function handler(req, res) {
     // 2. User Command: Cancel Draft (❌ ยกเลิก)
     if (msgType === 'text' && event.message.text.includes('ยกเลิก')) {
       await clearActiveDraft(userId);
-      await replyLineMessage(replyToken, {
+      await replyOrPushLineMessage(replyToken, userId, {
         type: 'text',
         text: '❌ ยกเลิกร่างภารกิจเรียบร้อยแล้วครับ เจ้านายสามารถส่งภารกิจใหม่เข้ามาได้ตลอดเวลาครับ'
       });
@@ -874,7 +932,7 @@ export default async function handler(req, res) {
     // 3. User Command: Interactive Edit Command on Active Draft
     if (msgType === 'text' && (event.message.text.includes('แก้') || event.message.text.includes('เปลี่ยน') || event.message.text.includes('เพิ่ม'))) {
       if (!activeDraft) {
-        await replyLineMessage(replyToken, {
+        await replyOrPushLineMessage(replyToken, userId, {
           type: 'text',
           text: '❌ ไม่พบร่างภารกิจที่ค้างอยู่ในการแก้ไขครับ เจ้านายสามารถส่งรูปภาพหรือข้อความคำสั่งภารกิจใหม่เข้ามาได้เลยครับ'
         });
@@ -940,7 +998,7 @@ export default async function handler(req, res) {
       // Save updated draft
       await saveDraft(userId, activeDraft);
 
-      await replyLineMessage(replyToken, [
+      await replyOrPushLineMessage(replyToken, userId, [
         {
           type: 'text',
           text: '🔄 แก้ไขข้อมูลร่างตามคำสั่งสำเร็จแล้ว! โปรดตรวจสอบความถูกต้องใหม่:\n\n' + formatDraftSummaryMessage(activeDraft),
@@ -965,6 +1023,12 @@ export default async function handler(req, res) {
     let analyzedData = null;
 
     if (msgType === 'image') {
+      // Immediate push notification so user receives fast confirmation
+      await pushLineMessage(userId, {
+        type: 'text',
+        text: '⏳ รับรูปภาพเรียบร้อย! กำลังสแกนอ่านด้วย Typhoon OCR กรุณารอสักครู่ครับ...'
+      });
+
       try {
         const imageBuf = await fetchLineBinary(event.message.id);
         const ocrText = await extractTextWithTyphoonOCR(imageBuf, 'image.png', 'image/png');
@@ -979,19 +1043,25 @@ export default async function handler(req, res) {
         console.error('Image analysis error:', err);
       }
       if (!analyzedData) {
-        await replyLineMessage(replyToken, {
+        await replyOrPushLineMessage(replyToken, userId, {
           type: 'text',
           text: '❌ ไม่สามารถวิเคราะห์รูปภาพสั่งการได้ครับ กรุณาลองส่งภาพถ่ายคำสั่งภารกิจที่ชัดเจนอีกครั้ง หรือพิมพ์ข้อความสั่งการเข้ามาได้เลยครับ'
         });
         continue;
       }
     } else if (msgType === 'file') {
+      const fileName = (event.message.fileName || 'document.pdf').toLowerCase();
+      // Immediate push notification for user reassurance
+      await pushLineMessage(userId, {
+        type: 'text',
+        text: `⏳ รับไฟล์เอกสาร "${event.message.fileName || 'document.pdf'}" เรียบร้อย! กำลังสแกนอ่านด้วย Typhoon OCR กรุณารอสักครู่ครับ...`
+      });
+
       try {
-        const fileName = (event.message.fileName || 'document.pdf').toLowerCase();
         const fileBuf = await fetchLineBinary(event.message.id);
         
         if (fileName.endsWith('.pdf') || (fileBuf && fileBuf.toString('ascii', 0, 4) === '%PDF')) {
-          // 1. Try Typhoon OCR API first (Primary OCR Engine)
+          // 1. Try Typhoon OCR API first (Primary OCR Engine for Thai PDFs)
           const ocrText = await extractTextWithTyphoonOCR(fileBuf, fileName, 'application/pdf');
           if (ocrText && ocrText.length > 10) {
             analyzedData = await analyzeMissionOrderWithAI(ocrText, null, dbMembers);
@@ -1024,7 +1094,7 @@ export default async function handler(req, res) {
       }
 
       if (!analyzedData) {
-        await replyLineMessage(replyToken, {
+        await replyOrPushLineMessage(replyToken, userId, {
           type: 'text',
           text: '❌ ไม่สามารถวิเคราะห์ไฟล์เอกสาร PDF ที่ส่งมาได้ครับ หากเป็น PDF สแกนภาพ กรุณาลองถ่ายภาพคำสั่งภารกิจ หรือพิมพ์เนื้อหาภารกิจเข้ามาได้เลยครับ'
         });
@@ -1065,7 +1135,7 @@ export default async function handler(req, res) {
       await saveDraft(userId, newDraft);
 
       // Reply with Draft Summary and Quick Reply Buttons
-      await replyLineMessage(replyToken, [
+      await replyOrPushLineMessage(replyToken, userId, [
         {
           type: 'text',
           text: formatDraftSummaryMessage(newDraft),
