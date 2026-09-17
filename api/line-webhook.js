@@ -335,7 +335,7 @@ async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mim
     formData.append('file', file);
     formData.append('model', 'typhoon-ocr');
     formData.append('task_type', 'default');
-    formData.append('max_tokens', '16384');
+    formData.append('max_tokens', '4096');
     formData.append('temperature', '0.1');
     formData.append('top_p', '0.6');
     formData.append('repetition_penalty', '1.2');
@@ -345,7 +345,8 @@ async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mim
       headers: {
         'Authorization': `Bearer ${TYPHOON_API_KEY}`
       },
-      body: formData
+      body: formData,
+      signal: AbortSignal.timeout(6000)
     });
 
     if (res.ok) {
@@ -368,7 +369,7 @@ async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mim
       console.warn('Typhoon OCR API returned non-OK status:', res.status, errBody);
     }
   } catch (err) {
-    console.warn('Typhoon OCR error:', err?.message || err);
+    console.warn('Typhoon OCR notice (timed out or error, switching to fast fallback):', err?.message || err);
   }
   return '';
 }
@@ -494,7 +495,8 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [
           messages,
           temperature: 0.2,
           max_completion_tokens: 768
-        })
+        }),
+        signal: AbortSignal.timeout(6000)
       });
 
       if (res.ok) {
