@@ -104,6 +104,19 @@ async function replyLineMessage(replyToken, messages) {
   });
 }
 
+async function fetchLineBinary(messageId) {
+  const res = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
+    headers: {
+      'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+    }
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch binary from LINE API: ${res.status} ${res.statusText}`);
+  }
+  const arrayBuffer = await res.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
 export function formatCategoryWithBadge(catStr) {
   if (!catStr) return '🔵 ภารกิจหน่วย';
   if (catStr.includes('🔴') || catStr.includes('🔵') || catStr.includes('🟢') || catStr.includes('🟡')) {
@@ -603,19 +616,26 @@ export default async function handler(req, res) {
         const newEvtId = `evt_line_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         const descText = `👔 การแต่งกาย: ${mItem.dress_code || 'ชุดอ่อน (กำหนดอัตโนมัติ)'}\n📍 สถานที่: ${mItem.location || '-'}`;
 
-        await supabase.from('events').insert({
-          id: newEvtId,
-          title: mItem.title,
-          start_time: startTime,
-          end_time: endTime,
-          all_day: mItem.all_day !== false,
-          category: formatCategoryWithBadge(mItem.category),
-          description: descText,
-          location: mItem.location || '',
-          member_ids: Array.isArray(mItem.member_ids) ? mItem.member_ids : [],
-          alarm_minutes: 1440
-        });
-        insertedEvents.push(mItem);
+        try {
+          const { error: insertErr } = await supabase.from('events').insert({
+            id: newEvtId,
+            title: mItem.title,
+            start_time: startTime,
+            end_time: endTime,
+            category: formatCategoryWithBadge(mItem.category),
+            description: descText,
+            location: mItem.location || '',
+            member_ids: Array.isArray(mItem.member_ids) ? mItem.member_ids : [],
+            alarm_minutes: 1440
+          });
+          if (insertErr) {
+            console.error('Supabase event insert error:', insertErr);
+            throw insertErr;
+          }
+          insertedEvents.push(mItem);
+        } catch (e) {
+          console.error('Failed to insert event into Supabase:', e);
+        }
       }
 
       // Clear draft table
@@ -723,7 +743,7 @@ export default async function handler(req, res) {
       continue;
     }
 
-    // 4. New Mission Order Input (Text or Image)
+    // 4. New Mission Order Input (Text, Image, or File)
     let analyzedData = null;
 
     if (msgType === 'image') {
@@ -733,6 +753,35 @@ export default async function handler(req, res) {
         analyzedData = await analyzeMissionOrderWithAI(null, imageBase64, dbMembers);
       } catch (err) {
         console.error('Image analysis error:', err);
+      }
+      if (!analyzedData) {
+        await replyLineMessage(replyToken, {
+          type: 'text',
+          text: '❌ ไม่สามารถวิเคราะห์รูปภาพสั่งการได้ครับ กรุณาลองส่งภาพถ่ายคำสั่งภารกิจที่ชัดเจนอีกครั้ง หรือพิมพ์ข้อความสั่งการเข้ามาได้เลยครับ'
+        });
+        continue;
+      }
+    } else if (msgType === 'file') {
+      try {
+        const fileName = event.message.fileName || '';
+        const fileBuf = await fetchLineBinary(event.message.id);
+        
+        if (fileName.toLowerCase().endsWith('.txt') || fileName.toLowerCase().endsWith('.csv')) {
+          const fileText = fileBuf.toString('utf-8');
+          analyzedData = await analyzeMissionOrderWithAI(fileText, null, dbMembers);
+        } else {
+          const base64Str = fileBuf.toString('base64');
+          analyzedData = await analyzeMissionOrderWithAI(null, base64Str, dbMembers);
+        }
+      } catch (err) {
+        console.error('File analysis error:', err);
+      }
+      if (!analyzedData) {
+        await replyLineMessage(replyToken, {
+          type: 'text',
+          text: '❌ ไม่สามารถวิเคราะห์ไฟล์เอกสารที่ส่งมาได้ครับ กรุณาลองส่งเป็นไฟล์ข้อความ (.txt) หรือพิมพ์เนื้อหาภารกิจเข้ามาได้เลยครับ'
+        });
+        continue;
       }
     } else if (msgType === 'text') {
       analyzedData = await analyzeMissionOrderWithAI(event.message.text, null, dbMembers);
