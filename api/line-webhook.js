@@ -250,6 +250,7 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [
 สำคัญที่สุด:
 1. หากในข้อความต้นฉบับมีสัญลักษณ์หรือตัวเลขหัวข้อ เช่น ๑. หรือ ๒.๒.๑ หรือข้อหัวข้อแยกรายการ ให้สกัด 1 รายการภารกิจ ต่อ 1 ข้อหัวข้อเด็ดขาด! ห้ามแยกประโยคย่อยในข้อเดียวกันที่เชื่อมด้วยคำว่า 'และ' หรือ 'และซักซ้อม...' ออกเป็นหลายภารกิจเด็ดขาด
 2. หากมีหลายวันในหัวข้อคนละข้อกัน ให้สกัดแยกเป็นรายการภารกิจในอาร์เรย์ "missions" ตามจำนวนหัวข้อต้นฉบับ ห้ามนำวันมารวมกันเป็นภารกิจเดียวเด็ดขาด
+3. ถอนข้อความส่วนสถานที่ (เช่น ประโยคที่ขึ้นต้นด้วย 'ณ ...') ออกจากชื่อภารกิจ (title) โดยนำสถานที่ไปใส่ไว้เฉพาะในฟิลด์ location เท่านั้น ห้ามใส่สถานที่ซ้ำใน title
 กรุณาวิเคราะห์และสกัดข้อมูลภารกิจตอบกลับเฉพาะ JSON บริสุทธิ์ (ไม่ต้องใส่ markdown codeblock และไม่ใส่คำขึ้นต้นใดๆ) มีโครงสร้างดังนี้:
 {
   "missions": [
@@ -476,12 +477,18 @@ export function parseAllThaiMissions(text, dbMembers = []) {
 
     if (dateObj) {
       let location = '';
-      if (line.includes('ณ ')) {
-        const locParts = line.split('ณ ');
+      let lineText = line;
+      if (lineText.includes(' ณ ')) {
+        const locParts = lineText.split(' ณ ');
         location = locParts[1].trim();
+        lineText = locParts[0];
+      } else if (lineText.includes('ณ ') && !lineText.startsWith('ณ ')) {
+        const locParts = lineText.split('ณ ');
+        location = locParts[1].trim();
+        lineText = locParts[0];
       }
 
-      let title = line
+      let title = lineText
         .replace(/^[\d\.\s\-\*๒๒๑๒๓๔๕๖๗๘๙๐a-zA-Z]+/g, '')
         .replace(rangePattern, '')
         .replace(singlePattern, '')
@@ -489,7 +496,13 @@ export function parseAllThaiMissions(text, dbMembers = []) {
         .trim();
 
       if (!title || title.length < 3) {
-        title = line.replace(/^[\d\.\s\-\*๒๒๑๒๓๔๕๖๗๘๙๐]+/g, '').trim();
+        title = lineText.replace(/^[\d\.\s\-\*๒๒๑๒๓๔๕๖๗๘๙๐]+/g, '').trim();
+      }
+
+      if (title.includes(' ณ ')) {
+        title = title.split(' ณ ')[0].trim();
+      } else if (title.includes('ณ ') && !title.startsWith('ณ ')) {
+        title = title.split('ณ ')[0].trim();
       }
 
       let dress_code = 'ชุดอ่อน (กำหนดอัตโนมัติ)';
