@@ -485,6 +485,9 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
 1. หากในข้อความต้นฉบับมีสัญลักษณ์หรือตัวเลขหัวข้อ เช่น ๑. หรือ ๒.๒.๑ หรือข้อหัวข้อแยกรายการ ให้สกัด 1 รายการภารกิจ ต่อ 1 ข้อหัวข้อเด็ดขาด! ห้ามแยกประโยคย่อยในข้อเดียวกันที่เชื่อมด้วยคำว่า 'และ' หรือ 'และซักซ้อม...' ออกเป็นหลายภารกิจเด็ดขาด
 2. หากมีหลายวันในหัวข้อคนละข้อกัน ให้สกัดแยกเป็นรายการภารกิจในอาร์เรย์ "missions" ตามจำนวนหัวข้อต้นฉบับ ห้ามนำวันมารวมกันเป็นภารกิจเดียวเด็ดขาด
 3. ถอนข้อความส่วนสถานที่ (เช่น ประโยคที่ขึ้นต้นด้วย 'ณ ...') ออกจากชื่อภารกิจ (title) โดยนำสถานที่ไปใส่ไว้เฉพาะในฟิลด์ location เท่านั้น ห้ามใส่สถานที่ซ้ำใน title
+4. ให้รักษาชื่อภารกิจ (title) เต็มตามข้อความต้นฉบับ รวมทั้งคำนำหน้ากลุ่ม/รุ่น/ยศ/ชั้นปี เช่น 'น้อง 63', 'รุ่น 63', 'นักเรียน...' ห้ามตัดคำเหล่านี้ออกจากชื่อภารกิจเด็ดขาด!
+5. ในฟิลด์ "members": ให้ใส่เฉพาะชื่อเล่นหรือชื่อบุคคลที่มีในกำลังพลของหน่วยเท่านั้น (เช่น นอต, เติร์ธ, จูน, เอก, เก่ง, ตั้ม, แชมป์, ท็อป) หากไม่ใช่ชื่อบุคคล ให้คงไว้ใน title และให้ members เป็น []
+
 กรุณาวิเคราะห์และสกัดข้อมูลภารกิจตอบกลับเฉพาะ JSON บริสุทธิ์ (ไม่ต้องใส่ markdown codeblock และไม่ใส่คำขึ้นต้นใดๆ) มีโครงสร้างดังนี้:
 {
   "missions": [
@@ -492,7 +495,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
       "title": "ชื่อภารกิจหรือเรื่อง",
       "start_date": "YYYY-MM-DD (พ.ศ. 2569 หรือ 69 แปลงเป็น ค.ศ. 2026 เสมอ)",
       "end_date": "YYYY-MM-DD (พ.ศ. 2569 หรือ 69 แปลงเป็น ค.ศ. 2026 เสมอ)",
-      "time_str": "ห้วงเวลา เช่น 09:00 - 16:00 หรือ ตลอดวัน",
+      "time_str": "ห้วงเวลา เช่น 09:00 - 12:00 หรือ 13:00 - 16:00 หรือ ตลอดวัน",
       "all_day": true,
       "category": "ภารกิจหน่วย หรือ ภารกิจหมาย หรือ ภารกิจการฝึก",
       "dress_code": "ชุดการแต่งกาย (หากไม่ได้ระบุในข้อความ ให้ใช้ 'ชุดอ่อน (กำหนดอัตโนมัติ)')",
@@ -534,7 +537,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
         body: JSON.stringify({
           model: 'typhoon-v2.5-30b-a3b-instruct',
           messages,
-          temperature: 0.2,
+          temperature: 0.1,
           max_completion_tokens: 1536
         }),
         signal: AbortSignal.timeout(25000)
@@ -550,6 +553,27 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
           // Filter out empty or broken missions
           const validMissions = rawMissions.filter(m => m && m.title && m.start_date && !m.start_date.includes('-00'));
           if (validMissions.length > 0) {
+            // Post-process to ensure non-member cohort strings (e.g. 'น้อง 63') remain in title and don't pollute members
+            validMissions.forEach(m => {
+              const rawMembers = Array.isArray(m.members) ? m.members : [];
+              const matchedMemberIds = matchMemberIds(rawMembers, dbMembers);
+              
+              // Find unmatched member strings that are not real db members
+              rawMembers.forEach(memStr => {
+                if (typeof memStr === 'string' && memStr.trim()) {
+                  const isDbMember = dbMembers.some(dbM => 
+                    dbM.name === memStr || dbM.nickname === memStr || dbM.full_name?.includes(memStr) || dbM.id === memStr
+                  );
+                  if (!isDbMember && !m.title.includes(memStr)) {
+                    m.title = `${memStr.trim()} ${m.title}`.trim();
+                  }
+                }
+              });
+
+              m.member_ids = matchedMemberIds;
+              m.member_names = formatMemberNamesForDisplay(matchedMemberIds, dbMembers);
+            });
+
             return { missions: validMissions };
           }
         }
@@ -977,13 +1001,68 @@ export default async function handler(req, res) {
     }
 
     // 2. User Command: Cancel Draft (❌ ยกเลิก)
-    if (msgType === 'text' && event.message.text.includes('ยกเลิก')) {
+    if (msgType === 'text' && event.message.text.includes('ยกเลิก') && !event.message.text.includes('ยกเลิกภารกิจที่')) {
       await clearActiveDraft(userId);
       await replyOrPushLineMessage(replyToken, userId, {
         type: 'text',
         text: '❌ ยกเลิกร่างภารกิจเรียบร้อยแล้วครับ เจ้านายสามารถส่งภารกิจใหม่เข้ามาได้ตลอดเวลาครับ'
       });
       continue;
+    }
+
+    // 2.5 User Command: Delete Specific Mission from Draft (ลบภารกิจ 2,3,4 / ลบข้อ 2 / ลบ 2)
+    if (msgType === 'text' && (event.message.text.includes('ลบ') || event.message.text.includes('ตัด') || event.message.text.includes('เอาออก'))) {
+      if (!activeDraft) {
+        await replyOrPushLineMessage(replyToken, userId, {
+          type: 'text',
+          text: '❌ ไม่พบร่างภารกิจที่ค้างอยู่ในการลบครับ เจ้านายสามารถส่งรูปภาพหรือข้อความคำสั่งภารกิจใหม่เข้ามาได้เลยครับ'
+        });
+        continue;
+      }
+
+      const numbers = event.message.text.match(/\d+/g);
+      if (numbers && numbers.length > 0) {
+        const targetMissions = Array.isArray(activeDraft.missions) && activeDraft.missions.length > 0
+          ? activeDraft.missions
+          : [activeDraft];
+
+        const indicesToDelete = new Set(numbers.map(n => parseInt(n) - 1));
+        const remainingMissions = targetMissions.filter((_, idx) => !indicesToDelete.has(idx));
+        const deletedNums = Array.from(indicesToDelete).map(i => i + 1).filter(n => n >= 1 && n <= targetMissions.length).sort((a, b) => a - b);
+
+        if (remainingMissions.length === 0) {
+          await clearActiveDraft(userId);
+          await replyOrPushLineMessage(replyToken, userId, {
+            type: 'text',
+            text: '❌ ลบภารกิจทั้งหมดในร่างเรียบร้อยแล้วครับ เจ้านายสามารถส่งคำสั่งภารกิจใหม่เข้ามาได้ตลอดเวลาครับ'
+          });
+          continue;
+        }
+
+        activeDraft = { missions: remainingMissions };
+        await saveDraft(userId, activeDraft);
+
+        const delStr = deletedNums.length > 0 ? deletedNums.join(', ') : 'ที่ระบุ';
+        await replyOrPushLineMessage(replyToken, userId, [
+          {
+            type: 'text',
+            text: `🗑️ ลบภารกิจข้อ ${delStr} ออกจากร่างเรียบร้อยแล้วครับ! โปรดตรวจสอบภารกิจที่เหลือ:\n\n` + formatDraftSummaryMessage(activeDraft),
+            quickReply: {
+              items: [
+                {
+                  type: 'action',
+                  action: { type: 'message', label: '✅ ยืนยันบันทึก', text: '✅ ยืนยันบันทึก' }
+                },
+                {
+                  type: 'action',
+                  action: { type: 'message', label: '❌ ยกเลิก', text: '❌ ยกเลิก' }
+                }
+              ]
+            }
+          }
+        ]);
+        continue;
+      }
     }
 
     // 3. User Command: Interactive Edit Command on Active Draft
