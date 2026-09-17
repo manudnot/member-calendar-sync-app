@@ -35,15 +35,15 @@ async function fetchMembersFromSupabase() {
 }
 
 const MEMBER_DISPLAY_NAMES = {
-  'mem_manudnot': 'ร.ท. นอต',
-  'mem_third': 'ร.อ. ศุภณัฐ (เติร์ธ)',
-  'mem_june': 'ร.ท. อภิสิทธิ์ (จูน)',
-  'mem_phak_ek': 'ร.อ. จรินทร์ (เอก)',
-  'mem_keng': 'ร.ท. พัทธ์รวิน (เก่ง)',
-  'mem_tum': 'ร.ต. อภิชาติ (ตั้ม)',
+  'mem_manudnot': 'นอต',
+  'mem_third': 'เติร์ธ',
+  'mem_june': 'จูน',
+  'mem_phak_ek': 'เอก',
+  'mem_keng': 'เก่ง',
+  'mem_tum': 'ตั้ม',
   'mem_wm': 'เวรหมาย',
-  'mem_thanatat': 'ร.อ. ธนทัต (ท็อป)',
-  'mem_woooddy': 'พ.ต. ภามพัฒน์ (แชมป์)'
+  'mem_thanatat': 'ท็อป',
+  'mem_woooddy': 'แชมป์'
 };
 
 function formatMemberNamesForDisplay(memberIds = [], dbMembers = []) {
@@ -52,8 +52,7 @@ function formatMemberNamesForDisplay(memberIds = [], dbMembers = []) {
     if (MEMBER_DISPLAY_NAMES[id]) return MEMBER_DISPLAY_NAMES[id];
     const mem = dbMembers.find(x => x.id === id);
     if (!mem) return id;
-    const nameStr = mem.nickname || mem.first_name || mem.name || id;
-    return mem.rank ? `${mem.rank} ${nameStr}` : nameStr;
+    return mem.nickname || mem.name || mem.first_name || id;
   }).join(', ');
 }
 

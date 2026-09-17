@@ -49,12 +49,26 @@ function getBkkDateStr(isoStr) {
   return `${y}${m}${day}`;
 }
 
-function getBkkNextDayStr(isoStr) {
+function getEventDateOnlyStr(isoStr) {
   if (!isoStr) return null;
-  const d = new Date(isoStr);
-  if (isNaN(d.getTime())) return null;
-  const next = new Date(d.getTime() + 86400000);
-  return getBkkDateStr(next.toISOString());
+  if (typeof isoStr === 'string' && isoStr.includes('T')) {
+    const raw = isoStr.split('T')[0];
+    return raw.replace(/-/g, '');
+  }
+  if (typeof isoStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(isoStr)) {
+    return isoStr.replace(/-/g, '');
+  }
+  return getBkkDateStr(isoStr);
+}
+
+function getNextDayStr(dateYYYYMMDD) {
+  if (!dateYYYYMMDD || dateYYYYMMDD.length !== 8) return dateYYYYMMDD;
+  const y = parseInt(dateYYYYMMDD.substring(0, 4), 10);
+  const m = parseInt(dateYYYYMMDD.substring(4, 6), 10) - 1;
+  const d = parseInt(dateYYYYMMDD.substring(6, 8), 10);
+  const nextDate = new Date(Date.UTC(y, m, d + 1));
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${nextDate.getUTCFullYear()}${pad(nextDate.getUTCMonth() + 1)}${pad(nextDate.getUTCDate())}`;
 }
 
 function checkIsAllDay(evt) {
@@ -207,10 +221,11 @@ export default async function handler(req, res) {
       lines.push(`DTSTAMP:${nowIso}`);
 
       if (isAllDay) {
-        const startStr = getBkkDateStr(evt.start_time);
-        const endStr = getBkkDateStr(evt.end_time || evt.start_time);
+        const startStr = getEventDateOnlyStr(evt.start_time);
+        const lastDayStr = getEventDateOnlyStr(evt.end_time || evt.start_time);
+        const exclusiveEndStr = getNextDayStr(lastDayStr);
         lines.push(`DTSTART;VALUE=DATE:${startStr}`);
-        lines.push(`DTEND;VALUE=DATE:${endStr}`);
+        lines.push(`DTEND;VALUE=DATE:${exclusiveEndStr}`);
       } else {
         lines.push(`DTSTART:${formatDateUtc(startDate)}`);
         lines.push(`DTEND:${formatDateUtc(endDate)}`);
