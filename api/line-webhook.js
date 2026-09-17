@@ -1050,18 +1050,13 @@ export default async function handler(req, res) {
       }
     } else if (msgType === 'file') {
       const fileName = (event.message.fileName || 'document.pdf');
-      // Immediate push notification for user reassurance
-      await pushLineMessage(userId, {
-        type: 'text',
-        text: `⏳ รับไฟล์เอกสาร "${fileName}" เรียบร้อย! กำลังสแกนอ่านด้วย Typhoon OCR กรุณารอสักครู่ครับ...`
-      });
 
       let fileBuf = null;
       try {
         fileBuf = await fetchLineBinary(event.message.id);
       } catch (dlErr) {
         console.error('LINE binary download error:', dlErr);
-        await pushLineMessage(userId, {
+        await replyOrPushLineMessage(replyToken, userId, {
           type: 'text',
           text: `❌ ไม่สามารถดาวน์โหลดไฟล์เอกสารจาก LINE ได้ (${dlErr?.message || dlErr})\n\nกรุณาลองส่งไฟล์ใหม่อีกครั้งครับ`
         });
@@ -1102,7 +1097,7 @@ export default async function handler(req, res) {
           analyzedData = await analyzeMissionOrderWithAI(ocrText, null, dbMembers);
         } catch (aiErr) {
           console.error('AI analysis error:', aiErr);
-          await pushLineMessage(userId, {
+          await replyOrPushLineMessage(replyToken, userId, {
             type: 'text',
             text: `❌ อ่านเอกสารสำเร็จแต่ไม่สามารถวิเคราะห์ภารกิจด้วย Typhoon AI ได้ (${aiErr?.message || aiErr})`
           });
@@ -1112,7 +1107,7 @@ export default async function handler(req, res) {
 
       if (!analyzedData) {
         const detailMsg = ocrErrStr ? `\n(รายละเอียด: ${ocrErrStr})` : '';
-        await pushLineMessage(userId, {
+        await replyOrPushLineMessage(replyToken, userId, {
           type: 'text',
           text: `❌ ไม่สามารถสกัดข้อความภารกิจจากไฟล์ "${fileName}" ด้วย Typhoon OCR ได้ครับ${detailMsg}\n\nกรุณาลองถ่ายภาพคำสั่งภารกิจ หรือพิมพ์เนื้อหาภารกิจเข้ามาได้เลยครับ`
         });
