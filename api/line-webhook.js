@@ -9,7 +9,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || '5yYbM9jVR9aNZS6RvDhS8D0ow/t7VHSpE3kX5PQXqK4h0OpEbaqIxj+Oy1eKAYfFBsMF+twQeDmtj0lwfSa30tJJtYHZqeTX35Z7V/9wOpWD5d3Mq0tAt96uWMXfKRDBCcFstKpuSXG26xG+Uy3SWQdB04t89/1O/w1cDnyilFU=';
 const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || '21ce08aa85816d7feb7c0d62f500e779';
 const TYPHOON_API_KEY = process.env.TYPHOON_API_KEY || 'sk-JfnzdevrTSBsAw9GRBda4zhHtTNMkEFM9GEnLjc4Pyu0WPaS';
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
 // Dynamic Supabase member fetch & matching
 async function fetchMembersFromSupabase() {
@@ -335,7 +334,7 @@ async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mim
     formData.append('file', file);
     formData.append('model', 'typhoon-ocr');
     formData.append('task_type', 'default');
-    formData.append('max_tokens', '4096');
+    formData.append('max_tokens', '16384');
     formData.append('temperature', '0.1');
     formData.append('top_p', '0.6');
     formData.append('repetition_penalty', '1.2');
@@ -346,7 +345,7 @@ async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mim
         'Authorization': `Bearer ${TYPHOON_API_KEY}`
       },
       body: formData,
-      signal: AbortSignal.timeout(6000)
+      signal: AbortSignal.timeout(25000)
     });
 
     if (res.ok) {
@@ -369,7 +368,7 @@ async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mim
       console.warn('Typhoon OCR API returned non-OK status:', res.status, errBody);
     }
   } catch (err) {
-    console.warn('Typhoon OCR notice (timed out or error, switching to fast fallback):', err?.message || err);
+    console.warn('Typhoon OCR error:', err?.message || err);
   }
   return '';
 }
@@ -461,7 +460,7 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [
     }
   }
 
-  // 1. Try Opentyphoon API (typhoon-v2.5-30b-a3b-instruct)
+  // 1. Opentyphoon API (typhoon-v2.5-30b-a3b-instruct)
   if (TYPHOON_API_KEY) {
     try {
       const messages = [
@@ -494,9 +493,9 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [
           model: 'typhoon-v2.5-30b-a3b-instruct',
           messages,
           temperature: 0.2,
-          max_completion_tokens: 768
+          max_completion_tokens: 1536
         }),
-        signal: AbortSignal.timeout(6000)
+        signal: AbortSignal.timeout(25000)
       });
 
       if (res.ok) {
@@ -514,43 +513,7 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [
     }
   }
 
-  // 2. Fallback to Gemini 2.5 Flash if available
-  if (GEMINI_API_KEY) {
-    try {
-      const parts = [{ text: systemPrompt + '\n' + (text || '') }];
-      if (imageBase64) {
-        parts.push({
-          inline_data: {
-            mime_type: mimeType || 'image/jpeg',
-            data: imageBase64
-          }
-        });
-      }
-
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts }]
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const rawJsonText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        const cleanJson = rawJsonText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const parsedObj = JSON.parse(cleanJson);
-        if (parsedObj) {
-          const rawMissions = Array.isArray(parsedObj.missions) ? parsedObj.missions : [parsedObj];
-          return { missions: rawMissions };
-        }
-      }
-    } catch (e) {
-      console.error('Gemini API fallback error:', e);
-    }
-  }
-
-  // 3. Fallback Smart Multi-Mission Parser
+  // 2. Fallback Smart Multi-Mission Parser
   if (multiMissions && multiMissions.length > 0) {
     return { missions: multiMissions };
   }
@@ -1109,12 +1072,6 @@ export default async function handler(req, res) {
             if (pdfText && pdfText.length > 10) {
               analyzedData = await analyzeMissionOrderWithAI(pdfText, null, dbMembers);
             }
-          }
-
-          // 3. Fallback to Gemini 2.5 Flash if available
-          if (!analyzedData && GEMINI_API_KEY) {
-            const base64Str = fileBuf.toString('base64');
-            analyzedData = await analyzeMissionOrderWithAI(null, base64Str, dbMembers, 'application/pdf');
           }
         } else if (fileName.endsWith('.txt') || fileName.endsWith('.csv')) {
           const fileText = fileBuf.toString('utf-8');
