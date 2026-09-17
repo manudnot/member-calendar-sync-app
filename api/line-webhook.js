@@ -111,18 +111,46 @@ function matchMemberIds(memberNamesArray, dbMembers = []) {
   return Array.from(matched);
 }
 
-export const config = {
-  api: {
-    bodyParser: false
-  }
-};
-
 async function getRawBody(req) {
-  return new Promise((resolve, reject) => {
+  if (req.rawBody) {
+    return Buffer.isBuffer(req.rawBody) ? req.rawBody : Buffer.from(req.rawBody);
+  }
+  if (Buffer.isBuffer(req.body)) {
+    return req.body;
+  }
+  if (typeof req.body === 'string') {
+    return Buffer.from(req.body);
+  }
+  if (typeof req.body === 'object' && req.body !== null) {
+    return Buffer.from(JSON.stringify(req.body));
+  }
+  return new Promise((resolve) => {
+    if (req.readableEnded) {
+      return resolve(Buffer.from(''));
+    }
     let chunks = [];
-    req.on('data', chunk => chunks.push(chunk));
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
+    const onData = (chunk) => chunks.push(chunk);
+    const onEnd = () => {
+      cleanup();
+      resolve(Buffer.concat(chunks));
+    };
+    const onError = () => {
+      cleanup();
+      resolve(Buffer.from(''));
+    };
+    const cleanup = () => {
+      req.removeListener('data', onData);
+      req.removeListener('end', onEnd);
+      req.removeListener('error', onError);
+    };
+    req.on('data', onData);
+    req.on('end', onEnd);
+    req.on('error', onError);
+
+    setTimeout(() => {
+      cleanup();
+      resolve(Buffer.concat(chunks));
+    }, 1000);
   });
 }
 
