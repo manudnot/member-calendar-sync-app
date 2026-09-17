@@ -245,6 +245,48 @@ export function formatCategoryWithBadge(catStr) {
   return `🔵 ${catStr}`;
 }
 
+async function extractPdfTextWithTimeout(fileBuf, timeoutMs = 3000) {
+  return new Promise((resolve) => {
+    let isResolved = false;
+    const timer = setTimeout(() => {
+      if (!isResolved) {
+        isResolved = true;
+        console.warn('PDF text extraction timed out after', timeoutMs, 'ms');
+        resolve('');
+      }
+    }, timeoutMs);
+
+    try {
+      const uint8 = new Uint8Array(fileBuf);
+      const parser = new PDFParse({ data: uint8 });
+      parser.getText().then(textResult => {
+        const txt = (textResult?.text || '').trim();
+        parser.destroy().catch(() => {});
+        if (!isResolved) {
+          isResolved = true;
+          clearTimeout(timer);
+          resolve(txt);
+        }
+      }).catch(err => {
+        console.warn('PDF getText error:', err?.message || err);
+        parser.destroy().catch(() => {});
+        if (!isResolved) {
+          isResolved = true;
+          clearTimeout(timer);
+          resolve('');
+        }
+      });
+    } catch (e) {
+      console.warn('PDFParse constructor error:', e?.message || e);
+      if (!isResolved) {
+        isResolved = true;
+        clearTimeout(timer);
+        resolve('');
+      }
+    }
+  });
+}
+
 async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [], mimeType = 'image/jpeg') {
   const systemPrompt = `คุณคือเสมียนกองร้อยสายและวิทยุถ่ายทอด มีหน้าที่วิเคราะห์คำสั่งปฏิบัติงาน ภารกิจ รูปภาพ หรือเอกสารข่าวสาร 
 สำคัญที่สุด:
@@ -284,12 +326,13 @@ async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [
       ];
 
       if (imageBase64) {
+        const userContent = [{ type: 'text', text: text || 'กรุณาวิเคราะห์เอกสารคำสั่งภารกิจจากไฟล์หรือรูปภาพนี้' }];
+        if (mimeType && mimeType.startsWith('image/')) {
+          userContent.push({ type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageBase64}` } });
+        }
         messages.push({
           role: 'user',
-          content: [
-            { type: 'text', text: text || 'กรุณาวิเคราะห์เอกสารคำสั่งภารกิจจากไฟล์หรือรูปภาพนี้' },
-            { type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageBase64}` } }
-          ]
+          content: userContent
         });
       } else {
         messages.push({
@@ -887,20 +930,13 @@ export default async function handler(req, res) {
         const fileBuf = await fetchLineBinary(event.message.id);
         
         if (fileName.endsWith('.pdf') || (fileBuf && fileBuf.toString('ascii', 0, 4) === '%PDF')) {
-          let pdfText = '';
-          try {
-            const parser = new PDFParse({ data: fileBuf });
-            const textResult = await parser.getText();
-            pdfText = (textResult?.text || '').trim();
-            await parser.destroy();
-          } catch (pdfErr) {
-            console.warn('PDF text extraction warning:', pdfErr?.message || pdfErr);
-          }
+          const pdfText = await extractPdfTextWithTimeout(fileBuf, 3000);
 
           if (pdfText && pdfText.length > 10) {
             analyzedData = await analyzeMissionOrderWithAI(pdfText, null, dbMembers);
           }
-          if (!analyzedData) {
+
+          if (!analyzedData && GEMINI_API_KEY) {
             const base64Str = fileBuf.toString('base64');
             analyzedData = await analyzeMissionOrderWithAI(null, base64Str, dbMembers, 'application/pdf');
           }
@@ -914,10 +950,11 @@ export default async function handler(req, res) {
       } catch (err) {
         console.error('File analysis error:', err);
       }
+
       if (!analyzedData) {
         await replyLineMessage(replyToken, {
           type: 'text',
-          text: '❌ ไม่สามารถวิเคราะห์ไฟล์เอกสารที่ส่งมาได้ครับ กรุณาลองส่งภาพถ่ายคำสั่งภารกิจ หรือพิมพ์เนื้อหาภารกิจเข้ามาได้เลยครับ'
+          text: '❌ ไม่สามารถวิเคราะห์ไฟล์เอกสาร PDF ที่ส่งมาได้ครับ หากเป็น PDF สแกนภาพ กรุณาลองถ่ายภาพคำสั่งภารกิจ หรือพิมพ์เนื้อหาภารกิจเข้ามาได้เลยครับ'
         });
         continue;
       }
