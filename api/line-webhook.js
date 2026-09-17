@@ -1,7 +1,6 @@
 // api/line-webhook.js - Vercel Serverless Endpoint for LINE Messaging Bot (AI เสมียนกองร้อย)
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
-import { PDFParse } from 'pdf-parse';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://aevutuguijjakfhulgjd.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_8LNKQLJ6snj6AvxPGf2TmA_Sm8KCbhU';
@@ -303,9 +302,9 @@ async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mim
   if (!TYPHOON_API_KEY) return '';
   try {
     const uint8 = new Uint8Array(fileBuf);
-    const blob = new Blob([uint8], { type: mimeType });
+    const file = new File([uint8], filename, { type: mimeType });
     const formData = new FormData();
-    formData.append('file', blob, filename);
+    formData.append('file', file);
     formData.append('model', 'typhoon-ocr');
     formData.append('task_type', 'default');
     formData.append('max_tokens', '16384');
@@ -357,20 +356,30 @@ async function extractPdfTextWithTimeout(fileBuf, timeoutMs = 3500, maxChars = 5
       }
     }, timeoutMs);
 
-    try {
-      const uint8 = new Uint8Array(fileBuf);
-      const parser = new PDFParse({ data: uint8 });
-      parser.getText({
-        parsePageInfo: true,
-        pageJoiner: '\n--- [หน้า page_number / total_number] ---\n'
-      }).then(textResult => {
+    (async () => {
+      try {
+        const pdfModule = await import('pdf-parse').catch(() => null);
+        if (!pdfModule) {
+          if (!isResolved) {
+            isResolved = true;
+            clearTimeout(timer);
+            resolve('');
+          }
+          return;
+        }
+        const PDFParse = pdfModule.PDFParse || pdfModule.default || pdfModule;
+        const uint8 = new Uint8Array(fileBuf);
+        const parser = new PDFParse({ data: uint8 });
+        const textResult = await parser.getText({
+          parsePageInfo: true,
+          pageJoiner: '\n--- [หน้า page_number / total_number] ---\n'
+        });
         let txt = (textResult?.text || '')
           .replace(/\r\n/g, '\n')
           .replace(/\n{3,}/g, '\n\n')
           .trim();
 
         if (txt.length > maxChars) {
-          console.log(`Truncating PDF text from ${txt.length} to ${maxChars} chars.`);
           txt = txt.substring(0, maxChars);
         }
 
@@ -380,23 +389,15 @@ async function extractPdfTextWithTimeout(fileBuf, timeoutMs = 3500, maxChars = 5
           clearTimeout(timer);
           resolve(txt);
         }
-      }).catch(err => {
-        console.warn('PDF getText error:', err?.message || err);
-        parser.destroy().catch(() => {});
+      } catch (e) {
+        console.warn('PDFParse error:', e?.message || e);
         if (!isResolved) {
           isResolved = true;
           clearTimeout(timer);
           resolve('');
         }
-      });
-    } catch (e) {
-      console.warn('PDFParse constructor error:', e?.message || e);
-      if (!isResolved) {
-        isResolved = true;
-        clearTimeout(timer);
-        resolve('');
       }
-    }
+    })();
   });
 }
 
@@ -849,10 +850,15 @@ export default async function handler(req, res) {
   }
 
   const events = body.events || [];
-  const dbMembers = await fetchMembersFromSupabase();
 
-  for (const event of events) {
-    if (event.type !== 'message') continue;
+  // Immediately respond HTTP 200 OK to LINE Webhook so LINE server never times out or drops connection!
+  res.status(200).json({ status: 'success' });
+
+  try {
+    const dbMembers = await fetchMembersFromSupabase();
+
+    for (const event of events) {
+      if (event.type !== 'message') continue;
 
     const replyToken = event.replyToken;
     const userId = event.source?.userId || event.source?.groupId || event.source?.roomId || 'default_user';
@@ -1153,8 +1159,9 @@ export default async function handler(req, res) {
           }
         }
       ]);
+      }
     }
+  } catch (err) {
+    console.error('Async webhook event processing error:', err);
   }
-
-  return res.status(200).json({ status: 'success' });
 }
