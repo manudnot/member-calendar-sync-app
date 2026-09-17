@@ -61,6 +61,19 @@ function matchMemberIds(memberNamesArray, dbMembers = []) {
   if (!Array.isArray(memberNamesArray) || memberNamesArray.length === 0) return [];
   const matched = new Set();
 
+  const isAllRealMembers = memberNamesArray.some(str => {
+    const s = String(str).toLowerCase();
+    return s.includes('ทุกคน') || s.includes('สมาชิกทุกคน') || s.includes('ทั้งทีม') || s.includes('กำลังพลทุกคน') || s.includes('ทุกนาย');
+  });
+
+  if (isAllRealMembers) {
+    const realMemberIds = dbMembers
+      .filter(m => m.member_type !== 'virtual' && m.id !== 'mem_wm')
+      .map(m => m.id);
+    if (realMemberIds.length > 0) return realMemberIds;
+    return ['mem_manudnot', 'mem_phak_ek', 'mem_thanatat', 'mem_third', 'mem_june', 'mem_keng', 'mem_tum', 'mem_woooddy'];
+  }
+
   const ALIAS_MAP = {
     'mem_manudnot': ['not', 'นอต', 'น็อต', 'นิติพัฒน์', 'มนุษย์นอต'],
     'mem_third': ['third', 'สุภณัฐ', 'เติร์ธ', 'เทิร์ธ', 'เติร์ท', 'หมวดเติร์ธ', 'ผู้กองเติร์ธ'],
@@ -764,7 +777,12 @@ export default async function handler(req, res) {
         ? activeDraft.missions
         : [activeDraft];
 
-      const applyToAll = userText.includes('ทั้งหมด') || targetMissions.length === 1;
+      const hasSpecificTarget = userText.includes('ภารกิจที่ 1') || userText.includes('ภารกิจที่ 2') ||
+                                userText.includes('ภารกิจ 1') || userText.includes('ภารกิจ 2') ||
+                                userText.includes('ข้อ 1') || userText.includes('ข้อ 2') ||
+                                userText.includes('รายการ 1') || userText.includes('รายการ 2');
+
+      const applyToAll = !hasSpecificTarget || userText.includes('ทั้งหมด') || userText.includes('ทุกภารกิจ') || userText.includes('ทั้ง 2 ภารกิจ') || userText.includes('ทั้งสองภารกิจ');
 
       // Date Correction match
       const dateMatch = userText.match(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})|(\d{1,2}\/\d{1,2})/);
