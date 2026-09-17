@@ -336,6 +336,44 @@ export function formatCategoryWithBadge(catStr) {
   return `🔵 ${catStr}`;
 }
 
+export function parseTimeRangeToStartEnd(startDate, endDate, timeStr, allDay) {
+  const startDay = startDate || new Date().toISOString().split('T')[0];
+  const endDay = endDate || startDay;
+
+  if (allDay || !timeStr || timeStr === 'ตลอดวัน' || timeStr.includes('ตลอดวัน')) {
+    return {
+      startTime: new Date(`${startDay}T09:00:00+07:00`).toISOString(),
+      endTime: new Date(`${endDay}T17:00:00+07:00`).toISOString()
+    };
+  }
+
+  const times = timeStr.match(/(\d{1,2})[\:\.](\d{2})/g);
+  if (times && times.length >= 2) {
+    const sTime = times[0].replace('.', ':').padStart(5, '0');
+    const eTime = times[1].replace('.', ':').padStart(5, '0');
+    return {
+      startTime: new Date(`${startDay}T${sTime}:00+07:00`).toISOString(),
+      endTime: new Date(`${endDay}T${eTime}:00+07:00`).toISOString()
+    };
+  } else if (times && times.length === 1) {
+    const sTime = times[0].replace('.', ':').padStart(5, '0');
+    const parts = times[0].split(/[\:\.]/);
+    const sHour = parseInt(parts[0]);
+    const sMin = parts[1];
+    const eHour = Math.min(sHour + 2, 23);
+    const eTime = `${String(eHour).padStart(2, '0')}:${sMin}`;
+    return {
+      startTime: new Date(`${startDay}T${sTime}:00+07:00`).toISOString(),
+      endTime: new Date(`${endDay}T${eTime}:00+07:00`).toISOString()
+    };
+  }
+
+  return {
+    startTime: new Date(`${startDay}T09:00:00+07:00`).toISOString(),
+    endTime: new Date(`${endDay}T17:00:00+07:00`).toISOString()
+  };
+}
+
 export async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mimeType = 'application/pdf') {
   if (!TYPHOON_API_KEY) return '';
   try {
@@ -893,8 +931,12 @@ export default async function handler(req, res) {
 
       const insertedEvents = [];
       for (const mItem of missionsToSave) {
-        const startTime = new Date(`${mItem.start_date}T09:00:00+07:00`).toISOString();
-        const endTime = new Date(`${mItem.end_date}T17:00:00+07:00`).toISOString();
+        const { startTime, endTime } = parseTimeRangeToStartEnd(
+          mItem.start_date,
+          mItem.end_date,
+          mItem.time_str,
+          mItem.all_day
+        );
         const newEvtId = `evt_line_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         const descText = `👔 การแต่งกาย: ${mItem.dress_code || 'ชุดอ่อน (กำหนดอัตโนมัติ)'}\n📍 สถานที่: ${mItem.location || '-'}`;
 
@@ -924,8 +966,8 @@ export default async function handler(req, res) {
       await clearActiveDraft(userId);
 
       const confirmText = insertedEvents.length === 1
-        ? `✅ ยืนยันบันทึกภารกิจเข้าปฏิทินเรียบร้อยแล้วครับ!\n\n📌 ภารกิจ: ${insertedEvents[0].title}\n📅 วันที่: ${insertedEvents[0].start_date}\n👥 ผู้รับผิดชอบ: ${insertedEvents[0].member_names || 'ไม่ระบุ'}\n\n🔗 ดูปฏิทินสด: https://member-calendar-sync-app.vercel.app`
-        : `✅ ยืนยันบันทึก ${insertedEvents.length} ภารกิจเข้าปฏิทินเรียบร้อยแล้วครับ!\n\n` + insertedEvents.map((item, idx) => `${idx + 1}. 📌 ${item.title} (${item.start_date})`).join('\n') + '\n\n🔗 ดูปฏิทินสด: https://member-calendar-sync-app.vercel.app';
+        ? `✅ ยืนยันบันทึกภารกิจเข้าปฏิทินเรียบร้อยแล้วครับ!\n\n📌 ภารกิจ: ${insertedEvents[0].title}\n📅 วันที่: ${insertedEvents[0].start_date}${insertedEvents[0].time_str && insertedEvents[0].time_str !== 'ตลอดวัน' ? ' (' + insertedEvents[0].time_str + ')' : ''}\n👥 ผู้รับผิดชอบ: ${insertedEvents[0].member_names || 'ไม่ระบุ'}\n📍 สถานที่: ${insertedEvents[0].location || '-'}\n\n🔗 ดูปฏิทินสด: https://member-calendar-sync-app.vercel.app`
+        : `✅ ยืนยันบันทึก ${insertedEvents.length} ภารกิจเข้าปฏิทินเรียบร้อยแล้วครับ!\n\n` + insertedEvents.map((item, idx) => `${idx + 1}. 📌 ${item.title} (${item.start_date}${item.time_str && item.time_str !== 'ตลอดวัน' ? ' ' + item.time_str : ''})`).join('\n') + '\n\n🔗 ดูปฏิทินสด: https://member-calendar-sync-app.vercel.app';
 
       await replyOrPushLineMessage(replyToken, userId, {
         type: 'text',
