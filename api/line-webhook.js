@@ -22,7 +22,7 @@ async function fetchMembersFromSupabase() {
     console.error('Error fetching members from Supabase:', e);
   }
   return [
-    { id: 'mem_manudnot', name: 'Not', rank: 'จ.ส.อ.', first_name: 'มนุษย์นอต', last_name: 'สื่อสาร', nickname: 'นอต', full_name: 'มนุษย์นอต สื่อสาร' },
+    { id: 'mem_manudnot', name: 'นอต', rank: 'ร.ท.', first_name: 'นิติพัฒน์', last_name: 'โชคกิจ', nickname: 'นอต', full_name: 'นิติพัฒน์ โชคกิจ' },
     { id: 'mem_phak_ek', name: 'เอก', rank: 'ร.อ.', first_name: 'ภาคเอก', last_name: '', nickname: 'เอก', full_name: 'ภาคเอก' },
     { id: 'mem_thanatat', name: 'Top', rank: 'ร.อ.', first_name: 'ธนทัต', last_name: '', nickname: 'ท็อป', full_name: 'ธนทัต' },
     { id: 'mem_third', name: 'Third', rank: 'ร.ท.', first_name: 'สุภณัฐ', last_name: '', nickname: 'สุภณัฐ', full_name: 'สุภณัฐ' },
@@ -34,9 +34,44 @@ async function fetchMembersFromSupabase() {
   ];
 }
 
+const MEMBER_DISPLAY_NAMES = {
+  'mem_manudnot': 'ร.ท. นอต',
+  'mem_third': 'ร.ท. สุภณัฐ (เติร์ธ)',
+  'mem_phak_ek': 'ร.อ. ภาคเอก',
+  'mem_thanatat': 'ร.อ. ท็อป',
+  'mem_woooddy': 'พ.อ. แชมป์',
+  'mem_june': 'ร.ต.หญิง จูน',
+  'mem_keng': 'ส.อ. เก่งการ',
+  'mem_tum': 'ส.อ. ตั้ม',
+  'mem_wm': 'เวรหมาย'
+};
+
+function formatMemberNamesForDisplay(memberIds = [], dbMembers = []) {
+  if (!Array.isArray(memberIds) || memberIds.length === 0) return 'ไม่ระบุ';
+  return memberIds.map(id => {
+    if (MEMBER_DISPLAY_NAMES[id]) return MEMBER_DISPLAY_NAMES[id];
+    const mem = dbMembers.find(x => x.id === id);
+    if (!mem) return id;
+    const nameStr = mem.nickname || mem.first_name || mem.name || id;
+    return mem.rank ? `${mem.rank} ${nameStr}` : nameStr;
+  }).join(', ');
+}
+
 function matchMemberIds(memberNamesArray, dbMembers = []) {
   if (!Array.isArray(memberNamesArray) || memberNamesArray.length === 0) return [];
   const matched = new Set();
+
+  const ALIAS_MAP = {
+    'mem_manudnot': ['not', 'นอต', 'น็อต', 'นิติพัฒน์', 'มนุษย์นอต'],
+    'mem_third': ['third', 'สุภณัฐ', 'เติร์ธ', 'เทิร์ธ', 'เติร์ท', 'หมวดเติร์ธ', 'ผู้กองเติร์ธ'],
+    'mem_phak_ek': ['เอก', 'ภาคเอก', 'เสธ.เอก', 'รองเอก', 'ผู้กองเอก'],
+    'mem_thanatat': ['top', 'ท็อป', 'ท๊อป', 'ธนทัต', 'ผู้กองท็อป'],
+    'mem_woooddy': ['champ', 'แชมป์', 'ผู้พันแชมป์', 'แชมพ์'],
+    'mem_june': ['june', 'จูน', 'หมวดจูน'],
+    'mem_keng': ['keng', 'เก่ง', 'เก่งการ', 'จ่าเก่ง'],
+    'mem_tum': ['tum', 'ตั้ม', 'ตั๊ม', 'จ่าตั้ม'],
+    'mem_wm': ['เวรหมาย', 'เวร']
+  };
 
   memberNamesArray.forEach(nameStr => {
     const s = String(nameStr).toLowerCase().trim();
@@ -53,7 +88,7 @@ function matchMemberIds(memberNamesArray, dbMembers = []) {
         mem.rank ? `${mem.rank} ${mem.first_name}` : '',
         mem.rank ? `${mem.rank} ${mem.nickname}` : '',
         mem.rank ? `${mem.rank} ${mem.full_name}` : ''
-      ].filter(Boolean).map(t => String(t).toLowerCase());
+      ].concat(ALIAS_MAP[mem.id] || []).filter(Boolean).map(t => String(t).toLowerCase());
 
       if (searchTerms.some(term => s.includes(term) || term.includes(s))) {
         matched.add(mem.id);
@@ -486,13 +521,14 @@ function formatDraftSummaryMessage(draftObj) {
 
   if (missions.length === 1) {
     const item = missions[0];
+    const memberDisplayStr = formatMemberNamesForDisplay(item.member_ids, []) || item.member_names || 'ไม่ระบุ';
     return `🔍 ระบบวิเคราะห์ภารกิจเสร็จสิ้น โปรดตรวจสอบความถูกต้อง:
 
 📅 วันที่: ${item.start_date}${item.end_date !== item.start_date ? ' ถึง ' + item.end_date : ''} (${item.time_str || 'ตลอดวัน'})
 📝 ภารกิจ: ${item.title}
 🏷️ หมวดหมู่: ${formatCategoryWithBadge(item.category)}
 👔 การแต่งกาย: ${item.dress_code || 'ชุดอ่อน (กำหนดอัตโนมัติ)'}
-🎯 ผู้รับผิดชอบ: ${item.member_names || 'ไม่ระบุ'}
+🎯 ผู้รับผิดชอบ: ${memberDisplayStr}
 ${item.location ? '📍 สถานที่: ' + item.location : ''}
 
 ⏱️ ระบบจะกดยืนยันบันทึกให้อัตโนมัติใน 3 นาที หากไม่มีการกดปุ่มใดๆ หรือเมื่อเจ้านายส่งรูป/คำสั่งใหม่เข้ามาครับ
@@ -501,12 +537,13 @@ ${item.location ? '📍 สถานที่: ' + item.location : ''}
   }
 
   const itemsText = missions.map((item, idx) => {
+    const memberDisplayStr = formatMemberNamesForDisplay(item.member_ids, []) || item.member_names || 'ไม่ระบุ';
     return `📌 ภารกิจที่ ${idx + 1}:
 📅 วันที่: ${item.start_date}${item.end_date !== item.start_date ? ' ถึง ' + item.end_date : ''} (${item.time_str || 'ตลอดวัน'})
 📝 ภารกิจ: ${item.title}
 🏷️ หมวดหมู่: ${formatCategoryWithBadge(item.category)}
 👔 การแต่งกาย: ${item.dress_code || 'ชุดอ่อน (กำหนดอัตโนมัติ)'}
-🎯 ผู้รับผิดชอบ: ${item.member_names || 'ไม่ระบุ'}
+🎯 ผู้รับผิดชอบ: ${memberDisplayStr}
 ${item.location ? '📍 สถานที่: ' + item.location : ''}`;
   }).join('\n\n------------------\n\n');
 
@@ -669,7 +706,15 @@ export default async function handler(req, res) {
     }
 
     // 3. User Command: Interactive Edit Command on Active Draft
-    if (msgType === 'text' && activeDraft && (event.message.text.includes('แก้') || event.message.text.includes('เปลี่ยน') || event.message.text.includes('เพิ่ม'))) {
+    if (msgType === 'text' && (event.message.text.includes('แก้') || event.message.text.includes('เปลี่ยน') || event.message.text.includes('เพิ่ม'))) {
+      if (!activeDraft) {
+        await replyLineMessage(replyToken, {
+          type: 'text',
+          text: '❌ ไม่พบร่างภารกิจที่ค้างอยู่ในการแก้ไขครับ เจ้านายสามารถส่งรูปภาพหรือข้อความคำสั่งภารกิจใหม่เข้ามาได้เลยครับ'
+        });
+        continue;
+      }
+
       const userText = event.message.text;
 
       // Ensure missions array structure
@@ -677,40 +722,47 @@ export default async function handler(req, res) {
         ? activeDraft.missions
         : [activeDraft];
 
-      const targetItem = targetMissions[0]; // edit primary mission item
+      const applyToAll = userText.includes('ทั้งหมด') || targetMissions.length === 1;
 
       // Date Correction match
       const dateMatch = userText.match(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})|(\d{1,2}\/\d{1,2})/);
-      if (dateMatch) {
-        const raw = dateMatch[0];
-        if (raw.includes('-')) targetItem.start_date = raw;
-        else if (raw.includes('/')) {
-          const parts = raw.split('/');
-          const dStr = parts[0].padStart(2, '0');
-          const mStr = parts[1].padStart(2, '0');
-          const yStr = parts[2] ? (parseInt(parts[2]) > 2500 ? parseInt(parts[2]) - 543 : parts[2]) : new Date().getFullYear();
-          targetItem.start_date = `${yStr}-${mStr}-${dStr}`;
-          targetItem.end_date = targetItem.start_date;
-        }
-      }
 
       // Dress Code Correction match
-      if (userText.includes('เครื่องแบบ') || userText.includes('ชุดฝึก') || userText.includes('สุภาพ') || userText.includes('ชุดอ่อน')) {
-        if (userText.includes('เครื่องแบบ')) targetItem.dress_code = 'ชุดเครื่องแบบ';
-        else if (userText.includes('ชุดฝึก')) targetItem.dress_code = 'ชุดฝึก';
-        else if (userText.includes('สุภาพ')) targetItem.dress_code = 'ชุดสุภาพ';
-        else if (userText.includes('ชุดอ่อน')) targetItem.dress_code = 'ชุดอ่อน (กำหนดอัตโนมัติ)';
-      }
+      let newDressCode = null;
+      if (userText.includes('เครื่องแบบ')) newDressCode = 'ชุดเครื่องแบบ';
+      else if (userText.includes('ชุดฝึก')) newDressCode = 'ชุดฝึก';
+      else if (userText.includes('สุภาพ')) newDressCode = 'ชุดสุภาพ';
+      else if (userText.includes('ชุดอ่อน')) newDressCode = 'ชุดอ่อน (กำหนดอัตโนมัติ)';
 
       // Member Correction match
       const newMemberIds = matchMemberIds([userText], dbMembers);
-      if (newMemberIds.length > 0) {
-        targetItem.member_ids = Array.from(new Set([...(targetItem.member_ids || []), ...newMemberIds]));
-        targetItem.member_names = targetItem.member_ids.map(id => {
-          const m = dbMembers.find(x => x.id === id);
-          return m ? (m.rank ? `${m.rank} ${m.name}` : m.name) : id;
-        }).join(', ');
-      }
+
+      targetMissions.forEach((mItem, idx) => {
+        // Apply edits if applyToAll or if mission 1 specifically targeted
+        if (applyToAll || idx === 0) {
+          if (dateMatch) {
+            const raw = dateMatch[0];
+            if (raw.includes('-')) mItem.start_date = raw;
+            else if (raw.includes('/')) {
+              const parts = raw.split('/');
+              const dStr = parts[0].padStart(2, '0');
+              const mStr = parts[1].padStart(2, '0');
+              const yStr = parts[2] ? (parseInt(parts[2]) > 2500 ? parseInt(parts[2]) - 543 : parts[2]) : new Date().getFullYear();
+              mItem.start_date = `${yStr}-${mStr}-${dStr}`;
+              mItem.end_date = mItem.start_date;
+            }
+          }
+
+          if (newDressCode) {
+            mItem.dress_code = newDressCode;
+          }
+
+          if (newMemberIds.length > 0) {
+            mItem.member_ids = newMemberIds;
+            mItem.member_names = formatMemberNamesForDisplay(newMemberIds, dbMembers);
+          }
+        }
+      });
 
       activeDraft = { missions: targetMissions };
 
@@ -794,10 +846,7 @@ export default async function handler(req, res) {
 
       const formattedMissions = rawMissions.map(m => {
         const memberIds = matchMemberIds(m.members || [], dbMembers);
-        const memberNames = memberIds.length > 0 ? memberIds.map(id => {
-          const mem = dbMembers.find(x => x.id === id);
-          return mem ? (mem.rank ? `${mem.rank} ${mem.name}` : mem.name) : id;
-        }).join(', ') : 'ไม่ระบุ';
+        const memberNames = formatMemberNamesForDisplay(memberIds, dbMembers);
 
         return {
           title: m.title || 'ภารกิจสั่งการ',

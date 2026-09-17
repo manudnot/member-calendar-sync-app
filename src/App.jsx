@@ -19,7 +19,7 @@ import { hashPasscode } from './utils/crypto';
 
 // INITIAL TEAM MEMBERS (9 MEMBERS: MEMBERS & VIRTUAL MEMBERS)
 const INITIAL_MEMBERS = [
-  { id: 'mem_manudnot', name: 'Not', rank: 'จ.ส.อ.', first_name: 'มนุษย์นอต', last_name: 'สื่อสาร', nickname: 'นอต', full_name: 'มนุษย์นอต สื่อสาร', initials: 'NO', color: '#8b5cf6', member_type: 'member' },
+  { id: 'mem_manudnot', name: 'นอต', rank: 'ร.ท.', first_name: 'นิติพัฒน์', last_name: 'โชคกิจ', nickname: 'นอต', full_name: 'นิติพัฒน์ โชคกิจ', initials: 'NO', color: '#8b5cf6', member_type: 'member' },
   { id: 'mem_third', name: 'Third', rank: 'ร.ท.', first_name: 'สุภณัฐ', last_name: '', nickname: 'สุภณัฐ', full_name: 'สุภณัฐ', initials: 'TH', color: '#0ea5e9', member_type: 'member' },
   { id: 'mem_june', name: 'June', rank: 'ร.ต.หญิง', first_name: 'จูน', last_name: '', nickname: 'จูน', full_name: 'จูน', initials: 'JU', color: '#ec4899', member_type: 'member' },
   { id: 'mem_thanatat', name: 'Top', rank: 'ร.อ.', first_name: 'ธนทัต', last_name: '', nickname: 'ท็อป', full_name: 'ธนทัต', initials: 'TO', color: '#f59e0b', member_type: 'member' },
@@ -448,13 +448,15 @@ export default function App() {
 
     if (supabase) {
       try {
-        const supaPayload = {
+        const basePayload = {
           id: newMember.id,
-          name: newMember.name,
-          color: newMember.color,
-          email: '',
+          name: newMember.nickname || newMember.name || 'นอต',
+          color: newMember.color || '#8b5cf6',
           status: newMember.status || 'active',
-          is_archived: Boolean(newMember.is_archived),
+          is_archived: Boolean(newMember.is_archived)
+        };
+        const fullPayload = {
+          ...basePayload,
           rank: newMember.rank || '',
           first_name: newMember.first_name || '',
           last_name: newMember.last_name || '',
@@ -462,7 +464,12 @@ export default function App() {
           full_name: newMember.full_name || '',
           member_type: newMember.member_type || 'member'
         };
-        await supabase.from('members').upsert([supaPayload]);
+
+        const { error: upsertErr } = await supabase.from('members').upsert([fullPayload]);
+        if (upsertErr) {
+          console.warn('Supabase full member payload warning, falling back to base payload:', upsertErr);
+          await supabase.from('members').upsert([basePayload]);
+        }
       } catch (e) {
         console.warn('Supabase insert member warning:', e);
       }
@@ -498,13 +505,15 @@ export default function App() {
 
     if (supabase) {
       try {
-        const supaPayload = {
+        const basePayload = {
           id: updatedMember.id,
-          name: updatedMember.name,
-          color: updatedMember.color,
-          email: '',
+          name: updatedMember.nickname || updatedMember.name || 'นอต',
+          color: updatedMember.color || '#8b5cf6',
           status: updatedMember.status || 'active',
-          is_archived: Boolean(updatedMember.is_archived),
+          is_archived: Boolean(updatedMember.is_archived)
+        };
+        const fullPayload = {
+          ...basePayload,
           rank: updatedMember.rank || '',
           first_name: updatedMember.first_name || '',
           last_name: updatedMember.last_name || '',
@@ -512,8 +521,16 @@ export default function App() {
           full_name: updatedMember.full_name || '',
           member_type: updatedMember.member_type || 'member'
         };
-        if (updatedMember.pin_code) supaPayload.pin_code = updatedMember.pin_code;
-        await supabase.from('members').upsert([supaPayload]);
+        if (updatedMember.pin_code) {
+          basePayload.pin_code = updatedMember.pin_code;
+          fullPayload.pin_code = updatedMember.pin_code;
+        }
+
+        const { error: upsertErr } = await supabase.from('members').upsert([fullPayload]);
+        if (upsertErr) {
+          console.warn('Supabase full member payload warning, falling back to base payload:', upsertErr);
+          await supabase.from('members').upsert([basePayload]);
+        }
       } catch (e) {
         console.warn('Supabase update member warning:', e);
       }
