@@ -19,15 +19,15 @@ import { hashPasscode } from './utils/crypto';
 
 // INITIAL TEAM MEMBERS (9 MEMBERS: MEMBERS & VIRTUAL MEMBERS)
 const INITIAL_MEMBERS = [
-  { id: 'mem_manudnot', name: 'นอต', rank: 'ร.ท.', first_name: 'นิติพัฒน์', last_name: 'โชคกิจ', nickname: 'นอต', full_name: 'นิติพัฒน์ โชคกิจ', initials: 'NO', color: '#8b5cf6', member_type: 'member' },
-  { id: 'mem_third', name: 'Third', rank: 'ร.ท.', first_name: 'สุภณัฐ', last_name: '', nickname: 'สุภณัฐ', full_name: 'สุภณัฐ', initials: 'TH', color: '#0ea5e9', member_type: 'member' },
-  { id: 'mem_june', name: 'June', rank: 'ร.ต.หญิง', first_name: 'จูน', last_name: '', nickname: 'จูน', full_name: 'จูน', initials: 'JU', color: '#ec4899', member_type: 'member' },
-  { id: 'mem_thanatat', name: 'Top', rank: 'ร.อ.', first_name: 'ธนทัต', last_name: '', nickname: 'ท็อป', full_name: 'ธนทัต', initials: 'TO', color: '#f59e0b', member_type: 'member' },
-  { id: 'mem_phak_ek', name: 'เอก', rank: 'ร.อ.', first_name: 'ภาคเอก', last_name: '', nickname: 'เอก', full_name: 'ภาคเอก', initials: 'PE', color: '#ef4444', member_type: 'member' },
-  { id: 'mem_keng', name: 'เก่ง', rank: 'ส.อ.', first_name: 'เก่งการ', last_name: '', nickname: 'เก่ง', full_name: 'เก่งการ', initials: 'KG', color: '#06b6d4', member_type: 'member' },
-  { id: 'mem_tum', name: 'ตั้ม', rank: 'ส.อ.', first_name: 'ตั้ม', last_name: '', nickname: 'ตั้ม', full_name: 'ตั้ม', initials: 'TM', color: '#84cc16', member_type: 'member' },
-  { id: 'mem_woooddy', name: 'Champ', rank: 'พ.อ.', first_name: 'แชมป์', last_name: '', nickname: 'แชมป์', full_name: 'แชมป์', initials: 'CH', color: '#10b981', member_type: 'member' },
-  { id: 'mem_wm', name: 'เวรหมาย', rank: 'เวร', first_name: 'เวรปฏิบัติการหมาย', last_name: '', nickname: 'เวรหมาย', full_name: 'เวรปฏิบัติการหมาย', initials: 'WM', color: '#64748b', member_type: 'virtual' }
+  { id: 'mem_manudnot', name: 'นอต', rank: 'ร.ท.', first_name: 'นิติพัฒน์', last_name: 'โชคกิจ', nickname: 'นอต', full_name: 'ร.ท. นิติพัฒน์ โชคกิจ', initials: 'NO', color: '#8b5cf6', member_type: 'real', is_archived: false, status: 'active', email: 'wtgmso123@gmail.com' },
+  { id: 'mem_third', name: 'เติร์ธ', rank: 'ร.อ.', first_name: 'ศุภณัฐ', last_name: 'ทองน้ำวน', nickname: 'เติร์ธ', full_name: 'ร.อ. ศุภณัฐ ทองน้ำวน', initials: 'TH', color: '#0ea5e9', member_type: 'real', is_archived: false, status: 'active' },
+  { id: 'mem_june', name: 'จูน', rank: 'ร.ท.', first_name: 'อภิสิทธิ์', last_name: 'เย็นใส', nickname: 'จูน', full_name: 'ร.ท. อภิสิทธิ์ เย็นใส', initials: 'JU', color: '#ec4899', member_type: 'real', is_archived: false, status: 'active' },
+  { id: 'mem_phak_ek', name: 'เอก', rank: 'ร.อ.', first_name: 'จรินทร์', last_name: 'จินดานุช', nickname: 'เอก', full_name: 'ร.อ. จรินทร์ จินดานุช', initials: 'EK', color: '#ef4444', member_type: 'virtual', is_archived: false, status: 'active' },
+  { id: 'mem_keng', name: 'เก่ง', rank: 'ร.ท.', first_name: 'พัทธ์รวิน', last_name: 'อภินันท์ศิริเดช', nickname: 'เก่ง', full_name: 'ร.ท. พัทธ์รวิน อภินันท์ศิริเดช', initials: 'KG', color: '#06b6d4', member_type: 'virtual', is_archived: false, status: 'active' },
+  { id: 'mem_tum', name: 'ตั้ม', rank: 'ร.ต.', first_name: 'อภิชาติ', last_name: 'เกษรแก้ว', nickname: 'ตั้ม', full_name: 'ร.ต. อภิชาติ เกษรแก้ว', initials: 'TM', color: '#84cc16', member_type: 'virtual', is_archived: false, status: 'active' },
+  { id: 'mem_wm', name: 'เวรหมาย', rank: '', first_name: 'เวรปฏิบัติการหมาย', last_name: '', nickname: 'เวรหมาย', full_name: 'เวรปฏิบัติการหมาย', initials: 'WM', color: '#64748b', member_type: 'virtual', is_archived: false, status: 'active' },
+  { id: 'mem_thanatat', name: 'ท็อป', rank: 'ร.อ.', first_name: 'ธนทัต', last_name: 'ปานแสง', nickname: 'ท็อป', full_name: 'ร.อ. ธนทัต ปานแสง', initials: 'TO', color: '#f59e0b', member_type: 'real', is_archived: true, status: 'resigned' },
+  { id: 'mem_woooddy', name: 'แชมป์', rank: 'พ.ต.', first_name: 'ภามพัฒน์', last_name: 'ทรัพย์กุลภิญโญ', nickname: 'แชมป์', full_name: 'พ.ต. ภามพัฒน์ ทรัพย์กุลภิญโญ', initials: 'CH', color: '#10b981', member_type: 'real', is_archived: true, status: 'resigned' }
 ];
 
 

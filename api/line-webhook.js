@@ -14,7 +14,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 // Dynamic Supabase member fetch & matching
 async function fetchMembersFromSupabase() {
   try {
-    const { data, error } = await supabase.from('members').select('id, name, rank, first_name, last_name, nickname, full_name, member_type');
+    const { data, error } = await supabase.from('members').select('id, name, rank, first_name, last_name, nickname, full_name, member_type, is_archived, status');
     if (!error && Array.isArray(data) && data.length > 0) {
       return data;
     }
@@ -22,28 +22,28 @@ async function fetchMembersFromSupabase() {
     console.error('Error fetching members from Supabase:', e);
   }
   return [
-    { id: 'mem_manudnot', name: 'นอต', rank: 'ร.ท.', first_name: 'นิติพัฒน์', last_name: 'โชคกิจ', nickname: 'นอต', full_name: 'นิติพัฒน์ โชคกิจ' },
-    { id: 'mem_phak_ek', name: 'เอก', rank: 'ร.อ.', first_name: 'ภาคเอก', last_name: '', nickname: 'เอก', full_name: 'ภาคเอก' },
-    { id: 'mem_thanatat', name: 'Top', rank: 'ร.อ.', first_name: 'ธนทัต', last_name: '', nickname: 'ท็อป', full_name: 'ธนทัต' },
-    { id: 'mem_third', name: 'Third', rank: 'ร.ท.', first_name: 'สุภณัฐ', last_name: '', nickname: 'สุภณัฐ', full_name: 'สุภณัฐ' },
-    { id: 'mem_june', name: 'June', rank: 'ร.ต.หญิง', first_name: 'จูน', last_name: '', nickname: 'จูน', full_name: 'จูน' },
-    { id: 'mem_keng', name: 'เก่ง', rank: 'ส.อ.', first_name: 'เก่งการ', last_name: '', nickname: 'เก่ง', full_name: 'เก่งการ' },
-    { id: 'mem_tum', name: 'ตั้ม', rank: 'ส.อ.', first_name: 'ตั้ม', last_name: '', nickname: 'ตั้ม', full_name: 'ตั้ม' },
-    { id: 'mem_woooddy', name: 'Champ', rank: 'พ.อ.', first_name: 'แชมป์', last_name: '', nickname: 'แชมป์', full_name: 'แชมป์' },
-    { id: 'mem_wm', name: 'เวรหมาย', rank: 'เวร', first_name: 'เวรปฏิบัติการหมาย', last_name: '', nickname: 'เวรหมาย', full_name: 'เวรปฏิบัติการหมาย' }
+    { id: 'mem_manudnot', name: 'นอต', rank: 'ร.ท.', first_name: 'นิติพัฒน์', last_name: 'โชคกิจ', nickname: 'นอต', full_name: 'ร.ท. นิติพัฒน์ โชคกิจ', member_type: 'real', is_archived: false, status: 'active' },
+    { id: 'mem_third', name: 'เติร์ธ', rank: 'ร.อ.', first_name: 'ศุภณัฐ', last_name: 'ทองน้ำวน', nickname: 'เติร์ธ', full_name: 'ร.อ. ศุภณัฐ ทองน้ำวน', member_type: 'real', is_archived: false, status: 'active' },
+    { id: 'mem_june', name: 'จูน', rank: 'ร.ท.', first_name: 'อภิสิทธิ์', last_name: 'เย็นใส', nickname: 'จูน', full_name: 'ร.ท. อภิสิทธิ์ เย็นใส', member_type: 'real', is_archived: false, status: 'active' },
+    { id: 'mem_phak_ek', name: 'เอก', rank: 'ร.อ.', first_name: 'จรินทร์', last_name: 'จินดานุช', nickname: 'เอก', full_name: 'ร.อ. จรินทร์ จินดานุช', member_type: 'virtual', is_archived: false, status: 'active' },
+    { id: 'mem_keng', name: 'เก่ง', rank: 'ร.ท.', first_name: 'พัทธ์รวิน', last_name: 'อภินันท์ศิริเดช', nickname: 'เก่ง', full_name: 'ร.ท. พัทธ์รวิน อภินันท์ศิริเดช', member_type: 'virtual', is_archived: false, status: 'active' },
+    { id: 'mem_tum', name: 'ตั้ม', rank: 'ร.ต.', first_name: 'อภิชาติ', last_name: 'เกษรแก้ว', nickname: 'ตั้ม', full_name: 'ร.ต. อภิชาติ เกษรแก้ว', member_type: 'virtual', is_archived: false, status: 'active' },
+    { id: 'mem_wm', name: 'เวรหมาย', rank: '', first_name: 'เวรปฏิบัติการหมาย', last_name: '', nickname: 'เวรหมาย', full_name: 'เวรปฏิบัติการหมาย', member_type: 'virtual', is_archived: false, status: 'active' },
+    { id: 'mem_thanatat', name: 'ท็อป', rank: 'ร.อ.', first_name: 'ธนทัต', last_name: 'ปานแสง', nickname: 'ท็อป', full_name: 'ร.อ. ธนทัต ปานแสง', member_type: 'real', is_archived: true, status: 'resigned' },
+    { id: 'mem_woooddy', name: 'แชมป์', rank: 'พ.ต.', first_name: 'ภามพัฒน์', last_name: 'ทรัพย์กุลภิญโญ', nickname: 'แชมป์', full_name: 'พ.ต. ภามพัฒน์ ทรัพย์กุลภิญโญ', member_type: 'real', is_archived: true, status: 'resigned' }
   ];
 }
 
 const MEMBER_DISPLAY_NAMES = {
   'mem_manudnot': 'ร.ท. นอต',
-  'mem_third': 'ร.ท. สุภณัฐ (เติร์ธ)',
-  'mem_phak_ek': 'ร.อ. ภาคเอก',
-  'mem_thanatat': 'ร.อ. ท็อป',
-  'mem_woooddy': 'พ.อ. แชมป์',
-  'mem_june': 'ร.ต.หญิง จูน',
-  'mem_keng': 'ส.อ. เก่งการ',
-  'mem_tum': 'ส.อ. ตั้ม',
-  'mem_wm': 'เวรหมาย'
+  'mem_third': 'ร.อ. ศุภณัฐ (เติร์ธ)',
+  'mem_june': 'ร.ท. อภิสิทธิ์ (จูน)',
+  'mem_phak_ek': 'ร.อ. จรินทร์ (เอก)',
+  'mem_keng': 'ร.ท. พัทธ์รวิน (เก่ง)',
+  'mem_tum': 'ร.ต. อภิชาติ (ตั้ม)',
+  'mem_wm': 'เวรหมาย',
+  'mem_thanatat': 'ร.อ. ธนทัต (ท็อป)',
+  'mem_woooddy': 'พ.ต. ภามพัฒน์ (แชมป์)'
 };
 
 function formatMemberNamesForDisplay(memberIds = [], dbMembers = []) {
@@ -68,21 +68,21 @@ function matchMemberIds(memberNamesArray, dbMembers = []) {
 
   if (isAllRealMembers) {
     const realMemberIds = dbMembers
-      .filter(m => m.member_type !== 'virtual' && m.id !== 'mem_wm')
+      .filter(m => m.member_type !== 'virtual' && m.id !== 'mem_wm' && !m.is_archived && m.status !== 'resigned')
       .map(m => m.id);
     if (realMemberIds.length > 0) return realMemberIds;
-    return ['mem_manudnot', 'mem_phak_ek', 'mem_thanatat', 'mem_third', 'mem_june', 'mem_keng', 'mem_tum', 'mem_woooddy'];
+    return ['mem_manudnot', 'mem_third', 'mem_june'];
   }
 
   const ALIAS_MAP = {
-    'mem_manudnot': ['not', 'นอต', 'น็อต', 'นิติพัฒน์', 'มนุษย์นอต'],
-    'mem_third': ['third', 'สุภณัฐ', 'เติร์ธ', 'เทิร์ธ', 'เติร์ท', 'หมวดเติร์ธ', 'ผู้กองเติร์ธ'],
-    'mem_phak_ek': ['เอก', 'ภาคเอก', 'เสธ.เอก', 'รองเอก', 'ผู้กองเอก'],
-    'mem_thanatat': ['top', 'ท็อป', 'ท๊อป', 'ธนทัต', 'ผู้กองท็อป'],
-    'mem_woooddy': ['champ', 'แชมป์', 'ผู้พันแชมป์', 'แชมพ์'],
-    'mem_june': ['june', 'จูน', 'หมวดจูน'],
-    'mem_keng': ['keng', 'เก่ง', 'เก่งการ', 'จ่าเก่ง'],
-    'mem_tum': ['tum', 'ตั้ม', 'ตั๊ม', 'จ่าตั้ม'],
+    'mem_manudnot': ['not', 'นอต', 'น็อต', 'นิติพัฒน์', 'มนุษย์นอต', 'โชคกิจ'],
+    'mem_third': ['third', 'สุภณัฐ', 'ศุภณัฐ', 'เติร์ธ', 'เทิร์ธ', 'เติร์ท', 'หมวดเติร์ธ', 'ผู้กองเติร์ธ', 'ทองน้ำวน'],
+    'mem_phak_ek': ['เอก', 'ภาคเอก', 'จรินทร์', 'จินดานุช', 'เสธ.เอก', 'รองเอก', 'ผู้กองเอก'],
+    'mem_thanatat': ['top', 'ท็อป', 'ท๊อป', 'ธนทัต', 'ปานแสง', 'ผู้กองท็อป'],
+    'mem_woooddy': ['champ', 'แชมป์', 'ภามพัฒน์', 'ทรัพย์กุลภิญโญ', 'ผู้พันแชมป์', 'แชมพ์'],
+    'mem_june': ['june', 'จูน', 'อภิสิทธิ์', 'เย็นใส', 'หมวดจูน'],
+    'mem_keng': ['keng', 'เก่ง', 'พัทธ์รวิน', 'อภินันท์ศิริเดช', 'เก่งการ', 'หมวดเก่ง', 'จ่าเก่ง'],
+    'mem_tum': ['tum', 'ตั้ม', 'ตั๊ม', 'อภิชาติ', 'เกษรแก้ว', 'หมวดตั้ม', 'จ่าตั้ม'],
     'mem_wm': ['เวรหมาย', 'เวร']
   };
 
