@@ -245,6 +245,49 @@ export function formatCategoryWithBadge(catStr) {
   return `🔵 ${catStr}`;
 }
 
+async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mimeType = 'application/pdf') {
+  if (!TYPHOON_API_KEY) return '';
+  try {
+    const blob = new Blob([fileBuf], { type: mimeType });
+    const formData = new FormData();
+    formData.append('file', blob, filename);
+    formData.append('model', 'typhoon-ocr');
+    formData.append('task_type', 'default');
+    formData.append('max_tokens', '16384');
+    formData.append('temperature', '0.1');
+    formData.append('top_p', '0.6');
+    formData.append('repetition_penalty', '1.2');
+
+    const res = await fetch('https://api.opentyphoon.ai/v1/ocr', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${TYPHOON_API_KEY}`
+      },
+      body: formData
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const extractedTexts = [];
+      for (const pageResult of (data.results || [])) {
+        if (pageResult.success && pageResult.message) {
+          const content = pageResult.message.choices?.[0]?.message?.content || '';
+          try {
+            const parsed = JSON.parse(content);
+            extractedTexts.push(parsed.natural_text || content);
+          } catch (e) {
+            extractedTexts.push(content);
+          }
+        }
+      }
+      return extractedTexts.join('\n\n').trim();
+    }
+  } catch (err) {
+    console.warn('Typhoon OCR error:', err?.message || err);
+  }
+  return '';
+}
+
 async function extractPdfTextWithTimeout(fileBuf, timeoutMs = 3500, maxChars = 5000) {
   return new Promise((resolve) => {
     let isResolved = false;
@@ -924,8 +967,14 @@ export default async function handler(req, res) {
     if (msgType === 'image') {
       try {
         const imageBuf = await fetchLineBinary(event.message.id);
-        const imageBase64 = imageBuf.toString('base64');
-        analyzedData = await analyzeMissionOrderWithAI(null, imageBase64, dbMembers);
+        const ocrText = await extractTextWithTyphoonOCR(imageBuf, 'image.png', 'image/png');
+        if (ocrText && ocrText.length > 5) {
+          analyzedData = await analyzeMissionOrderWithAI(ocrText, null, dbMembers);
+        }
+        if (!analyzedData) {
+          const imageBase64 = imageBuf.toString('base64');
+          analyzedData = await analyzeMissionOrderWithAI(null, imageBase64, dbMembers, 'image/png');
+        }
       } catch (err) {
         console.error('Image analysis error:', err);
       }
@@ -938,16 +987,25 @@ export default async function handler(req, res) {
       }
     } else if (msgType === 'file') {
       try {
-        const fileName = (event.message.fileName || '').toLowerCase();
+        const fileName = (event.message.fileName || 'document.pdf').toLowerCase();
         const fileBuf = await fetchLineBinary(event.message.id);
         
         if (fileName.endsWith('.pdf') || (fileBuf && fileBuf.toString('ascii', 0, 4) === '%PDF')) {
-          const pdfText = await extractPdfTextWithTimeout(fileBuf, 3000);
-
-          if (pdfText && pdfText.length > 10) {
-            analyzedData = await analyzeMissionOrderWithAI(pdfText, null, dbMembers);
+          // 1. Try Typhoon OCR API first (Primary OCR Engine)
+          const ocrText = await extractTextWithTyphoonOCR(fileBuf, fileName, 'application/pdf');
+          if (ocrText && ocrText.length > 10) {
+            analyzedData = await analyzeMissionOrderWithAI(ocrText, null, dbMembers);
           }
 
+          // 2. Fallback to local pdf-parse if Typhoon OCR had no result
+          if (!analyzedData) {
+            const pdfText = await extractPdfTextWithTimeout(fileBuf, 3500);
+            if (pdfText && pdfText.length > 10) {
+              analyzedData = await analyzeMissionOrderWithAI(pdfText, null, dbMembers);
+            }
+          }
+
+          // 3. Fallback to Gemini 2.5 Flash if available
           if (!analyzedData && GEMINI_API_KEY) {
             const base64Str = fileBuf.toString('base64');
             analyzedData = await analyzeMissionOrderWithAI(null, base64Str, dbMembers, 'application/pdf');
@@ -956,8 +1014,10 @@ export default async function handler(req, res) {
           const fileText = fileBuf.toString('utf-8');
           analyzedData = await analyzeMissionOrderWithAI(fileText, null, dbMembers);
         } else {
-          const base64Str = fileBuf.toString('base64');
-          analyzedData = await analyzeMissionOrderWithAI(null, base64Str, dbMembers, 'image/jpeg');
+          const ocrText = await extractTextWithTyphoonOCR(fileBuf, fileName, 'image/png');
+          if (ocrText && ocrText.length > 5) {
+            analyzedData = await analyzeMissionOrderWithAI(ocrText, null, dbMembers);
+          }
         }
       } catch (err) {
         console.error('File analysis error:', err);
