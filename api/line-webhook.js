@@ -1049,47 +1049,72 @@ export default async function handler(req, res) {
         continue;
       }
     } else if (msgType === 'file') {
-      const fileName = (event.message.fileName || 'document.pdf').toLowerCase();
+      const fileName = (event.message.fileName || 'document.pdf');
       // Immediate push notification for user reassurance
       await pushLineMessage(userId, {
         type: 'text',
-        text: `⏳ รับไฟล์เอกสาร "${event.message.fileName || 'document.pdf'}" เรียบร้อย! กำลังสแกนอ่านด้วย Typhoon OCR กรุณารอสักครู่ครับ...`
+        text: `⏳ รับไฟล์เอกสาร "${fileName}" เรียบร้อย! กำลังสแกนอ่านด้วย Typhoon OCR กรุณารอสักครู่ครับ...`
       });
 
+      let fileBuf = null;
       try {
-        const fileBuf = await fetchLineBinary(event.message.id);
-        
-        if (fileName.endsWith('.pdf') || (fileBuf && fileBuf.toString('ascii', 0, 4) === '%PDF')) {
-          // 1. Try Typhoon OCR API first (Primary OCR Engine for Thai PDFs)
-          const ocrText = await extractTextWithTyphoonOCR(fileBuf, fileName, 'application/pdf');
-          if (ocrText && ocrText.length > 10) {
-            analyzedData = await analyzeMissionOrderWithAI(ocrText, null, dbMembers);
-          }
+        fileBuf = await fetchLineBinary(event.message.id);
+      } catch (dlErr) {
+        console.error('LINE binary download error:', dlErr);
+        await pushLineMessage(userId, {
+          type: 'text',
+          text: `❌ ไม่สามารถดาวน์โหลดไฟล์เอกสารจาก LINE ได้ (${dlErr?.message || dlErr})\n\nกรุณาลองส่งไฟล์ใหม่อีกครั้งครับ`
+        });
+        continue;
+      }
 
-          // 2. Fallback to local pdf-parse if Typhoon OCR had no result
-          if (!analyzedData) {
-            const pdfText = await extractPdfTextWithTimeout(fileBuf, 3500);
-            if (pdfText && pdfText.length > 10) {
-              analyzedData = await analyzeMissionOrderWithAI(pdfText, null, dbMembers);
-            }
-          }
-        } else if (fileName.endsWith('.txt') || fileName.endsWith('.csv')) {
-          const fileText = fileBuf.toString('utf-8');
-          analyzedData = await analyzeMissionOrderWithAI(fileText, null, dbMembers);
-        } else {
-          const ocrText = await extractTextWithTyphoonOCR(fileBuf, fileName, 'image/png');
-          if (ocrText && ocrText.length > 5) {
-            analyzedData = await analyzeMissionOrderWithAI(ocrText, null, dbMembers);
+      let ocrText = '';
+      let ocrErrStr = '';
+
+      const lowerName = fileName.toLowerCase();
+      if (lowerName.endsWith('.pdf') || (fileBuf && fileBuf.toString('ascii', 0, 4) === '%PDF')) {
+        try {
+          ocrText = await extractTextWithTyphoonOCR(fileBuf, fileName, 'application/pdf');
+        } catch (ocrE) {
+          ocrErrStr = ocrE?.message || String(ocrE);
+          console.warn('Typhoon OCR error:', ocrE);
+        }
+
+        if (!ocrText || ocrText.length < 5) {
+          try {
+            ocrText = await extractPdfTextWithTimeout(fileBuf, 5000);
+          } catch (pdfE) {
+            console.warn('pdf-parse fallback error:', pdfE);
           }
         }
-      } catch (err) {
-        console.error('File analysis error:', err);
+      } else if (lowerName.endsWith('.txt') || lowerName.endsWith('.csv')) {
+        ocrText = fileBuf.toString('utf-8');
+      } else {
+        try {
+          ocrText = await extractTextWithTyphoonOCR(fileBuf, fileName, 'image/png');
+        } catch (ocrE) {
+          ocrErrStr = ocrE?.message || String(ocrE);
+        }
+      }
+
+      if (ocrText && ocrText.length > 5) {
+        try {
+          analyzedData = await analyzeMissionOrderWithAI(ocrText, null, dbMembers);
+        } catch (aiErr) {
+          console.error('AI analysis error:', aiErr);
+          await pushLineMessage(userId, {
+            type: 'text',
+            text: `❌ อ่านเอกสารสำเร็จแต่ไม่สามารถวิเคราะห์ภารกิจด้วย Typhoon AI ได้ (${aiErr?.message || aiErr})`
+          });
+          continue;
+        }
       }
 
       if (!analyzedData) {
-        await replyOrPushLineMessage(replyToken, userId, {
+        const detailMsg = ocrErrStr ? `\n(รายละเอียด: ${ocrErrStr})` : '';
+        await pushLineMessage(userId, {
           type: 'text',
-          text: '❌ ไม่สามารถวิเคราะห์ไฟล์เอกสาร PDF ที่ส่งมาได้ครับ หากเป็น PDF สแกนภาพ กรุณาลองถ่ายภาพคำสั่งภารกิจ หรือพิมพ์เนื้อหาภารกิจเข้ามาได้เลยครับ'
+          text: `❌ ไม่สามารถสกัดข้อความภารกิจจากไฟล์ "${fileName}" ด้วย Typhoon OCR ได้ครับ${detailMsg}\n\nกรุณาลองถ่ายภาพคำสั่งภารกิจ หรือพิมพ์เนื้อหาภารกิจเข้ามาได้เลยครับ`
         });
         continue;
       }
