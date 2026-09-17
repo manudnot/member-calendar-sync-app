@@ -152,6 +152,75 @@ async function fetchLineBinary(messageId) {
   return Buffer.from(arrayBuffer);
 }
 
+// In-Memory Draft Fallback Engine (Guarantees draft retention even if Supabase draft_events table is missing)
+if (!globalThis.inMemoryDraftStore) {
+  globalThis.inMemoryDraftStore = new Map();
+}
+
+async function saveDraft(userId, draftData) {
+  if (!userId) return;
+  globalThis.inMemoryDraftStore.set(userId, draftData);
+  globalThis.inMemoryDraftStore.set('latest', draftData);
+
+  try {
+    await supabase.from('draft_events').upsert({
+      id: userId,
+      user_id: userId,
+      draft_data: draftData,
+      updated_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.warn('Supabase draft_events upsert notice:', e?.message || e);
+  }
+}
+
+async function getActiveDraft(userId) {
+  if (globalThis.inMemoryDraftStore.has(userId)) {
+    return globalThis.inMemoryDraftStore.get(userId);
+  }
+  if (globalThis.inMemoryDraftStore.has('latest')) {
+    return globalThis.inMemoryDraftStore.get('latest');
+  }
+
+  try {
+    const { data: userDrafts } = await supabase
+      .from('draft_events')
+      .select('*')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false });
+
+    if (userDrafts && userDrafts.length > 0) {
+      return userDrafts[0].draft_data;
+    }
+
+    const { data: latestDrafts } = await supabase
+      .from('draft_events')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    if (latestDrafts && latestDrafts.length > 0) {
+      return latestDrafts[0].draft_data;
+    }
+  } catch (e) {
+    console.warn('Supabase draft_events select notice:', e?.message || e);
+  }
+
+  return null;
+}
+
+async function clearActiveDraft(userId) {
+  if (userId) globalThis.inMemoryDraftStore.delete(userId);
+  globalThis.inMemoryDraftStore.delete('latest');
+
+  try {
+    await supabase.from('draft_events').delete().eq('user_id', userId);
+    await supabase.from('draft_events').delete().eq('id', userId);
+  } catch (e) {
+    console.warn('Supabase draft_events delete notice:', e?.message || e);
+  }
+}
+
 export function formatCategoryWithBadge(catStr) {
   if (!catStr) return '🔵 ภารกิจหน่วย';
   if (catStr.includes('🔴') || catStr.includes('🔵') || catStr.includes('🟢') || catStr.includes('🟡')) {
@@ -607,36 +676,8 @@ export default async function handler(req, res) {
     const userId = event.source?.userId || event.source?.groupId || event.source?.roomId || 'default_user';
     const msgType = event.message.type;
 
-    // Fetch active draft for this user/group, or fallback to latest system draft
-    let activeDraft = null;
-    let activeDraftRowId = null;
-
-    try {
-      const { data: userDrafts } = await supabase
-        .from('draft_events')
-        .select('*')
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false });
-
-      if (userDrafts && userDrafts.length > 0) {
-        activeDraft = userDrafts[0].draft_data;
-        activeDraftRowId = userDrafts[0].id;
-      } else {
-        // Fallback: check latest draft in draft_events table (for LINE group/room compatibility)
-        const { data: latestDrafts } = await supabase
-          .from('draft_events')
-          .select('*')
-          .order('updated_at', { ascending: false })
-          .limit(1);
-
-        if (latestDrafts && latestDrafts.length > 0) {
-          activeDraft = latestDrafts[0].draft_data;
-          activeDraftRowId = latestDrafts[0].id;
-        }
-      }
-    } catch (e) {
-      console.warn('Error fetching draft_events:', e);
-    }
+    // Fetch active draft for this user/group (with in-memory fallback)
+    let activeDraft = await getActiveDraft(userId);
 
     // 1. User Command: Confirming Save (✅ ยืนยันบันทึก / ยืนยัน)
     if (msgType === 'text' && (event.message.text.includes('ยืนยัน') || event.message.text.includes('บันทึก'))) {
@@ -682,11 +723,8 @@ export default async function handler(req, res) {
         }
       }
 
-      // Clear draft table
-      if (activeDraftRowId) {
-        await supabase.from('draft_events').delete().eq('id', activeDraftRowId);
-      }
-      await supabase.from('draft_events').delete().eq('user_id', userId);
+      // Clear draft
+      await clearActiveDraft(userId);
 
       const confirmText = insertedEvents.length === 1
         ? `✅ ยืนยันบันทึกภารกิจเข้าปฏิทินเรียบร้อยแล้วครับ!\n\n📌 ภารกิจ: ${insertedEvents[0].title}\n📅 วันที่: ${insertedEvents[0].start_date}\n👥 ผู้รับผิดชอบ: ${insertedEvents[0].member_names || 'ไม่ระบุ'}\n\n🔗 ดูปฏิทินสด: https://member-calendar-sync-app.vercel.app`
@@ -701,10 +739,7 @@ export default async function handler(req, res) {
 
     // 2. User Command: Cancel Draft (❌ ยกเลิก)
     if (msgType === 'text' && event.message.text.includes('ยกเลิก')) {
-      if (activeDraftRowId) {
-        await supabase.from('draft_events').delete().eq('id', activeDraftRowId);
-      }
-      await supabase.from('draft_events').delete().eq('user_id', userId);
+      await clearActiveDraft(userId);
       await replyLineMessage(replyToken, {
         type: 'text',
         text: '❌ ยกเลิกร่างภารกิจเรียบร้อยแล้วครับ เจ้านายสามารถส่งภารกิจใหม่เข้ามาได้ตลอดเวลาครับ'
@@ -774,12 +809,7 @@ export default async function handler(req, res) {
       activeDraft = { missions: targetMissions };
 
       // Save updated draft
-      await supabase.from('draft_events').upsert({
-        id: userId,
-        user_id: userId,
-        draft_data: activeDraft,
-        updated_at: new Date().toISOString()
-      });
+      await saveDraft(userId, activeDraft);
 
       await replyLineMessage(replyToken, [
         {
@@ -873,13 +903,8 @@ export default async function handler(req, res) {
         missions: formattedMissions
       };
 
-      // Save draft to Supabase
-      await supabase.from('draft_events').upsert({
-        id: userId,
-        user_id: userId,
-        draft_data: newDraft,
-        updated_at: new Date().toISOString()
-      });
+      // Save draft (In-memory + Supabase)
+      await saveDraft(userId, newDraft);
 
       // Reply with Draft Summary and Quick Reply Buttons
       await replyLineMessage(replyToken, [
