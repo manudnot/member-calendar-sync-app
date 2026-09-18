@@ -79,7 +79,7 @@ export default function DayEventsModal({
           {holiday && (
             <div className="p-2.5 px-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl flex items-center gap-2 text-rose-700 dark:text-rose-300 text-xs font-bold shadow-2xs">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-              <span>🎉 <strong className="font-extrabold">{holiday.name}</strong></span>
+              <span><strong className="font-extrabold">{holiday.name}</strong></span>
             </div>
           )}
 

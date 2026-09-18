@@ -264,7 +264,7 @@ export default function MonthGrid({
                         ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/60 hover:bg-rose-100/80 dark:hover:bg-rose-950/40'
                         : 'bg-white dark:bg-dark-card hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     } ${cell.isOtherMonth ? 'bg-slate-50/60 dark:bg-dark-card/40 opacity-60' : ''}`}
-                    title={holiday ? `🎉 ${holiday.name} (วันหยุดราชการ)` : 'กดที่พื้นที่ว่างเพื่อสร้างภารกิจใหม่ในวันนี้'}
+                    title={holiday ? `${holiday.name} (วันหยุดราชการ)` : 'กดที่พื้นที่ว่างเพื่อสร้างภารกิจใหม่ในวันนี้'}
                   >
                     {/* Day Header Strip Box (Centered Day Number + Clickable for Day Agenda Modal) */}
                     <div
@@ -275,8 +275,8 @@ export default function MonthGrid({
                           if (onOpenDayModal) onOpenDayModal(cell.dateStr);
                         }
                       }}
-                      className="w-full flex items-center justify-center gap-1 py-0.5 rounded-t-lg hover:bg-slate-200/60 dark:hover:bg-slate-800/80 cursor-pointer transition-all z-20 pointer-events-auto group/header"
-                      title={holiday ? `🎉 ${holiday.name} (กดเพื่อดูภารกิจวันนี้)` : `กดที่แถบหัววันที่เพื่อดูภารกิจทั้งหมดในวันที่ ${cell.dayNum}`}
+                      className="relative w-full flex items-center justify-center gap-1 py-0.5 rounded-t-lg hover:bg-slate-200/60 dark:hover:bg-slate-800/80 cursor-pointer transition-all z-20 pointer-events-auto group/header group"
+                      title={holiday ? `${holiday.name} (กดเพื่อดูภารกิจวันนี้)` : `กดที่แถบหัววันที่เพื่อดูภารกิจทั้งหมดในวันที่ ${cell.dayNum}`}
                     >
                       <span
                         className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black font-mono transition-transform group-hover/header:scale-110 shadow-2xs ${
@@ -295,6 +295,11 @@ export default function MonthGrid({
                       >
                         {cell.dayNum}
                       </span>
+                      {holiday && (
+                        <span className="sch-holiday-tooltip hidden group-hover:block absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-red-500 text-white font-normal text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
+                          {holiday.name}
+                        </span>
+                      )}
                     </div>
 
                     {/* Overflow "+N" Pill Badge (TimeTree Style +1, +2) */}

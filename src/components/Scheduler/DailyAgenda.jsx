@@ -52,7 +52,7 @@ export default function DailyAgenda({
         {/* Holiday Banner Badge */}
         {holidayName && (
           <div className="p-2 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex items-center gap-2 text-rose-700 dark:text-rose-300 shadow-2xs">
-            <span className="text-sm">🎉</span>
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
             <span className="text-xs font-black">
               {holidayName}
             </span>
