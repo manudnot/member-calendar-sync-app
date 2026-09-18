@@ -1156,6 +1156,7 @@ export default function App() {
         selectedDateStr={selectedDateStr}
         events={activeEvents}
         members={members}
+        categories={categories}
         visibleMemberIds={visibleMemberIds}
         holidays={holidays}
         onOpenAddEvent={handleOpenAddEvent}

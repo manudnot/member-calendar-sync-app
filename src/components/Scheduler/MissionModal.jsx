@@ -6,7 +6,7 @@ const DEFAULT_COLOR_PALETTE = [
   { hex: '#ef4444', category: 'ภารกิจหน่วย', name: 'ภารกิจหน่วย' },
   { hex: '#f59e0b', category: 'ภารกิจหมาย', name: 'ภารกิจหมาย' },
   { hex: '#10b981', category: 'ประชุม', name: 'ประชุม' },
-  { hex: '#8b5cf6', category: 'งานหน่วย', name: 'งานหน่วย' },
+  { hex: '#8b5cf6', category: 'งานกองพัน', name: 'งานกองพัน' },
   { hex: '#795548', category: 'การฝึก', name: 'การฝึก' },
   { hex: '#ec4899', category: 'กิจกรรมพิเศษ', name: 'กิจกรรมพิเศษ' }
 ];

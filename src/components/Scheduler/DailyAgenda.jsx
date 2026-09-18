@@ -6,6 +6,7 @@ export default function DailyAgenda({
   selectedDateStr,
   events,
   members,
+  categories = [],
   visibleMemberIds,
   holidays = {},
   onOpenAddEvent,
@@ -72,7 +73,7 @@ export default function DailyAgenda({
           </div>
         ) : (
           dayEvents.map(evt => {
-            const evtColor = getEventColor(evt, members);
+            const evtColor = getEventColor(evt, categories, members);
             const isAllDay = isAllDayEvent(evt);
 
             return (
