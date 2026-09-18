@@ -975,7 +975,7 @@ export default async function handler(req, res) {
         const isExplicitAllDay = mItem.all_day === true || (!mItem.time_str || mItem.time_str === 'ตลอดวัน' || mItem.time_str.includes('ตลอดวัน'));
 
         try {
-          const { error: insertErr } = await supabase.from('events').insert({
+          let { error: insertErr } = await supabase.from('events').insert({
             id: newEvtId,
             title: mItem.title,
             start_time: startTime,
@@ -987,6 +987,23 @@ export default async function handler(req, res) {
             member_ids: Array.isArray(mItem.member_ids) ? mItem.member_ids : [],
             alarm_minutes: 1440
           });
+
+          // Fallback if all_day column is not yet created in Supabase events table
+          if (insertErr && insertErr.code === 'PGRST204') {
+            const fallbackRes = await supabase.from('events').insert({
+              id: newEvtId,
+              title: mItem.title,
+              start_time: startTime,
+              end_time: endTime,
+              category: formatCategoryWithBadge(mItem.category),
+              description: descText,
+              location: mItem.location || '',
+              member_ids: Array.isArray(mItem.member_ids) ? mItem.member_ids : [],
+              alarm_minutes: 1440
+            });
+            insertErr = fallbackRes.error;
+          }
+
           if (insertErr) {
             console.error('Supabase event insert error:', insertErr);
             throw insertErr;
