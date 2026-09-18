@@ -269,10 +269,10 @@ export default function App() {
           setEvents(prevEvents => {
             const merged = cleanEvents.map(supaEvt => {
               const localEvt = prevEvents.find(e => e.id === supaEvt.id);
-              const combined = localEvt ? { ...supaEvt, ...localEvt } : supaEvt;
+              const combined = localEvt ? { ...localEvt, ...supaEvt } : supaEvt;
               return ensureEventCategoryAndColor({
                 ...combined,
-                all_day: localEvt?.all_day !== undefined ? localEvt.all_day : (supaEvt.all_day ?? true)
+                all_day: supaEvt.all_day !== undefined && supaEvt.all_day !== null ? supaEvt.all_day : (localEvt?.all_day ?? true)
               }, categories);
             });
             localStorage.setItem('member_calendar_events', JSON.stringify(merged));
