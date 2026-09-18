@@ -15,14 +15,19 @@ async function fetchMembersFromSupabase() {
   try {
     const { data, error } = await supabase.from('members').select('*');
     if (!error && Array.isArray(data) && data.length > 0) {
-      return data.map(m => ({
-        ...m,
-        rank: m.rank || '',
-        first_name: m.first_name || '',
-        last_name: m.last_name || '',
-        nickname: m.nickname || m.name || '',
-        full_name: m.full_name || m.name || ''
-      }));
+      return data.map(m => {
+        const isArchived = Boolean(m.is_archived) || m.status === 'resigned' || m.status === 'inactive' || m.status === 'archived';
+        return {
+          ...m,
+          rank: m.rank || '',
+          first_name: m.first_name || '',
+          last_name: m.last_name || '',
+          nickname: m.nickname || m.name || '',
+          full_name: m.full_name || m.name || '',
+          is_archived: isArchived,
+          status: m.status || (isArchived ? 'resigned' : 'active')
+        };
+      });
     }
   } catch (e) {
     console.error('Error fetching members from Supabase:', e);
@@ -66,14 +71,19 @@ function matchMemberIds(memberNamesArray, dbMembers = []) {
   if (!Array.isArray(memberNamesArray) || memberNamesArray.length === 0) return [];
   const matched = new Set();
 
+  const activeDbMembers = dbMembers.filter(m => {
+    const isArchived = Boolean(m.is_archived) || m.status === 'resigned' || m.status === 'inactive' || m.status === 'archived';
+    return !isArchived && (m.status === 'active' || !m.status);
+  });
+
   const isAllRealMembers = memberNamesArray.some(str => {
     const s = String(str).toLowerCase();
     return s.includes('ทุกคน') || s.includes('สมาชิกทุกคน') || s.includes('ทั้งทีม') || s.includes('กำลังพลทุกคน') || s.includes('ทุกนาย');
   });
 
   if (isAllRealMembers) {
-    const realMemberIds = dbMembers
-      .filter(m => m.member_type !== 'virtual' && m.id !== 'mem_wm' && !m.is_archived && m.status !== 'resigned')
+    const realMemberIds = activeDbMembers
+      .filter(m => m.member_type !== 'virtual' && m.id !== 'mem_wm')
       .map(m => m.id);
     if (realMemberIds.length > 0) return realMemberIds;
     return ['mem_manudnot', 'mem_third', 'mem_june'];
@@ -95,7 +105,7 @@ function matchMemberIds(memberNamesArray, dbMembers = []) {
     const s = String(nameStr).toLowerCase().trim();
     if (!s || s === 'ไม่ระบุ' || s === 'ไม่มี' || s === 'รวม') return;
 
-    dbMembers.forEach(mem => {
+    activeDbMembers.forEach(mem => {
       const searchTerms = [
         mem.name,
         mem.first_name,
@@ -333,14 +343,18 @@ async function clearActiveDraft(userId) {
 }
 
 export function formatCategoryWithBadge(catStr) {
-  if (!catStr) return '🔵 ภารกิจหน่วย';
-  if (catStr.includes('🔴') || catStr.includes('🔵') || catStr.includes('🟢') || catStr.includes('🟡')) {
+  if (!catStr) return '🔴 ภารกิจหน่วย';
+  if (catStr.includes('🔴') || catStr.includes('🟡') || catStr.includes('🟢') || catStr.includes('🟣') || catStr.includes('🟤') || catStr.includes('🌸')) {
     return catStr;
   }
-  if (catStr.includes('หมาย')) return '🔴 ภารกิจหมาย';
-  if (catStr.includes('หน่วย')) return '🔵 ภารกิจหน่วย';
-  if (catStr.includes('ฝึก')) return '🟢 ภารกิจการฝึก';
-  return `🔵 ${catStr}`;
+  const s = String(catStr).toLowerCase();
+  if (s.includes('หมาย') || s.includes('royal')) return '🟡 ภารกิจหมาย';
+  if (s.includes('ประชุม') || s.includes('meeting') || s.includes('vtc') || s.includes('อบรม')) return '🟢 ประชุม';
+  if (s.includes('ฝึก') || s.includes('training') || s.includes('cpx') || s.includes('calflex')) return '🟤 ภารกิจการฝึก';
+  if (s.includes('กิจกรรม') || s.includes('พิเศษ') || s.includes('เกิด')) return '🌸 กิจกรรมพิเศษ';
+  if (s.includes('งาน') || s.includes('งานหน่วย') || s.includes('work')) return '🟣 งานหน่วย';
+  if (s.includes('หน่วย') || s.includes('unit')) return '🔴 ภารกิจหน่วย';
+  return `🔴 ${catStr}`;
 }
 
 export function parseTimeRangeToStartEnd(startDate, endDate, timeStr, allDay) {
@@ -488,11 +502,13 @@ async function extractPdfTextWithTimeout(fileBuf, timeoutMs = 3500, maxChars = 5
 
 export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [], mimeType = 'image/jpeg') {
   const activeMembersList = Array.isArray(dbMembers) && dbMembers.length > 0
-    ? dbMembers.map(m => {
-        const nameParts = [m.nickname, m.name, m.first_name, m.last_name, m.full_name].filter(Boolean);
-        return Array.from(new Set(nameParts)).join('/');
-      }).join(', ')
-    : 'นอต, เติร์ธ, จูน, เอก, เก่ง, ตั้ม, แชมป์, ท็อป';
+    ? dbMembers
+        .filter(m => !m.is_archived && m.status !== 'resigned' && m.status !== 'inactive' && m.status !== 'archived')
+        .map(m => {
+          const nameParts = [m.nickname, m.name, m.first_name, m.last_name, m.full_name].filter(Boolean);
+          return Array.from(new Set(nameParts)).join('/');
+        }).join(', ')
+    : 'นอต, เติร์ธ, จูน, เอก, เก่ง, ตั้ม, เวรหมาย';
 
   const systemPrompt = `คุณคือเสมียนกองร้อยสายและวิทยุถ่ายทอด มีหน้าที่วิเคราะห์คำสั่งปฏิบัติงาน ภารกิจ รูปภาพ หรือเอกสารข่าวสาร 
 สำคัญที่สุด:
