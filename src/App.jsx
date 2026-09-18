@@ -89,38 +89,11 @@ export default function App() {
     return INITIAL_MEMBERS;
   });
 
-  const [categories, setCategories] = useState(() => {
-    const saved = localStorage.getItem('member_calendar_categories');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return INITIAL_CATEGORIES;
-  });
+  const [categories, setCategories] = useState(INITIAL_CATEGORIES);
 
-  const [events, setEvents] = useState(() => {
-    const saved = localStorage.getItem('member_calendar_events');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return sanitizeEventsTime(parsed);
-      } catch (e) {}
-    }
-    return sanitizeEventsTime(INITIAL_EVENTS);
-  });
+  const [events, setEvents] = useState([]);
 
-  const [activityLogs, setActivityLogs] = useState(() => {
-    const saved = localStorage.getItem('member_calendar_activity_logs');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {}
-    }
-    return [];
-  });
+  const [activityLogs, setActivityLogs] = useState([]);
 
   const [visibleMemberIds, setVisibleMemberIds] = useState(() => {
     return members.map(m => m.id);
@@ -200,22 +173,17 @@ export default function App() {
         // Fetch categories from Supabase
         const { data: supaCats, error: catErr } = await supabase.from('categories').select('*');
         if (!catErr && supaCats && supaCats.length > 0) {
-          setCategories(prevCats => {
-            const catMap = new Map();
-            INITIAL_CATEGORIES.forEach(c => catMap.set(c.id, c));
-            prevCats.forEach(c => catMap.set(c.id, c));
-            supaCats.forEach(c => catMap.set(c.id, c));
-            const mergedCats = Array.from(catMap.values());
-            localStorage.setItem('member_calendar_categories', JSON.stringify(mergedCats));
-            return mergedCats;
-          });
+          const catMap = new Map();
+          INITIAL_CATEGORIES.forEach(c => catMap.set(c.id, c));
+          supaCats.forEach(c => catMap.set(c.id, c));
+          setCategories(Array.from(catMap.values()));
         }
 
         // Fetch members and activity logs from Supabase
         const { data: supaMembers, error: memErr } = await supabase.from('members').select('*');
         const { data: supaLogs } = await supabase.from('activity_logs').select('*').order('created_at', { ascending: false });
 
-        // Extract PIN_SYNC mapping from activity_logs to ensure multi-device sync even if table schema is missing pin_code column
+        // Extract PIN_SYNC mapping from activity_logs to ensure multi-device sync
         const pinSyncMap = {};
         if (supaLogs && supaLogs.length > 0) {
           supaLogs.forEach(l => {
@@ -238,7 +206,7 @@ export default function App() {
           );
 
           setMembers(prevMembers => {
-            const updated = cleanSupaMembers.map(supaMem => {
+            return cleanSupaMembers.map(supaMem => {
               const localMem = prevMembers.find(m => m.id === supaMem.id);
               const validSupaPin = (supaMem.pin_code && supaMem.pin_code.trim()) ? supaMem.pin_code.trim() : null;
               const syncedPin = validSupaPin || pinSyncMap[supaMem.id] || savedPins[supaMem.id] || (localMem && localMem.pin_code) || '';
@@ -254,36 +222,28 @@ export default function App() {
                 pin_code: syncedPin
               };
             });
-            localStorage.setItem('member_calendar_members', JSON.stringify(updated));
-            return updated;
           });
-        } else {
-          // If Supabase table empty, seed with initial members
-          await supabase.from('members').upsert(INITIAL_MEMBERS);
+        } else if (memErr) {
+          console.warn('Supabase members fetch error:', memErr);
+          setToast({ message: '❌ ไม่สามารถเชื่อมต่อตารางกำลังพลจาก Supabase PostgreSQL ได้', type: 'error' });
         }
 
-        // Fetch events from Supabase
+        // Fetch events from Supabase (Pure 100% Live Sync)
         const { data: supaEvents, error: evtErr } = await supabase.from('events').select('*');
-        if (!evtErr && supaEvents && supaEvents.length > 0) {
+        if (evtErr) {
+          console.warn('Supabase fetch events error:', evtErr);
+          setToast({ message: '❌ ไม่สามารถเชื่อมต่อข้อมูลภารกิจสดจาก Supabase PostgreSQL ได้', type: 'error' });
+        } else if (supaEvents && supaEvents.length > 0) {
           const cleanEvents = sanitizeEventsTime(supaEvents);
-          setEvents(prevEvents => {
-            const merged = cleanEvents.map(supaEvt => {
-              const localEvt = prevEvents.find(e => e.id === supaEvt.id);
-              const combined = localEvt ? { ...localEvt, ...supaEvt } : supaEvt;
-              return ensureEventCategoryAndColor({
-                ...combined,
-                all_day: supaEvt.all_day !== undefined && supaEvt.all_day !== null ? supaEvt.all_day : (localEvt?.all_day ?? true)
-              }, categories);
-            });
-            localStorage.setItem('member_calendar_events', JSON.stringify(merged));
-            return merged;
-          });
+          const freshEvents = cleanEvents.map(supaEvt =>
+            ensureEventCategoryAndColor(supaEvt, categories)
+          );
+          setEvents(freshEvents);
         }
 
         // Fetch activity logs from Supabase
         if (supaLogs && supaLogs.length > 0) {
           setActivityLogs(supaLogs);
-          localStorage.setItem('member_calendar_activity_logs', JSON.stringify(supaLogs));
         }
       } catch (err) {
         console.warn('Supabase sync notice:', err);
