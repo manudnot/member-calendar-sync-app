@@ -49,8 +49,18 @@ function getBkkDateStr(isoStr) {
   return `${y}${m}${day}`;
 }
 
-function getEventDateOnlyStr(isoStr) {
+function getEventDateOnlyStr(isoStr, evt = null) {
   if (!isoStr) return null;
+
+  if (evt && (evt.all_day === true || checkIsAllDay(evt))) {
+    const sRaw = (evt.start_time || '').split('T')[0];
+    const eRaw = (evt.end_time || evt.start_time || '').split('T')[0];
+
+    if (sRaw === eRaw && sRaw && /^\d{4}-\d{2}-\d{2}$/.test(sRaw)) {
+      return sRaw.replace(/-/g, '');
+    }
+  }
+
   if (typeof isoStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(isoStr)) {
     return isoStr.replace(/-/g, '');
   }
@@ -220,8 +230,8 @@ export default async function handler(req, res) {
       lines.push(`DTSTAMP:${nowIso}`);
 
       if (isAllDay) {
-        const startStr = getEventDateOnlyStr(evt.start_time);
-        const lastDayStr = getEventDateOnlyStr(evt.end_time || evt.start_time);
+        const startStr = getEventDateOnlyStr(evt.start_time, evt);
+        const lastDayStr = getEventDateOnlyStr(evt.end_time || evt.start_time, evt);
         const exclusiveEndStr = getNextDayStr(lastDayStr);
         lines.push(`DTSTART;VALUE=DATE:${startStr}`);
         lines.push(`DTEND;VALUE=DATE:${exclusiveEndStr}`);
