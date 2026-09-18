@@ -38,7 +38,7 @@ export default function Sidebar({
           </div>
           <div>
             <h3 className="text-sm font-black text-slate-800 dark:text-slate-100">
-              งาน ส/21 - TimeTree
+              งาน ส/21 - Calendar
             </h3>
             <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
               Team Schedule & iCal Hub

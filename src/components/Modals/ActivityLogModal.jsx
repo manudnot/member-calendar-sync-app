@@ -141,7 +141,7 @@ export default function ActivityLogModal({
               }`}
             >
               <History className="w-3.5 h-3.5" />
-              <span>ประวัติการทำงาน ({userFacingLogs.length})</span>
+              <span>ประวัติ ({userFacingLogs.length})</span>
             </button>
 
             <button
@@ -153,7 +153,7 @@ export default function ActivityLogModal({
               }`}
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>ถังขยะกู้คืน ({deletedEvents.length})</span>
+              <span>ถังขยะ ({deletedEvents.length})</span>
             </button>
           </div>
 
@@ -238,12 +238,14 @@ export default function ActivityLogModal({
                   value={filterActorId}
                   onChange={(e) => setFilterActorId(e.target.value)}
                 >
-                  <option value="all">คนทำ: ทั้งหมด</option>
-                  {members.map(m => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
+                  <option value="all">ทั้งหมด</option>
+                  {members
+                    .filter(m => m.member_type !== 'virtual' && !m.is_archived && m.status !== 'resigned')
+                    .map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
                 </select>
               </div>
 

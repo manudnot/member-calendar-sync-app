@@ -37,12 +37,12 @@ export default function Header({
         </button>
 
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-sm">
-            T
+          <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black text-lg shadow-sm">
+            S
           </div>
           <div>
-            <h1 className="text-base font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-              TimeTree <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Team Calendar</span>
+            <h1 className="text-base font-black tracking-tight text-purple-600 dark:text-purple-400">
+              Signal21 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Team Calendar</span>
             </h1>
           </div>
         </div>
