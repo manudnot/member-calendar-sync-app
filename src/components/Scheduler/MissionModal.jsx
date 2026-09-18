@@ -281,11 +281,15 @@ export default function MissionModal({
     let startIso;
     let endIso;
     if (allDay) {
-      startIso = `${startDate}T09:00:00.000Z`;
-      endIso = `${endDate}T17:00:00.000Z`;
+      const sDateObj = new Date(`${startDate}T00:00:00`);
+      const eDateObj = new Date(`${endDate}T23:59:59`);
+      startIso = !isNaN(sDateObj.getTime()) ? sDateObj.toISOString() : `${startDate}T00:00:00.000Z`;
+      endIso = !isNaN(eDateObj.getTime()) ? eDateObj.toISOString() : `${endDate}T23:59:59.000Z`;
     } else {
-      startIso = new Date(`${startDate}T${startTime}:00`).toISOString();
-      endIso = new Date(`${endDate}T${endTime}:00`).toISOString();
+      const sDateObj = new Date(`${startDate}T${startTime}:00`);
+      const eDateObj = new Date(`${endDate}T${endTime}:00`);
+      startIso = !isNaN(sDateObj.getTime()) ? sDateObj.toISOString() : `${startDate}T${startTime}:00.000Z`;
+      endIso = !isNaN(eDateObj.getTime()) ? eDateObj.toISOString() : `${endDate}T${endTime}:00.000Z`;
     }
 
     const primaryAlarmMinutes = notifications.length > 0 ? getAlarmMinutesFromNotif(notifications[0]) : 15;
