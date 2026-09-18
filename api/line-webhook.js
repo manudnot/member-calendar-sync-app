@@ -352,7 +352,7 @@ export function formatCategoryWithBadge(catStr) {
   if (s.includes('ประชุม') || s.includes('meeting') || s.includes('vtc') || s.includes('อบรม')) return '🟢 ประชุม';
   if (s.includes('ฝึก') || s.includes('training') || s.includes('cpx') || s.includes('calflex')) return '🟤 ภารกิจการฝึก';
   if (s.includes('กิจกรรม') || s.includes('พิเศษ') || s.includes('เกิด')) return '🌸 กิจกรรมพิเศษ';
-  if (s.includes('งาน') || s.includes('งานหน่วย') || s.includes('work') || s.includes('พิธี') || s.includes('เคารพธงชาติ') || s.includes('ส่งคน')) return '🟣 งานหน่วย';
+  if (s.includes('งาน') || s.includes('งานหน่วย') || s.includes('งานกองพัน') || s.includes('work') || s.includes('พิธี') || s.includes('เคารพธงชาติ') || s.includes('ส่งคน')) return '🟣 งานกองพัน';
   if (s.includes('หน่วย') || s.includes('unit')) return '🔴 ภารกิจหน่วย';
   return `🟣 ${catStr}`;
 }
@@ -528,7 +528,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
       "end_date": "YYYY-MM-DD (พ.ศ. 2569 หรือ 69 แปลงเป็น ค.ศ. 2026 เสมอ)",
       "time_str": "ห้วงเวลา เช่น 10:00 - 12:00 หรือ 09:00 - 12:00 หรือ ตลอดวัน",
       "all_day": true,
-      "category": "ภารกิจหน่วย หรือ ภารกิจหมาย หรือ ภารกิจการฝึก",
+      "category": "ภารกิจหน่วย หรือ ภารกิจหมาย หรือ ประชุม หรือ งานกองพัน หรือ ภารกิจการฝึก หรือ กิจกรรมพิเศษ",
       "dress_code": "ชุดการแต่งกาย (หากไม่ได้ระบุในข้อความ ให้ใช้ 'ชุดอ่อน (กำหนดอัตโนมัติ)')",
       "location": "สถานที่ปฏิบัติงานหรือลิงก์ประชุม (ถ้ามี)",
       "members": ["รายชื่อผู้รับผิดชอบเฉพาะที่มีระบุในข้อความและตรงกับฐานข้อมูล Supabase เท่านั้น หากไม่มีให้เป็น []"]

@@ -116,3 +116,32 @@ ON CONFLICT (id) DO UPDATE SET
   rank = EXCLUDED.rank,
   full_name = EXCLUDED.full_name,
   member_type = EXCLUDED.member_type;
+
+-- 6. Create Categories Master Table
+CREATE TABLE IF NOT EXISTS public.categories (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    color TEXT NOT NULL,
+    badge_icon TEXT NOT NULL DEFAULT '🔴',
+    sort_order INTEGER DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS badge_icon TEXT DEFAULT '🔴';
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public all access on categories" ON public.categories FOR ALL USING (true);
+
+-- Seed Categories Master Data
+INSERT INTO public.categories (id, name, color, badge_icon, sort_order) VALUES
+  ('cat_unit', 'ภารกิจหน่วย', '#ef4444', '🔴', 1),
+  ('cat_royal', 'ภารกิจหมาย', '#f59e0b', '🟡', 2),
+  ('cat_meeting', 'ประชุม', '#10b981', '🟢', 3),
+  ('cat_work', 'งานกองพัน', '#8b5cf6', '🟣', 4),
+  ('cat_training', 'การฝึก', '#795548', '🟤', 5),
+  ('cat_special', 'กิจกรรมพิเศษ', '#ec4899', '🌸', 6)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  color = EXCLUDED.color,
+  badge_icon = EXCLUDED.badge_icon,
+  sort_order = EXCLUDED.sort_order;
+
