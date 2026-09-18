@@ -972,12 +972,15 @@ export default async function handler(req, res) {
         const newEvtId = `evt_line_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         const descText = `👔 การแต่งกาย: ${mItem.dress_code || 'ชุดอ่อน (กำหนดอัตโนมัติ)'}\n📍 สถานที่: ${mItem.location || '-'}`;
 
+        const isExplicitAllDay = mItem.all_day === true || (!mItem.time_str || mItem.time_str === 'ตลอดวัน' || mItem.time_str.includes('ตลอดวัน'));
+
         try {
           const { error: insertErr } = await supabase.from('events').insert({
             id: newEvtId,
             title: mItem.title,
             start_time: startTime,
             end_time: endTime,
+            all_day: isExplicitAllDay,
             category: formatCategoryWithBadge(mItem.category),
             description: descText,
             location: mItem.location || '',

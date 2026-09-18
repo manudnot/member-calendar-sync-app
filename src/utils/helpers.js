@@ -258,15 +258,28 @@ export function ensureEventCategoryAndColor(evt, categories = INITIAL_CATEGORIES
 
 export function isAllDayEvent(evt) {
   if (!evt) return true;
-  if (evt.all_day === false) return false;
-  if (evt.all_day === true) return true;
-  if (evt.start_time && evt.start_time.includes('T')) {
-    const timePart = evt.start_time.split('T')[1].substring(0, 5);
-    const endTimePart = evt.end_time && evt.end_time.includes('T') ? evt.end_time.split('T')[1].substring(0, 5) : '00:00';
-    if (timePart !== '00:00' || (endTimePart !== '23:59' && endTimePart !== '00:00')) {
-      return false;
+
+  if (evt.start_time) {
+    const dStart = new Date(evt.start_time);
+    const dEnd = evt.end_time ? new Date(evt.end_time) : dStart;
+
+    if (!isNaN(dStart.getTime())) {
+      const sH = dStart.getHours();
+      const sM = dStart.getMinutes();
+      const eH = !isNaN(dEnd.getTime()) ? dEnd.getHours() : 0;
+      const eM = !isNaN(dEnd.getTime()) ? dEnd.getMinutes() : 0;
+
+      const isStartZero = (sH === 0 && sM === 0);
+      const isEndZeroOrLast = (eH === 0 && eM === 0) || (eH === 23 && eM === 59);
+
+      if (!isStartZero || !isEndZeroOrLast) {
+        return false;
+      }
     }
   }
+
+  if (evt.all_day === false) return false;
+  if (evt.all_day === true) return true;
   return true;
 }
 
