@@ -352,9 +352,9 @@ export function formatCategoryWithBadge(catStr) {
   if (s.includes('ประชุม') || s.includes('meeting') || s.includes('vtc') || s.includes('อบรม')) return '🟢 ประชุม';
   if (s.includes('ฝึก') || s.includes('training') || s.includes('cpx') || s.includes('calflex')) return '🟤 ภารกิจการฝึก';
   if (s.includes('กิจกรรม') || s.includes('พิเศษ') || s.includes('เกิด')) return '🌸 กิจกรรมพิเศษ';
-  if (s.includes('งาน') || s.includes('งานหน่วย') || s.includes('work')) return '🟣 งานหน่วย';
+  if (s.includes('งาน') || s.includes('งานหน่วย') || s.includes('work') || s.includes('พิธี') || s.includes('เคารพธงชาติ') || s.includes('ส่งคน')) return '🟣 งานหน่วย';
   if (s.includes('หน่วย') || s.includes('unit')) return '🔴 ภารกิจหน่วย';
-  return `🔴 ${catStr}`;
+  return `🟣 ${catStr}`;
 }
 
 export function parseTimeRangeToStartEnd(startDate, endDate, timeStr, allDay) {
