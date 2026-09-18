@@ -350,7 +350,7 @@ export default function MonthGrid({
                         }}
                         onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
                         className={`pointer-events-auto h-5 px-2 text-[11px] font-bold flex items-center shadow-xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 ${
-                          isStartOfEvent ? 'rounded-l-md' : 'rounded-r-none'
+                          isStartOfEvent ? 'rounded-l-md' : 'rounded-l-none'
                         } ${
                           isEndOfEvent ? 'rounded-r-md' : 'rounded-r-none'
                         } ${isBeingDragged ? 'opacity-40 scale-95 ring-2 ring-emerald-400' : ''}`}
