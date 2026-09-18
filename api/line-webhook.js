@@ -993,11 +993,11 @@ export default async function handler(req, res) {
           mItem.all_day
         );
         const descParts = [];
-        if (mItem.dress_code && mItem.dress_code !== 'ไม่ระบุ') {
+        if (mItem.dress_code && mItem.dress_code !== 'ไม่ระบุ' && mItem.dress_code !== 'ชุดอ่อน (กำหนดอัตโนมัติ)') {
           descParts.push(`👔 การแต่งกาย: ${mItem.dress_code}`);
         }
-        if (mItem.location && mItem.location !== '-' && mItem.location !== 'ไม่ระบุ') {
-          descParts.push(`📍 สถานที่: ${mItem.location}`);
+        if (mItem.notes) {
+          descParts.push(mItem.notes);
         }
         const descText = descParts.join('\n');
 
