@@ -192,21 +192,41 @@ export function getEventColor(evt, categories = INITIAL_CATEGORIES, members = []
     if (matchedCat && matchedCat.color) return matchedCat.color;
   }
 
-  // 2. By legacy category text match
+  // 2. By category text match
   if (evt.category) {
-    const catName = evt.category.toLowerCase();
-    if (catName.includes('งานกองพัน') || catName.includes('งานหน่วย') || catName.includes('cat_work') || catName.includes('🟣')) {
+    const catStr = String(evt.category).toLowerCase();
+    if (catStr.includes('งานกองพัน') || catStr.includes('งานหน่วย') || catStr.includes('cat_work') || catStr.includes('🟣')) {
       const matchedCat = catList.find(c => c.id === 'cat_work');
       if (matchedCat && matchedCat.color) return matchedCat.color;
     }
-    const matchedCat = catList.find(c => c.name && catName.includes(c.name.toLowerCase()));
+    if (catStr.includes('ภารกิจหน่วย') || catStr.includes('cat_unit') || catStr.includes('🔴')) {
+      const matchedCat = catList.find(c => c.id === 'cat_unit');
+      if (matchedCat && matchedCat.color) return matchedCat.color;
+    }
+    if (catStr.includes('หมาย') || catStr.includes('cat_royal') || catStr.includes('🟡')) {
+      const matchedCat = catList.find(c => c.id === 'cat_royal');
+      if (matchedCat && matchedCat.color) return matchedCat.color;
+    }
+    if (catStr.includes('ประชุม') || catStr.includes('cat_meeting') || catStr.includes('🟢')) {
+      const matchedCat = catList.find(c => c.id === 'cat_meeting');
+      if (matchedCat && matchedCat.color) return matchedCat.color;
+    }
+    if (catStr.includes('ฝึก') || catStr.includes('cat_training') || catStr.includes('🟤')) {
+      const matchedCat = catList.find(c => c.id === 'cat_training');
+      if (matchedCat && matchedCat.color) return matchedCat.color;
+    }
+    if (catStr.includes('กิจกรรม') || catStr.includes('cat_special') || catStr.includes('🌸')) {
+      const matchedCat = catList.find(c => c.id === 'cat_special');
+      if (matchedCat && matchedCat.color) return matchedCat.color;
+    }
+    const matchedCat = catList.find(c => c.name && catStr.includes(c.name.toLowerCase()));
     if (matchedCat && matchedCat.color) return matchedCat.color;
   }
 
   // 3. Custom explicit color if valid
   if (evt.color) return evt.color;
 
-  // 4. By title keywords fallback (strictly matching exact categories)
+  // 4. By title keywords fallback
   const title = (evt.title || '').toLowerCase();
   if (title.includes('หมาย') || title.includes('904') || title.includes('905') || title.includes('908') || title.includes('hmsv')) {
     return '#f59e0b';

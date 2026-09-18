@@ -129,9 +129,12 @@ export default async function handler(req, res) {
       events = [];
     }
 
-    // Fetch all members dynamically from Supabase
+    // Fetch all members & categories dynamically from Supabase
     const { data: allMembersData } = await supabase.from('members').select('*');
     const allMembers = allMembersData || [];
+
+    const { data: allCategoriesData } = await supabase.from('categories').select('*');
+    const allCategories = allCategoriesData || [];
 
     let currentMember = null;
     if (memberId) {
@@ -235,7 +238,28 @@ export default async function handler(req, res) {
 
       let desc = evt.description || '';
       if (evt.category) {
-        desc = `[${evt.category}] ${desc}`;
+        let catText = String(evt.category).trim();
+        // Check if category already has an emoji prefix (e.g. 🔴, 🟡, 🟢, 🟣, 🟤, 🌸)
+        const hasEmoji = /^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u.test(catText);
+        
+        if (hasEmoji) {
+          desc = `[${catText}] ${desc}`;
+        } else {
+          // Look up matching category from database or fallback keywords
+          const matchedCat = allCategories.find(c => c.name === catText || c.id === evt.category_id);
+          let badgeIcon = matchedCat ? (matchedCat.badge_icon || '🌸') : '';
+
+          if (!badgeIcon) {
+            if (catText.includes('หน่วย')) badgeIcon = '🔴';
+            else if (catText.includes('หมาย')) badgeIcon = '🟡';
+            else if (catText.includes('ประชุม')) badgeIcon = '🟢';
+            else if (catText.includes('กองพัน')) badgeIcon = '🟣';
+            else if (catText.includes('ฝึก')) badgeIcon = '🟤';
+            else badgeIcon = '🌸';
+          }
+
+          desc = `[${badgeIcon} ${catText}] ${desc}`;
+        }
       }
       if (evt.url) {
         desc += `\\nURL: ${evt.url}`;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { formatDateKey, formatTimeShort, hexToRgba, isEventOnDate, getEventColor, isAllDayEvent } from '../../utils/helpers';
+import { formatDateKey, formatTimeShort, hexToRgba, isEventOnDate, getEventColor, isAllDayEvent, getLocalDateStr } from '../../utils/helpers';
 import { getHolidayForDate } from '../../utils/holidays';
 import { Move, Copy, X } from 'lucide-react';
 
@@ -182,8 +182,8 @@ export default function MonthGrid({
             });
 
             if (startCol !== -1 && endCol !== -1) {
-              const evtStartDateStr = evt.start_time ? evt.start_time.split('T')[0] : '';
-              const evtEndDateStr = evt.end_time ? evt.end_time.split('T')[0] : evtStartDateStr;
+              const evtStartDateStr = evt.start_time ? getLocalDateStr(evt.start_time) : '';
+              const evtEndDateStr = evt.end_time ? getLocalDateStr(evt.end_time) : evtStartDateStr;
 
               const isStartOfEvent = week[startCol].dateStr === evtStartDateStr;
               const isEndOfEvent = week[endCol].dateStr === evtEndDateStr;

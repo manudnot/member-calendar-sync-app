@@ -96,10 +96,17 @@ export default function DailyAgenda({
                     </span>
 
                     {evt.location && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {evt.location}
-                      </span>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(evt.location)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                        title="กดเพื่อเปิด Google Maps นำทาง"
+                      >
+                        <MapPin className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span className="truncate max-w-[160px]">{evt.location}</span>
+                      </a>
                     )}
 
                     {evt.url && (
