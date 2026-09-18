@@ -51,10 +51,6 @@ function getBkkDateStr(isoStr) {
 
 function getEventDateOnlyStr(isoStr) {
   if (!isoStr) return null;
-  if (typeof isoStr === 'string' && isoStr.includes('T')) {
-    const raw = isoStr.split('T')[0];
-    return raw.replace(/-/g, '');
-  }
   if (typeof isoStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(isoStr)) {
     return isoStr.replace(/-/g, '');
   }
