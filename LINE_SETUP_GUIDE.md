@@ -1,6 +1,6 @@
 # คู่มือตั้งค่า LINE Bot (AI เสมียนกองร้อยสายและวิทยุถ่ายทอด)
 
-ระบบ LINE Bot เพิ่มภารกิจเข้าปฏิทินอัตโนมัติ พร้อมระบบวิเคราะห์ภาพ/ข้อความ และปุ่มกดยืนยันบันทึก/แก้ไขข้อมูลร่าง (Interactive Draft Queue)
+ระบบ LINE Bot เพิ่มภารกิจเข้าปฏิทินอัตโนมัติ ขับเคลื่อนด้วย **Typhoon AI** (`typhoon-ocr` สำหรับสกัดข้อความจากภาพถ่าย และ `typhoon-v2.5-30b-a3b-instruct` สำหรับวิเคราะห์ภารกิจ) พร้อมระบบวิเคราะห์กำลังพลจากฐานข้อมูล Supabase สด และปุ่มกดยืนยันบันทึก/แก้ไขข้อมูลร่าง (Interactive Draft Queue)
 
 ---
 
@@ -18,25 +18,33 @@
 
 ---
 
-## 📌 2. การตั้งค่า Vercel Environment Variables (ตั้งค่าไว้เรียบร้อยแล้วในโค้ด)
+## 📌 2. การตั้งค่า Vercel Environment Variables
 
-ระบบรองรับและเปิดใช้งาน Credentials ที่คุณระบุไว้ทันที:
+ใน Vercel Dashboard -> Settings -> Environment Variables ให้ตั้งค่า Key ต่อไปนี้:
 
-- `LINE_CHANNEL_ACCESS_TOKEN`: `5yYbM9jVR9aNZS6RvDhS8D0ow/t7VHSpE3kX5PQXqK4h0OpEbaqIxj+Oy1eKAYfFBsMF+twQeDmtj0lwfSa30tJJtYHZqeTX35Z7V/9wOpWD5d3Mq0tAt96uWMXfKRDBCcFstKpuSXG26xG+Uy3SWQdB04t89/1O/w1cDnyilFU=`
-- `LINE_CHANNEL_SECRET`: `21ce08aa85816d7feb7c0d62f500e779`
+- `LINE_CHANNEL_ACCESS_TOKEN`: Long-Lived Access Token จาก LINE Developers Console
+- `LINE_CHANNEL_SECRET`: Channel Secret จาก LINE Developers Console
+- `TYPHOON_API_KEY`: API Key จาก Typhoon AI Platform
+- `SUPABASE_URL`: URL ฐานข้อมูล Supabase (เช่น `https://xxxx.supabase.co`)
+- `SUPABASE_ANON_KEY` หรือ `SUPABASE_SERVICE_ROLE_KEY`: Key สิทธิ์ในการเข้าถึง Supabase
 
 ---
 
-## 📱 รูปแบบการใช้งานกับ LINE Bot (AI เสมียนกองร้อย)
+## 📱 รูปแบบการทำงานของ Typhoon AI & LINE Bot
 
-1. **ส่งภาพถ่ายหนังสือคำสั่ง / ไวท์บอร์ด / ข้อความภารกิจ** เข้ามาใน LINE
-2. **ระบบ AI สกัดข้อมูลและแสดงร่างสรุป**:
-   - วันที่ & ห้วงเวลา
-   - ชื่อภารกิจ
-   - หมวดหมู่ (ภารกิจหน่วย / ภารกิจหมาย)
+1. **สกัดข้อความอัตโนมัติ (OCR & NLP)**:
+   - **ส่งภาพถ่ายหนังสือคำสั่ง / ไวท์บอร์ด / ข้อความสั่งการ**: ระบบใช้ `typhoon-ocr` อ่านข้อความภาษาไทย แล้วส่งต่อให้ `typhoon-v2.5-30b-a3b-instruct` แยกแยะโครงสร้างภารกิจ
+   - **แมตช์กำลังพลสดจาก Supabase**: ระบบจะดึงรายชื่อสมาชิก (`members` table) ทั้งยศ ชื่อ สกุล ชื่อเล่น มาฉีดใส่ System Prompt ของ Typhoon AI อัตโนมัติ เพื่อให้ระบุผู้รับผิดชอบได้อย่างแม่นยำ
+
+2. **ร่างสรุปภารกิจ (Interactive Draft Queue)**:
+   - แสดงวัน เวลา (คำนวณ `all_day` อัตโนมัติ)
+   - ชื่อภารกิจ (รักษาสมบูรณ์แบบ ไม่ตัดทอนคำว่า "น้อง 63..." หรือชื่อชุดภารกิจ)
+   - หมวดหมู่ (`ภารกิจหน่วย` / `ภารกิจหมาย`)
    - การแต่งกาย (ชุดฝึก / ชุดเครื่องแบบ ฯลฯ)
-   - ผู้รับผิดชอบ (นอต, เอก, ท็อป, เวรหมาย ฯลฯ)
-3. **พิมพ์สั่งแก้ไขร่างได้โดยตรง**:
+   - ผู้รับผิดชอบ (แมตช์ด้วย ID ของสมาชิกในระบบ)
+
+3. **พิมพ์สั่งแก้ไขร่างด้วยภาษาไทย**:
    - พิมพ์สั่งเช่น: `แก้ไขวันที่ 2026-09-25`, `เปลี่ยนการแต่งกาย ชุดเครื่องแบบ`, `เพิ่มผู้รับผิดชอบ ท็อป`
+
 4. **กดยืนยันบันทึก**:
-   - กดปุ่ม `[✅ ยืนยันบันทึก]` หรือพิมพ์ `ยืนยัน` เพื่อลงบันทึกเข้าปฏิทินสดทันที!
+   - กดปุ่ม `[✅ ยืนยันบันทึก]` หรือพิมพ์ `ยืนยัน` เพื่อลงบันทึกเข้าปฏิทิน Supabase สดทันที!
