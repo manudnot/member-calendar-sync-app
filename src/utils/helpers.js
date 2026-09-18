@@ -266,30 +266,28 @@ export function ensureEventCategoryAndColor(evt, categories = INITIAL_CATEGORIES
 
 export function isAllDayEvent(evt) {
   if (!evt) return true;
-  if (evt.all_day === true) return true;
-  if (evt.all_day === false) {
-    if (evt.start_time) {
-      const dStart = new Date(evt.start_time);
-      const dEnd = evt.end_time ? new Date(evt.end_time) : dStart;
-      if (!isNaN(dStart.getTime())) {
-        const sH = dStart.getHours();
-        const sM = dStart.getMinutes();
-        const eH = !isNaN(dEnd.getTime()) ? dEnd.getHours() : 0;
-        const eM = !isNaN(dEnd.getTime()) ? dEnd.getMinutes() : 0;
 
-        const isLocalZero = (sH === 0 && sM === 0);
-        const isUTCZero = (dStart.getUTCHours() === 0 && dStart.getUTCMinutes() === 0);
-        const isUTC7Zero = (sH === 7 && sM === 0 && eH === 6 && eM === 59);
+  if (evt.start_time) {
+    const dStart = new Date(evt.start_time);
+    const dEnd = evt.end_time ? new Date(evt.end_time) : dStart;
+    if (!isNaN(dStart.getTime())) {
+      const sH = dStart.getHours();
+      const sM = dStart.getMinutes();
+      const eH = !isNaN(dEnd.getTime()) ? dEnd.getHours() : 0;
+      const eM = !isNaN(dEnd.getTime()) ? dEnd.getMinutes() : 0;
 
-        if (isLocalZero || isUTCZero || isUTC7Zero) {
-          return true;
-        }
+      const isLocalZero = (sH === 0 && sM === 0);
+      const isUTCZero = (dStart.getUTCHours() === 0 && dStart.getUTCMinutes() === 0);
+      const isUTC7Zero = (sH === 7 && sM === 0 && eH === 6 && eM === 59);
+
+      if (!isLocalZero && !isUTCZero && !isUTC7Zero) {
         return false;
       }
     }
-    return false;
   }
 
+  if (evt.all_day === false) return false;
+  if (evt.all_day === true) return true;
   return true;
 }
 

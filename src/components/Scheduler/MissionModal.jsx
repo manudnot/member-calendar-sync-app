@@ -108,7 +108,7 @@ export default function MissionModal({
     if (isOpen && (isJustOpened || editingIdChanged)) {
       if (editingEvent) {
         setTitle(editingEvent.title || '');
-        const isAllDay = editingEvent.all_day !== false && isAllDayEvent(editingEvent);
+        const isAllDay = isAllDayEvent(editingEvent);
         setAllDay(isAllDay);
         const sKey = getLocalDateStr(editingEvent.start_time) || initialDateStr;
         const eKey = getLocalDateStr(editingEvent.end_time) || sKey;
