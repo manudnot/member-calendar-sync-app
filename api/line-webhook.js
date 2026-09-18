@@ -13,9 +13,16 @@ const TYPHOON_API_KEY = process.env.TYPHOON_API_KEY || 'sk-JfnzdevrTSBsAw9GRBda4
 // Dynamic Supabase member fetch & matching
 async function fetchMembersFromSupabase() {
   try {
-    const { data, error } = await supabase.from('members').select('id, name, rank, first_name, last_name, nickname, full_name, member_type, is_archived, status');
+    const { data, error } = await supabase.from('members').select('*');
     if (!error && Array.isArray(data) && data.length > 0) {
-      return data;
+      return data.map(m => ({
+        ...m,
+        rank: m.rank || '',
+        first_name: m.first_name || '',
+        last_name: m.last_name || '',
+        nickname: m.nickname || m.name || '',
+        full_name: m.full_name || m.name || ''
+      }));
     }
   } catch (e) {
     console.error('Error fetching members from Supabase:', e);
