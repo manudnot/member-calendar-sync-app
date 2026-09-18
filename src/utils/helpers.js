@@ -266,6 +266,8 @@ export function ensureEventCategoryAndColor(evt, categories = INITIAL_CATEGORIES
 
 export function isAllDayEvent(evt) {
   if (!evt) return true;
+  if (evt.all_day === true) return true;
+  if (evt.all_day === false) return false;
 
   if (evt.start_time) {
     const dStart = new Date(evt.start_time);
@@ -280,15 +282,13 @@ export function isAllDayEvent(evt) {
       const isUTCZero = (dStart.getUTCHours() === 0 && dStart.getUTCMinutes() === 0);
       const isUTC7Zero = (sH === 7 && sM === 0 && eH === 6 && eM === 59);
 
-      if (!isLocalZero && !isUTCZero && !isUTC7Zero) {
-        return false;
+      if (isLocalZero || isUTCZero || isUTC7Zero) {
+        return true;
       }
     }
   }
 
-  if (evt.all_day === false) return false;
-  if (evt.all_day === true) return true;
-  return true;
+  return false;
 }
 
 export function convertMinutesToNotif(totalMinutes) {

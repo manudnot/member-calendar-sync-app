@@ -349,12 +349,12 @@ export function parseTimeRangeToStartEnd(startDate, endDate, timeStr, allDay) {
 
   if (allDay || !timeStr || timeStr === 'ตลอดวัน' || timeStr.includes('ตลอดวัน')) {
     return {
-      startTime: new Date(`${startDay}T09:00:00+07:00`).toISOString(),
-      endTime: new Date(`${endDay}T17:00:00+07:00`).toISOString()
+      startTime: new Date(`${startDay}T00:00:00+07:00`).toISOString(),
+      endTime: new Date(`${endDay}T23:59:59+07:00`).toISOString()
     };
   }
 
-  const times = timeStr.match(/(\d{1,2})[\:\.](\d{2})/g);
+  const times = timeStr ? timeStr.match(/(\d{1,2})[\:\.](\d{2})/g) : null;
   if (times && times.length >= 2) {
     const sTime = times[0].replace('.', ':').padStart(5, '0');
     const eTime = times[1].replace('.', ':').padStart(5, '0');
@@ -376,8 +376,8 @@ export function parseTimeRangeToStartEnd(startDate, endDate, timeStr, allDay) {
   }
 
   return {
-    startTime: new Date(`${startDay}T09:00:00+07:00`).toISOString(),
-    endTime: new Date(`${endDay}T17:00:00+07:00`).toISOString()
+    startTime: new Date(`${startDay}T00:00:00+07:00`).toISOString(),
+    endTime: new Date(`${endDay}T23:59:59+07:00`).toISOString()
   };
 }
 
