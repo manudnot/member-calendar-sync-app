@@ -741,14 +741,14 @@ export function parseAllThaiMissions(text, dbMembers = []) {
       }
 
       let title = lineText
-        .replace(/^[\d\.\s\-\*๒๒๑๒๓๔๕๖๗๘๙๐a-zA-Z]+/g, '')
+        .replace(/^[\d\.\s\-\*๒๒๑๒๔๕๖๗๘๙๐a-zA-Z]+/g, '')
         .replace(rangePattern, '')
         .replace(singlePattern, '')
         .replace(/^วันที่\s*/, '')
         .trim();
 
       if (!title || title.length < 3) {
-        title = lineText.replace(/^[\d\.\s\-\*๒๒๑๒๓๔๕๖๗๘๙๐]+/g, '').trim();
+        title = lineText.replace(/^[\d\.\s\-\*๒๒๑๒๔๕๖๗๘๙๐]+/g, '').trim();
       }
 
       if (title.includes(' ณ ')) {
@@ -992,8 +992,14 @@ export default async function handler(req, res) {
           mItem.time_str,
           mItem.all_day
         );
-        const newEvtId = `evt_line_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        const descText = `👔 การแต่งกาย: ${mItem.dress_code || 'ชุดอ่อน (กำหนดอัตโนมัติ)'}\n📍 สถานที่: ${mItem.location || '-'}`;
+        const descParts = [];
+        if (mItem.dress_code && mItem.dress_code !== 'ไม่ระบุ') {
+          descParts.push(`👔 การแต่งกาย: ${mItem.dress_code}`);
+        }
+        if (mItem.location && mItem.location !== '-' && mItem.location !== 'ไม่ระบุ') {
+          descParts.push(`📍 สถานที่: ${mItem.location}`);
+        }
+        const descText = descParts.join('\n');
 
         const isExplicitAllDay = mItem.all_day === true || (!mItem.time_str || mItem.time_str === 'ตลอดวัน' || mItem.time_str.includes('ตลอดวัน'));
 
@@ -1380,7 +1386,7 @@ export default async function handler(req, res) {
           time_str: m.time_str || 'ตลอดวัน',
           all_day: m.all_day !== false,
           category: formatCategoryWithBadge(m.category),
-          dress_code: m.dress_code || 'ชุดอ่อน (กำหนดอัตโนมัติ)',
+          dress_code: m.dress_code || '',
           location: m.location || '',
           member_ids: memberIds,
           member_names: memberNames
