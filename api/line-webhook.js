@@ -966,11 +966,32 @@ export default async function handler(req, res) {
       if (event.type !== 'message') continue;
 
     const replyToken = event.replyToken;
+    const sourceType = event.source?.type;
+    const isGroupChat = sourceType === 'group' || sourceType === 'room';
     const userId = event.source?.groupId || event.source?.roomId || event.source?.userId || 'default_user';
     const msgType = event.message.type;
+    const rawText = msgType === 'text' ? (event.message.text || '').trim() : '';
 
     // Fetch active draft for this user/group (with in-memory fallback)
     let activeDraft = await getActiveDraft(userId);
+    const hasActiveDraft = Boolean(activeDraft);
+
+    const hasPirabTrigger = rawText.includes('พิราบ');
+
+    // 0. Group Chat Gatekeeper Filter: Ignore general chat in groups if idle and no 'พิราบ' trigger
+    if (isGroupChat && !hasActiveDraft && !hasPirabTrigger) {
+      continue;
+    }
+
+    // Standalone trigger word activation ('พิราบ', 'พิราบ เพิ่มภารกิจ')
+    if (hasPirabTrigger && (rawText === 'พิราบ' || rawText === 'พิราบ เพิ่มภารกิจ' || rawText === 'พิราบ เปิดโหมด' || rawText === 'เพิ่มภารกิจ')) {
+      await saveDraft(userId, { missions: [], isGroupActive: true });
+      await replyOrPushLineMessage(replyToken, userId, {
+        type: 'text',
+        text: '🕊️ พิราบพร้อมรับภารกิจ! เจ้านายสามารถส่งรูปภาพ หรือพิมพ์ข้อความคำสั่งเข้ามาได้เลยครับ'
+      });
+      continue;
+    }
 
     // 1. User Command: Confirming Save (✅ ยืนยันบันทึก / ยืนยัน)
     if (msgType === 'text' && (event.message.text.includes('ยืนยัน') || event.message.text.includes('บันทึก'))) {
@@ -1368,7 +1389,8 @@ export default async function handler(req, res) {
         continue;
       }
     } else if (msgType === 'text') {
-      analyzedData = await analyzeMissionOrderWithAI(event.message.text, null, dbMembers);
+      const cleanMissionText = event.message.text.replace(/พิราบ\s*/gi, '').trim();
+      analyzedData = await analyzeMissionOrderWithAI(cleanMissionText || event.message.text, null, dbMembers);
     }
 
     if (analyzedData) {
