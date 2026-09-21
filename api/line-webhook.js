@@ -529,7 +529,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
       "time_str": "ห้วงเวลา เช่น 10:00 - 12:00 หรือ 09:00 - 12:00 หรือ ตลอดวัน",
       "all_day": true,
       "category": "ภารกิจหน่วย หรือ ภารกิจหมาย หรือ ประชุม หรือ งานกองพัน หรือ ภารกิจการฝึก หรือ กิจกรรมพิเศษ",
-      "dress_code": "ชุดการแต่งกาย (หากไม่ได้ระบุในข้อความ ให้ใช้ 'ชุดอ่อน (กำหนดอัตโนมัติ)')",
+      "dress_code": "ชุดการแต่งกาย (หากไม่ได้ระบุในข้อความ ให้ใส่ null หรือเว้นว่างไว้)",
       "location": "สถานที่ปฏิบัติงานหรือลิงก์ประชุม (ถ้ามี)",
       "members": ["รายชื่อผู้รับผิดชอบเฉพาะที่มีระบุในข้อความและตรงกับฐานข้อมูล Supabase เท่านั้น หากไม่มีให้เป็น []"]
     }
@@ -640,9 +640,9 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
         time_str: 'ตลอดวัน',
         all_day: true,
         category: text && text.includes('หมาย') ? '🔴 ภารกิจหมาย' : '🔵 ภารกิจหน่วย',
-        dress_code: text && (text.includes('เครื่องแบบ') || text.includes('ชุดฝึก') || text.includes('สุภาพ'))
-          ? (text.includes('เครื่องแบบ') ? 'ชุดเครื่องแบบ' : text.includes('ชุดฝึก') ? 'ชุดฝึก' : 'ชุดสุภาพ')
-          : 'ชุดอ่อน (กำหนดอัตโนมัติ)',
+        dress_code: text && (text.includes('เครื่องแบบ') || text.includes('ชุดฝึก') || text.includes('สุภาพ') || text.includes('ชุดอ่อน'))
+          ? (text.includes('เครื่องแบบ') ? 'ชุดเครื่องแบบ' : text.includes('ชุดฝึก') ? 'ชุดฝึก' : text.includes('ชุดอ่อน') ? 'ชุดอ่อน' : 'ชุดสุภาพ')
+          : null,
         location: text && text.includes('ณ ') ? text.split('ณ ')[1].split('\n')[0].trim() : '',
         members: []
       }
@@ -757,7 +757,7 @@ export function parseAllThaiMissions(text, dbMembers = []) {
         title = title.split('ณ ')[0].trim();
       }
 
-      let dress_code = 'ชุดอ่อน (กำหนดอัตโนมัติ)';
+      let dress_code = null;
       if (line.includes('เครื่องแบบ') || text.includes('เครื่องแบบ')) dress_code = 'ชุดเครื่องแบบ';
       else if (line.includes('ชุดฝึก') || text.includes('ชุดฝึก')) dress_code = 'ชุดฝึก';
       else if (line.includes('สุภาพ') || text.includes('สุภาพ')) dress_code = 'ชุดสุภาพ';
@@ -878,46 +878,49 @@ export function parseThaiMissionDates(text) {
   return null;
 }
 
-function formatDraftSummaryMessage(draftObj) {
+export function formatDraftSummaryMessage(draftObj) {
   const missions = Array.isArray(draftObj.missions) && draftObj.missions.length > 0
     ? draftObj.missions
     : [draftObj];
 
+  const BADGES = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+
+  const formatDressCodeLine = (dc) => {
+    if (!dc || dc === 'ไม่ระบุ' || dc === 'null' || dc.includes('กำหนดอัตโนมัติ')) return '';
+    const clean = dc.startsWith('ชุด') ? dc : `ชุด${dc}`;
+    return `\n👔 ${clean}`;
+  };
+
   if (missions.length === 1) {
     const item = missions[0];
     const memberDisplayStr = formatMemberNamesForDisplay(item.member_ids, []) || item.member_names || 'ไม่ระบุ';
-    return `🔍 ระบบวิเคราะห์ภารกิจเสร็จสิ้น โปรดตรวจสอบความถูกต้อง:
+    const dateStr = `${item.start_date}${item.end_date && item.end_date !== item.start_date ? ' ถึง ' + item.end_date : ''} (${item.time_str || 'ตลอดวัน'})`;
+    const catBadge = formatCategoryWithBadge(item.category);
+    const dressLine = formatDressCodeLine(item.dress_code);
+    const locLine = item.location ? `\n📍 สถานที่: ${item.location}` : '';
 
-📅 วันที่: ${item.start_date}${item.end_date !== item.start_date ? ' ถึง ' + item.end_date : ''} (${item.time_str || 'ตลอดวัน'})
-📝 ภารกิจ: ${item.title}
-🏷️ หมวดหมู่: ${formatCategoryWithBadge(item.category)}
-👔 การแต่งกาย: ${item.dress_code || 'ชุดอ่อน (กำหนดอัตโนมัติ)'}
-🎯 ผู้รับผิดชอบ: ${memberDisplayStr}
-${item.location ? '📍 สถานที่: ' + item.location : ''}
+    return `📋 สรุปร่างภารกิจ (1 รายการ):
 
-⏱️ ระบบจะกดยืนยันบันทึกให้อัตโนมัติใน 3 นาที หากไม่มีการกดปุ่มใดๆ หรือเมื่อเจ้านายส่งรูป/คำสั่งใหม่เข้ามาครับ
+${dateStr}
+📝 ${item.title}
+${catBadge}${dressLine}
+🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}
 
-💡 เจ้านายสามารถพิมพ์สั่งแก้ไขข้อมูลร่างได้โดยตรง (เช่น 'แก้ไขวันที่ 2026-09-25' หรือ 'เปลี่ยนการแต่งกาย ชุดเครื่องแบบ' หรือ 'เพิ่มผู้รับผิดชอบ ท็อป') ก่อนกดยืนยันบันทึกครับ`;
+⏱️ บันทึกให้อัตโนมัติใน 3 นาที (พิมพ์สั่งแก้ไขร่างได้เลย)`;
   }
 
   const itemsText = missions.map((item, idx) => {
     const memberDisplayStr = formatMemberNamesForDisplay(item.member_ids, []) || item.member_names || 'ไม่ระบุ';
-    return `📌 ภารกิจที่ ${idx + 1}:
-📅 วันที่: ${item.start_date}${item.end_date !== item.start_date ? ' ถึง ' + item.end_date : ''} (${item.time_str || 'ตลอดวัน'})
-📝 ภารกิจ: ${item.title}
-🏷️ หมวดหมู่: ${formatCategoryWithBadge(item.category)}
-👔 การแต่งกาย: ${item.dress_code || 'ชุดอ่อน (กำหนดอัตโนมัติ)'}
-🎯 ผู้รับผิดชอบ: ${memberDisplayStr}
-${item.location ? '📍 สถานที่: ' + item.location : ''}`;
-  }).join('\n\n------------------\n\n');
+    const badge = BADGES[idx] || `${idx + 1}️⃣`;
+    const dateStr = `${item.start_date}${item.end_date && item.end_date !== item.start_date ? ' ถึง ' + item.end_date : ''} (${item.time_str || 'ตลอดวัน'})`;
+    const catBadge = formatCategoryWithBadge(item.category);
+    const dressLine = formatDressCodeLine(item.dress_code);
+    const locLine = item.location ? `\n📍 สถานที่: ${item.location}` : '';
 
-  return `🔍 ระบบวิเคราะห์ภารกิจเสร็จสิ้น (พบ ${missions.length} ภารกิจ):
+    return `${badge} ${dateStr}\n📝 ${item.title}\n${catBadge}${dressLine}\n🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}`;
+  }).join('\n\n');
 
-${itemsText}
-
-⏱️ ระบบจะกดยืนยันบันทึกให้อัตโนมัติใน 3 นาที หากไม่มีการกดปุ่มใดๆ หรือเมื่อเจ้านายส่งรูป/คำสั่งใหม่เข้ามาครับ
-
-💡 เจ้านายสามารถพิมพ์สั่งแก้ไขข้อมูลร่างได้โดยตรงก่อนกดยืนยันบันทึกครับ`;
+  return `📋 สรุปร่างภารกิจ (${missions.length} รายการ):\n\n${itemsText}\n\n⏱️ บันทึกให้อัตโนมัติใน 3 นาที (พิมพ์สั่งแก้ไขร่างได้เลย)`;
 }
 
 export default async function handler(req, res) {
@@ -1047,8 +1050,8 @@ export default async function handler(req, res) {
       await clearActiveDraft(userId);
 
       const confirmText = insertedEvents.length === 1
-        ? `✅ ยืนยันบันทึกภารกิจเข้าปฏิทินเรียบร้อยแล้วครับ!\n\n📌 ภารกิจ: ${insertedEvents[0].title}\n📅 วันที่: ${insertedEvents[0].start_date}${insertedEvents[0].time_str && insertedEvents[0].time_str !== 'ตลอดวัน' ? ' (' + insertedEvents[0].time_str + ')' : ''}\n👥 ผู้รับผิดชอบ: ${insertedEvents[0].member_names || 'ไม่ระบุ'}\n📍 สถานที่: ${insertedEvents[0].location || '-'}\n\n🔗 ดูปฏิทินสด: https://member-calendar-sync-app.vercel.app`
-        : `✅ ยืนยันบันทึก ${insertedEvents.length} ภารกิจเข้าปฏิทินเรียบร้อยแล้วครับ!\n\n` + insertedEvents.map((item, idx) => `${idx + 1}. 📌 ${item.title} (${item.start_date}${item.time_str && item.time_str !== 'ตลอดวัน' ? ' ' + item.time_str : ''})`).join('\n') + '\n\n🔗 ดูปฏิทินสด: https://member-calendar-sync-app.vercel.app';
+        ? `✅ ยืนยันบันทึกภารกิจเข้าปฏิทินเรียบร้อยแล้วครับ!\n\n📌 ${insertedEvents[0].title} (${insertedEvents[0].start_date}${insertedEvents[0].time_str && insertedEvents[0].time_str !== 'ตลอดวัน' ? ' ' + insertedEvents[0].time_str : ''})`
+        : `✅ ยืนยันบันทึก ${insertedEvents.length} ภารกิจเข้าปฏิทินเรียบร้อยแล้วครับ!\n\n` + insertedEvents.map((item, idx) => `${idx + 1}. 📌 ${item.title} (${item.start_date}${item.time_str && item.time_str !== 'ตลอดวัน' ? ' ' + item.time_str : ''})`).join('\n');
 
       await replyOrPushLineMessage(replyToken, userId, {
         type: 'text',
