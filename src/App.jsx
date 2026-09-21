@@ -616,6 +616,20 @@ export default function App() {
     }
   };
 
+  const buildSupaEventPayload = (evt) => ({
+    id: evt.id,
+    title: evt.title,
+    start_time: evt.start_time,
+    end_time: evt.end_time,
+    all_day: Boolean(evt.all_day),
+    description: evt.description || '',
+    location: evt.location || evt.url || '',
+    category: evt.category || 'งานกองพัน',
+    category_id: evt.category_id || 'cat_work',
+    member_ids: evt.member_ids || [],
+    alarm_minutes: evt.alarm_minutes || 15
+  });
+
   const handleSaveEvent = async (eventPayload) => {
     const prevEventsState = [...events];
     const exists = events.some(e => e.id === eventPayload.id);
@@ -688,17 +702,7 @@ export default function App() {
     // 2. Supabase Async Confirmation & Rollback on Error
     if (supabase) {
       try {
-        const supaEvtPayload = {
-          id: eventPayload.id,
-          title: eventPayload.title,
-          start_time: eventPayload.start_time,
-          end_time: eventPayload.end_time,
-          description: eventPayload.description || '',
-          location: eventPayload.location || eventPayload.url || '',
-          category: eventPayload.category || 'General',
-          member_ids: eventPayload.member_ids || [],
-          alarm_minutes: eventPayload.alarm_minutes || 15
-        };
+        const supaEvtPayload = buildSupaEventPayload(eventPayload);
 
         const { error } = await supabase.from('events').upsert([supaEvtPayload]);
         if (error) {
@@ -725,30 +729,53 @@ export default function App() {
     const targetEvt = events.find(e => e.id === eventId);
     if (!targetEvt || !targetDateStr) return;
 
-    const oldStartDateStr = targetEvt.start_time ? targetEvt.start_time.split('T')[0] : targetDateStr;
-    const oldEndDateStr = targetEvt.end_time ? targetEvt.end_time.split('T')[0] : oldStartDateStr;
-    const oldStart = new Date(oldStartDateStr);
-    const oldEnd = new Date(oldEndDateStr);
-    const durationDays = Math.max(0, Math.round((oldEnd - oldStart) / (1000 * 60 * 60 * 24)));
+    const isAllDay = isAllDayEvent(targetEvt);
+    const oldStartDateStr = getLocalDateStr(targetEvt.start_time) || targetDateStr;
+    const oldEndDateStr = getLocalDateStr(targetEvt.end_time) || oldStartDateStr;
 
-    const startTimePart = targetEvt.start_time && targetEvt.start_time.includes('T') ? targetEvt.start_time.split('T')[1] : '09:00:00Z';
-    const endTimePart = targetEvt.end_time && targetEvt.end_time.includes('T') ? targetEvt.end_time.split('T')[1] : '17:00:00Z';
+    let newStartIso = '';
+    let newEndIso = '';
 
-    const newStartDateObj = new Date(targetDateStr);
-    const newEndDateObj = new Date(newStartDateObj);
-    newEndDateObj.setDate(newEndDateObj.getDate() + durationDays);
-    const newEndDateStr = formatDateKey(newEndDateObj);
+    if (isAllDay) {
+      if (oldStartDateStr === oldEndDateStr) {
+        newStartIso = `${targetDateStr}T17:00:00.000Z`;
+        newEndIso = `${targetDateStr}T16:59:59.000Z`;
+      } else {
+        const oldStart = new Date(oldStartDateStr);
+        const oldEnd = new Date(oldEndDateStr);
+        const durationDays = Math.max(0, Math.round((oldEnd - oldStart) / (1000 * 60 * 60 * 24)));
+        const newStartDateObj = new Date(targetDateStr);
+        const newEndDateObj = new Date(newStartDateObj);
+        newEndDateObj.setDate(newEndDateObj.getDate() + durationDays);
+        const newEndDateStr = formatDateKey(newEndDateObj);
+        newStartIso = `${targetDateStr}T17:00:00.000Z`;
+        newEndIso = `${newEndDateStr}T16:59:59.000Z`;
+      }
+    } else {
+      const sTimePart = targetEvt.start_time && targetEvt.start_time.includes('T') ? targetEvt.start_time.split('T')[1] : '09:00:00Z';
+      const eTimePart = targetEvt.end_time && targetEvt.end_time.includes('T') ? targetEvt.end_time.split('T')[1] : '17:00:00Z';
 
-    const newStartIso = `${targetDateStr}T${startTimePart}`;
-    const newEndIso = `${newEndDateStr}T${endTimePart}`;
+      const oldStart = new Date(oldStartDateStr);
+      const oldEnd = new Date(oldEndDateStr);
+      const durationDays = Math.max(0, Math.round((oldEnd - oldStart) / (1000 * 60 * 60 * 24)));
+      const newStartDateObj = new Date(targetDateStr);
+      const newEndDateObj = new Date(newStartDateObj);
+      newEndDateObj.setDate(newEndDateObj.getDate() + durationDays);
+      const newEndDateStr = formatDateKey(newEndDateObj);
+
+      newStartIso = `${targetDateStr}T${sTimePart}`;
+      newEndIso = `${newEndDateStr}T${eTimePart}`;
+    }
 
     const updatedEvt = {
       ...targetEvt,
       start_time: newStartIso,
       end_time: newEndIso,
+      all_day: isAllDay,
       is_deleted: false
     };
 
+    const prevEventsState = [...events];
     const updatedEvents = events.map(e => e.id === eventId ? updatedEvt : e);
     setEvents(updatedEvents);
     localStorage.setItem('member_calendar_events', JSON.stringify(updatedEvents));
@@ -758,20 +785,14 @@ export default function App() {
 
     if (supabase) {
       try {
-        const supaEvtPayload = {
-          id: updatedEvt.id,
-          title: updatedEvt.title,
-          start_time: updatedEvt.start_time,
-          end_time: updatedEvt.end_time,
-          description: updatedEvt.description || '',
-          location: updatedEvt.location || updatedEvt.url || '',
-          category: updatedEvt.category || 'General',
-          member_ids: updatedEvt.member_ids || [],
-          alarm_minutes: updatedEvt.alarm_minutes || 15
-        };
-        await supabase.from('events').upsert([supaEvtPayload]);
+        const supaEvtPayload = buildSupaEventPayload(updatedEvt);
+        const { error } = await supabase.from('events').upsert([supaEvtPayload]);
+        if (error) throw error;
       } catch (e) {
         console.warn('Supabase move event warning:', e);
+        setEvents(prevEventsState);
+        localStorage.setItem('member_calendar_events', JSON.stringify(prevEventsState));
+        setToast({ message: 'การย้ายล้มเหลว ระบบคืนค่าเดิมเรียบร้อยแล้ว', type: 'error' });
       }
     }
   };
@@ -779,32 +800,55 @@ export default function App() {
   const handleCopyEvent = async (originalEvt, targetDateStr) => {
     if (!originalEvt || !targetDateStr) return;
 
-    const oldStartDateStr = originalEvt.start_time ? originalEvt.start_time.split('T')[0] : targetDateStr;
-    const oldEndDateStr = originalEvt.end_time ? originalEvt.end_time.split('T')[0] : oldStartDateStr;
-    const oldStart = new Date(oldStartDateStr);
-    const oldEnd = new Date(oldEndDateStr);
-    const durationDays = Math.max(0, Math.round((oldEnd - oldStart) / (1000 * 60 * 60 * 24)));
+    const isAllDay = isAllDayEvent(originalEvt);
+    const oldStartDateStr = getLocalDateStr(originalEvt.start_time) || targetDateStr;
+    const oldEndDateStr = getLocalDateStr(originalEvt.end_time) || oldStartDateStr;
 
-    const startTimePart = originalEvt.start_time && originalEvt.start_time.includes('T') ? originalEvt.start_time.split('T')[1] : '09:00:00Z';
-    const endTimePart = originalEvt.end_time && originalEvt.end_time.includes('T') ? originalEvt.end_time.split('T')[1] : '17:00:00Z';
+    let newStartIso = '';
+    let newEndIso = '';
 
-    const newStartDateObj = new Date(targetDateStr);
-    const newEndDateObj = new Date(newStartDateObj);
-    newEndDateObj.setDate(newEndDateObj.getDate() + durationDays);
-    const newEndDateStr = formatDateKey(newEndDateObj);
+    if (isAllDay) {
+      if (oldStartDateStr === oldEndDateStr) {
+        newStartIso = `${targetDateStr}T17:00:00.000Z`;
+        newEndIso = `${targetDateStr}T16:59:59.000Z`;
+      } else {
+        const oldStart = new Date(oldStartDateStr);
+        const oldEnd = new Date(oldEndDateStr);
+        const durationDays = Math.max(0, Math.round((oldEnd - oldStart) / (1000 * 60 * 60 * 24)));
+        const newStartDateObj = new Date(targetDateStr);
+        const newEndDateObj = new Date(newStartDateObj);
+        newEndDateObj.setDate(newEndDateObj.getDate() + durationDays);
+        const newEndDateStr = formatDateKey(newEndDateObj);
+        newStartIso = `${targetDateStr}T17:00:00.000Z`;
+        newEndIso = `${newEndDateStr}T16:59:59.000Z`;
+      }
+    } else {
+      const sTimePart = originalEvt.start_time && originalEvt.start_time.includes('T') ? originalEvt.start_time.split('T')[1] : '09:00:00Z';
+      const eTimePart = originalEvt.end_time && originalEvt.end_time.includes('T') ? originalEvt.end_time.split('T')[1] : '17:00:00Z';
 
-    const newStartIso = `${targetDateStr}T${startTimePart}`;
-    const newEndIso = `${newEndDateStr}T${endTimePart}`;
+      const oldStart = new Date(oldStartDateStr);
+      const oldEnd = new Date(oldEndDateStr);
+      const durationDays = Math.max(0, Math.round((oldEnd - oldStart) / (1000 * 60 * 60 * 24)));
+      const newStartDateObj = new Date(targetDateStr);
+      const newEndDateObj = new Date(newStartDateObj);
+      newEndDateObj.setDate(newEndDateObj.getDate() + durationDays);
+      const newEndDateStr = formatDateKey(newEndDateObj);
+
+      newStartIso = `${targetDateStr}T${sTimePart}`;
+      newEndIso = `${newEndDateStr}T${eTimePart}`;
+    }
 
     const newEvt = {
       ...originalEvt,
       id: `evt_copy_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       start_time: newStartIso,
       end_time: newEndIso,
+      all_day: isAllDay,
       is_deleted: false,
       created_at: new Date().toISOString()
     };
 
+    const prevEventsState = [...events];
     const updatedEvents = [...events, newEvt];
     setEvents(updatedEvents);
     localStorage.setItem('member_calendar_events', JSON.stringify(updatedEvents));
@@ -814,20 +858,14 @@ export default function App() {
 
     if (supabase) {
       try {
-        const supaEvtPayload = {
-          id: newEvt.id,
-          title: newEvt.title,
-          start_time: newEvt.start_time,
-          end_time: newEvt.end_time,
-          description: newEvt.description || '',
-          location: newEvt.location || newEvt.url || '',
-          category: newEvt.category || 'General',
-          member_ids: newEvt.member_ids || [],
-          alarm_minutes: newEvt.alarm_minutes || 15
-        };
-        await supabase.from('events').upsert([supaEvtPayload]);
+        const supaEvtPayload = buildSupaEventPayload(newEvt);
+        const { error } = await supabase.from('events').upsert([supaEvtPayload]);
+        if (error) throw error;
       } catch (e) {
         console.warn('Supabase copy event warning:', e);
+        setEvents(prevEventsState);
+        localStorage.setItem('member_calendar_events', JSON.stringify(prevEventsState));
+        setToast({ message: 'การคัดลอกล้มเหลว ระบบคืนค่าเดิมเรียบร้อยแล้ว', type: 'error' });
       }
     }
   };
