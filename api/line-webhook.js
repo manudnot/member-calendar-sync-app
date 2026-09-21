@@ -906,7 +906,7 @@ ${dateStr}
 ${catBadge}${dressLine}
 🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}
 
-⏱️ บันทึกให้อัตโนมัติใน 3 นาที (พิมพ์สั่งแก้ไขร่างได้เลย)`;
+⏱️ บันทึกให้อัตโนมัติใน 3 นาที`;
   }
 
   const itemsText = missions.map((item, idx) => {
@@ -920,7 +920,7 @@ ${catBadge}${dressLine}
     return `${badge} ${dateStr}\n📝 ${item.title}\n${catBadge}${dressLine}\n🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}`;
   }).join('\n\n');
 
-  return `📋 สรุปร่างภารกิจ (${missions.length} รายการ):\n\n${itemsText}\n\n⏱️ บันทึกให้อัตโนมัติใน 3 นาที (พิมพ์สั่งแก้ไขร่างได้เลย)`;
+  return `📋 สรุปร่างภารกิจ (${missions.length} รายการ):\n\n${itemsText}\n\n⏱️ บันทึกให้อัตโนมัติใน 3 นาที`;
 }
 
 export default async function handler(req, res) {
@@ -1049,9 +1049,7 @@ export default async function handler(req, res) {
       // Clear draft
       await clearActiveDraft(userId);
 
-      const confirmText = insertedEvents.length === 1
-        ? `✅ ยืนยันบันทึกภารกิจเข้าปฏิทินเรียบร้อยแล้วครับ!\n\n📌 ${insertedEvents[0].title} (${insertedEvents[0].start_date}${insertedEvents[0].time_str && insertedEvents[0].time_str !== 'ตลอดวัน' ? ' ' + insertedEvents[0].time_str : ''})`
-        : `✅ ยืนยันบันทึก ${insertedEvents.length} ภารกิจเข้าปฏิทินเรียบร้อยแล้วครับ!\n\n` + insertedEvents.map((item, idx) => `${idx + 1}. 📌 ${item.title} (${item.start_date}${item.time_str && item.time_str !== 'ตลอดวัน' ? ' ' + item.time_str : ''})`).join('\n');
+      const confirmText = `✅ ยืนยันบันทึก ${insertedEvents.length} ภารกิจ\n\n` + insertedEvents.map((item, idx) => `${idx + 1}. ${item.title} (${item.start_date}${item.time_str && item.time_str !== 'ตลอดวัน' ? ' ' + item.time_str : ''})`).join('\n');
 
       await replyOrPushLineMessage(replyToken, userId, {
         type: 'text',
