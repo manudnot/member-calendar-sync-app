@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Check, Calendar as CalendarIcon } from 'lucide-react';
+import { Users, Check, Calendar as CalendarIcon, Sun, Moon, Laptop } from 'lucide-react';
 
 export default function Sidebar({
   members,
@@ -7,7 +7,9 @@ export default function Sidebar({
   visibleMemberIds,
   onToggleMemberVisibility,
   onSelectAllMembers,
-  isOpen
+  isOpen,
+  theme,
+  setTheme
 }) {
   const getEventCountForMember = (memberId) => {
     return events.filter(e => Array.isArray(e.member_ids) && e.member_ids.includes(memberId)).length;
@@ -101,6 +103,51 @@ export default function Sidebar({
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Theme Switcher Footer Section (User Settings) */}
+      <div className="p-4 border-t border-slate-200 dark:border-dark-border bg-slate-50/50 dark:bg-dark-bg/50">
+        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-2">
+          ธีมการแสดงผล
+        </span>
+        <div className="flex items-center gap-1 bg-white dark:bg-dark-card p-1 rounded-xl border border-slate-200 dark:border-dark-border shadow-xs">
+          <button
+            onClick={() => setTheme && setTheme('light')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              theme === 'light'
+                ? 'bg-amber-500 text-white shadow-xs'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+            title="โหมดสว่าง"
+          >
+            <Sun className="w-3.5 h-3.5" />
+            <span>สว่าง</span>
+          </button>
+          <button
+            onClick={() => setTheme && setTheme('dark')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              theme === 'dark'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+            title="โหมดมืด"
+          >
+            <Moon className="w-3.5 h-3.5" />
+            <span>มืด</span>
+          </button>
+          <button
+            onClick={() => setTheme && setTheme('system')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              theme === 'system'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+            title="อัตโนมัติ"
+          >
+            <Laptop className="w-3.5 h-3.5" />
+            <span>ระบบ</span>
+          </button>
         </div>
       </div>
     </aside>

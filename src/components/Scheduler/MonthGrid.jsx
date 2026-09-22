@@ -384,7 +384,7 @@ export default function MonthGrid({
                           setDragOverDateStr(null);
                         }}
                         onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                        className={`pointer-events-auto h-5 px-1.5 text-[10px] font-semibold flex items-center gap-1 shadow-2xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 rounded-md border-l-2 ${
+                        className={`pointer-events-auto h-5 px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-2xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 rounded-md border-l-2 ${
                           isBeingDragged ? 'opacity-40 scale-95 ring-2 ring-emerald-400' : ''
                         }`}
                         style={{
@@ -398,7 +398,6 @@ export default function MonthGrid({
                         }}
                         title={`${evt.title} (${timeText}) (ลากวางเพื่อย้ายหรือคัดลอก)`}
                       >
-                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: evtColor }} />
                         <span className="truncate font-bold text-slate-800 dark:text-slate-100">{evt.title}</span>
                       </div>
                     );

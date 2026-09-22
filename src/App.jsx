@@ -1044,6 +1044,8 @@ export default function App() {
           onToggleMemberVisibility={handleToggleMemberVisibility}
           onSelectAllMembers={handleSelectAllMembers}
           isOpen={isSidebarOpen}
+          theme={theme}
+          setTheme={setTheme}
         />
 
         {/* Center Workspace (Month Grid - Full Height) */}

@@ -40,17 +40,17 @@ export default function Header({
           <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black text-lg shadow-sm">
             S
           </div>
-          <div>
-            <h1 className="text-base font-black tracking-tight text-purple-600 dark:text-purple-400">
-              Signal21 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Team Calendar</span>
+          <div className="flex items-center gap-1.5 whitespace-nowrap">
+            <h1 className="text-sm sm:text-base font-black tracking-tight text-purple-600 dark:text-purple-400 whitespace-nowrap flex items-center gap-1.5">
+              Signal21 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Team Calendar</span>
             </h1>
           </div>
         </div>
       </div>
 
       {/* Center: Month Navigator & View Switcher */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1 border border-slate-200 dark:border-dark-border rounded-xl px-2 py-1 bg-slate-50 dark:bg-dark-bg shadow-inner">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1 border border-slate-200 dark:border-dark-border rounded-xl px-1.5 sm:px-2 py-1 bg-slate-50 dark:bg-dark-bg shadow-inner">
           <button
             onClick={onPrevMonth}
             className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 p-1 rounded-lg transition-colors focus:outline-none cursor-pointer"
@@ -59,7 +59,7 @@ export default function Header({
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 min-w-[110px] text-center select-none font-mono">
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 min-w-[95px] sm:min-w-[110px] text-center select-none font-mono">
             {monthName} {thaiYear}
           </span>
 
@@ -74,71 +74,33 @@ export default function Header({
 
         <button
           onClick={onToday}
-          className="btn-secondary py-1 px-3 text-xs"
+          className="btn-secondary py-1 px-2.5 text-xs"
         >
           วันนี้
         </button>
       </div>
 
-      {/* Right: User Identity Chip, Log & Theme Switcher & Actions */}
-      <div className="flex items-center gap-2 lg:gap-3">
-
+      {/* Right: User Identity Chip */}
+      <div className="flex items-center gap-2">
         {/* Per-Device Active User Avatar Chip */}
         {activeUser && (
           <button
             onClick={onOpenSwitchUserModal}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-dark-bg border border-slate-200 dark:border-dark-border hover:border-emerald-500 dark:hover:border-emerald-500 transition-all cursor-pointer shadow-xs group"
+            className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-100 dark:bg-dark-bg border border-slate-200 dark:border-dark-border hover:border-emerald-500 dark:hover:border-emerald-500 transition-all cursor-pointer shadow-xs group"
             title="สลับตัวตนผู้ใช้งานประจำเครื่อง"
           >
             <span
-              className="w-5 h-5 rounded-full text-white flex items-center justify-center font-mono font-black text-[10px] shadow-xs"
+              className="w-5 h-5 rounded-full text-white flex items-center justify-center font-mono font-black text-[10px] shadow-xs shrink-0"
               style={{ backgroundColor: activeUser.color }}
             >
               {activeUser.initials || activeUser.name.substring(0, 2).toUpperCase()}
             </span>
-            <span className="text-xs font-black text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 truncate max-w-[90px] hidden sm:inline">
+            <span className="text-xs font-black text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 truncate max-w-[70px] sm:max-w-[100px] inline">
               {activeUser.name}
             </span>
-            <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-emerald-600" />
+            <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-emerald-600 shrink-0" />
           </button>
         )}
-
-        {/* Theme Switcher */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-dark-bg p-1 rounded-xl border border-slate-200 dark:border-dark-border">
-          <button
-            onClick={() => setTheme('light')}
-            className={`p-1.5 rounded-lg transition-all ${
-              theme === 'light'
-                ? 'bg-white dark:bg-dark-card text-amber-500 shadow-sm'
-                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-            }`}
-            title="โหมดสว่าง"
-          >
-            <Sun className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setTheme('dark')}
-            className={`p-1.5 rounded-lg transition-all ${
-              theme === 'dark'
-                ? 'bg-white dark:bg-dark-card text-indigo-400 shadow-sm'
-                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-            }`}
-            title="โหมดมืด"
-          >
-            <Moon className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setTheme('system')}
-            className={`p-1.5 rounded-lg transition-all ${
-              theme === 'system'
-                ? 'bg-white dark:bg-dark-card text-emerald-500 shadow-sm'
-                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-            }`}
-            title="อัตโนมัติ"
-          >
-            <Laptop className="w-4 h-4" />
-          </button>
-        </div>
       </div>
 
     </header>
