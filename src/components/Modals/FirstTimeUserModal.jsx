@@ -18,7 +18,8 @@ export default function FirstTimeUserModal({
   theme = 'light',
   setTheme,
   searchQuery = '',
-  setSearchQuery
+  setSearchQuery,
+  onOpenSearchModal
 }) {
   const [selectedMember, setSelectedMember] = useState(null);
   const [masterPasscodeInput, setMasterPasscodeInput] = useState('');
@@ -185,6 +186,19 @@ export default function FirstTimeUserModal({
         {/* Header */}
         <div className="p-5 border-b border-slate-200 dark:border-dark-border bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex flex-col gap-1 text-center relative">
           <div className="absolute right-4 top-4 flex items-center gap-1.5 z-10">
+            {onOpenSearchModal && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onClose) onClose();
+                  onOpenSearchModal();
+                }}
+                className="p-1.5 rounded-full bg-black/20 hover:bg-black/40 text-white/90 hover:text-white transition-all cursor-pointer"
+                title="ค้นหาภารกิจ"
+              >
+                <Search className="w-4 h-4 text-white" />
+              </button>
+            )}
             {setTheme && (
               <button
                 type="button"
@@ -260,28 +274,6 @@ export default function FirstTimeUserModal({
                       ⚡ เมนูด่วนใช้งานระบบ (Quick Actions)
                     </span>
                   </div>
-
-                  {setSearchQuery && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-xl shadow-2xs">
-                      <Search className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <input
-                        type="text"
-                        placeholder="ค้นหาชื่อกิจกรรม..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
-                      />
-                      {searchQuery && (
-                        <button
-                          type="button"
-                          onClick={() => setSearchQuery('')}
-                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  )}
 
                   <div className="grid grid-cols-2 gap-2">
                     {onOpenAddEvent && (
