@@ -349,7 +349,7 @@ export default function MonthGrid({
                           setDragOverDateStr(null);
                         }}
                         onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                        className={`pointer-events-auto h-5 px-2 text-[11px] font-bold flex items-center shadow-xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 ${
+                        className={`pointer-events-auto h-5 px-0.5 sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 ${
                           isStartOfEvent ? 'rounded-l-md' : 'rounded-l-none'
                         } ${
                           isEndOfEvent ? 'rounded-r-md' : 'rounded-r-none'
@@ -384,7 +384,7 @@ export default function MonthGrid({
                           setDragOverDateStr(null);
                         }}
                         onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                        className={`pointer-events-auto h-5 px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-2xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 rounded-md border-l-2 ${
+                        className={`pointer-events-auto h-5 px-[1px] sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-2xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 rounded-md border-l-2 ${
                           isBeingDragged ? 'opacity-40 scale-95 ring-2 ring-emerald-400' : ''
                         }`}
                         style={{
