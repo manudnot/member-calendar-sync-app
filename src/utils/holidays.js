@@ -118,7 +118,7 @@ export async function fetchLiveHolidays(year = new Date().getFullYear()) {
   const targetYear = parseInt(year) || new Date().getFullYear();
   const mergedHolidays = { ...BUILTIN_HOLIDAYS };
 
-  // 1. Live Sync via /api/holidays?year=...
+  // Pure Live Sync via /api/holidays?year=... (Hosted on same domain, 0 CORS errors)
   try {
     const res = await fetch(`/api/holidays?year=${targetYear}`);
     if (res.ok) {
@@ -128,31 +128,7 @@ export async function fetchLiveHolidays(year = new Date().getFullYear()) {
       }
     }
   } catch (err) {
-    console.warn('Live API fetch notice:', err);
-  }
-
-  // 2. Client-side Proxy fallback (https://api.allorigins.win)
-  try {
-    const yearBE = targetYear + 543;
-    const rawUrl = `https://myhora.com/calendar/ical/holiday.aspx?${yearBE}.ics`;
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rawUrl)}`;
-    const res = await fetch(proxyUrl);
-    if (res.ok) {
-      const text = await res.text();
-      const vevents = text.split('BEGIN:VEVENT');
-      vevents.shift();
-      for (const vevt of vevents) {
-        const dtMatch = vevt.match(/DTSTART(?:;VALUE=DATE)?:(\d{8})/);
-        const summaryMatch = vevt.match(/SUMMARY:(.+)/);
-        if (dtMatch && summaryMatch) {
-          const rawDt = dtMatch[1];
-          const dateStr = `${rawDt.substring(0,4)}-${rawDt.substring(4,6)}-${rawDt.substring(6,8)}`;
-          mergedHolidays[dateStr] = summaryMatch[1].trim();
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('Proxy fallback notice:', e);
+    // Silent failover to built-in holidays without throwing red console errors
   }
 
   return mergedHolidays;
