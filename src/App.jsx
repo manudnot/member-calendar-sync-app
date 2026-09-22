@@ -58,6 +58,7 @@ export default function App() {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [selectedDateStr, setSelectedDateStr] = useState(formatDateKey(new Date()));
   const [viewMode, setViewMode] = useState('monthly');
+  const [slideDirection, setSlideDirection] = useState(null);
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('member_calendar_theme') || 'light';
   });
@@ -569,6 +570,7 @@ export default function App() {
   };
 
   const handlePrevMonth = () => {
+    setSlideDirection('prev');
     let m = currentMonth - 1;
     let y = currentYear;
     if (m < 0) {
@@ -580,6 +582,7 @@ export default function App() {
   };
 
   const handleNextMonth = () => {
+    setSlideDirection('next');
     let m = currentMonth + 1;
     let y = currentYear;
     if (m > 11) {
@@ -1067,6 +1070,7 @@ export default function App() {
             onOpenAddEvent={handleOpenAddEvent}
             onPrevMonth={handlePrevMonth}
             onNextMonth={handleNextMonth}
+            slideDirection={slideDirection}
           />
         </main>
 

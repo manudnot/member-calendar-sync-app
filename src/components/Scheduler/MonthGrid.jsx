@@ -19,7 +19,8 @@ export default function MonthGrid({
   onOpenDayModal,
   onOpenAddEvent,
   onPrevMonth,
-  onNextMonth
+  onNextMonth,
+  slideDirection
 }) {
   const [draggedEvt, setDraggedEvt] = useState(null);
   const [dragOverDateStr, setDragOverDateStr] = useState(null);
@@ -29,8 +30,27 @@ export default function MonthGrid({
   const [maxVisibleSlots, setMaxVisibleSlots] = useState(3);
   const gridRef = useRef(null);
 
-  // Touch Swipe Gesture Tracking for TimeTree-style month flipping
+  // Real-time touch drag tracking & slide animation states
+  const [dragTranslateX, setDragTranslateX] = useState(0);
+  const [isTouchDragging, setIsTouchDragging] = useState(false);
+  const [slideAnimClass, setSlideAnimClass] = useState('');
   const touchStartPos = useRef({ x: 0, y: 0, time: 0 });
+
+  // Trigger slide animation when month/year changes via Header buttons or Touch Swipe
+  useEffect(() => {
+    if (slideDirection === 'next') {
+      setSlideAnimClass('animate-slide-from-right');
+    } else if (slideDirection === 'prev') {
+      setSlideAnimClass('animate-slide-from-left');
+    }
+
+    const timer = setTimeout(() => {
+      setSlideAnimClass('');
+      setDragTranslateX(0);
+    }, 240);
+
+    return () => clearTimeout(timer);
+  }, [currentMonth, currentYear, slideDirection]);
 
   const handleTouchStart = (e) => {
     if (e.touches && e.touches.length === 1) {
@@ -39,11 +59,27 @@ export default function MonthGrid({
         y: e.touches[0].clientY,
         time: Date.now()
       };
+      setIsTouchDragging(true);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (!touchStartPos.current.time || !e.touches || e.touches.length !== 1) return;
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const deltaX = currentX - touchStartPos.current.x;
+    const deltaY = currentY - touchStartPos.current.y;
+
+    // Follow finger horizontally if horizontal drag is dominant
+    if (Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+      setDragTranslateX(deltaX);
     }
   };
 
   const handleTouchEnd = (e) => {
     if (!touchStartPos.current.time) return;
+    setIsTouchDragging(false);
+
     if (e.changedTouches && e.changedTouches.length === 1) {
       const endX = e.changedTouches[0].clientX;
       const endY = e.changedTouches[0].clientY;
@@ -51,13 +87,20 @@ export default function MonthGrid({
       const deltaY = endY - touchStartPos.current.y;
       const deltaTime = Date.now() - touchStartPos.current.time;
 
-      // Swipe threshold: horizontal movement > 50px, duration < 500ms, horizontal dominant over vertical
-      if (deltaTime < 500 && Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+      // Threshold: dragged > 40px (15-20% screen width), duration < 600ms
+      if (deltaTime < 600 && Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
         if (deltaX < 0 && onNextMonth) {
+          setSlideAnimClass('animate-slide-from-right');
           onNextMonth();
         } else if (deltaX > 0 && onPrevMonth) {
+          setSlideAnimClass('animate-slide-from-left');
           onPrevMonth();
+        } else {
+          setDragTranslateX(0);
         }
+      } else {
+        // Snap back to center if swipe distance is under threshold
+        setDragTranslateX(0);
       }
     }
     touchStartPos.current = { x: 0, y: 0, time: 0 };
@@ -186,6 +229,7 @@ export default function MonthGrid({
   return (
     <div
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-dark-card border-b border-slate-200 dark:border-dark-border relative"
     >
@@ -200,11 +244,15 @@ export default function MonthGrid({
         <div className="py-2 text-center text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">Sat</div>
       </div>
 
-      {/* 7-Column Week Rows Container (Dynamic Height filling 100% space) */}
+      {/* 7-Column Week Rows Container (Dynamic Height & TimeTree Slide Animation) */}
       <div
         ref={gridRef}
-        className="flex-1 grid bg-slate-200 dark:bg-dark-border gap-px overflow-y-auto no-scrollbar"
-        style={{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }}
+        className={`flex-1 grid bg-slate-200 dark:bg-dark-border gap-px overflow-y-auto no-scrollbar ${slideAnimClass}`}
+        style={{
+          gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))`,
+          transform: dragTranslateX ? `translateX(${dragTranslateX}px)` : undefined,
+          transition: isTouchDragging ? 'none' : undefined
+        }}
       >
         {weeks.map((week, weekIdx) => {
           // Calculate events present in this week

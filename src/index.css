@@ -54,3 +54,35 @@
   }
 }
 
+/* TimeTree Style Smooth Month Slide Page Flip Keyframes */
+@keyframes slideInFromRight {
+  0% {
+    transform: translateX(35%);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  0% {
+    transform: translateX(-35%);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-from-right {
+  animation: slideInFromRight 0.22s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.animate-slide-from-left {
+  animation: slideInFromLeft 0.22s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+
