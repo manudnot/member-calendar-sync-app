@@ -1065,6 +1065,8 @@ export default function App() {
             onCopyEvent={handleCopyEvent}
             onOpenDayModal={handleOpenDayModal}
             onOpenAddEvent={handleOpenAddEvent}
+            onPrevMonth={handlePrevMonth}
+            onNextMonth={handleNextMonth}
           />
         </main>
 
@@ -1075,6 +1077,8 @@ export default function App() {
           onOpenActivityLog={handleOpenActivityLogModal}
           onOpenAddEvent={() => handleOpenAddEvent(selectedDateStr)}
           unreadActivityCount={unreadActivityCount}
+          theme={theme}
+          setTheme={setTheme}
         />
       </div>
 
@@ -1092,6 +1096,8 @@ export default function App() {
         onOpenIcalModal={() => setIsIcalModalOpen(true)}
         onOpenActivityLog={handleOpenActivityLogModal}
         unreadActivityCount={unreadActivityCount}
+        theme={theme}
+        setTheme={setTheme}
       />
 
       <ForgotPinModal

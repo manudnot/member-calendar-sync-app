@@ -1,12 +1,14 @@
 import React from 'react';
-import { Users, QrCode, Activity, Plus } from 'lucide-react';
+import { Users, QrCode, Activity, Plus, Sun, Moon } from 'lucide-react';
 
 export default function RightToolbar({
   onOpenMemberManagement,
   onOpenIcalModal,
   onOpenActivityLog,
   onOpenAddEvent,
-  unreadActivityCount
+  unreadActivityCount,
+  theme,
+  setTheme
 }) {
   return (
     <aside className="w-13 bg-white dark:bg-dark-card border-l border-slate-200 dark:border-dark-border flex flex-col items-center py-4 gap-4 shrink-0 hidden lg:flex glass-panel">
@@ -38,6 +40,16 @@ export default function RightToolbar({
           </span>
         )}
       </button>
+
+      {setTheme && (
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="p-2.5 rounded-xl text-slate-500 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none cursor-pointer"
+          title={theme === 'dark' ? 'เปลี่ยนเป็นโหมดสว่าง (Light Mode)' : 'เปลี่ยนเป็นโหมดมืด (Dark Mode)'}
+        >
+          {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
+        </button>
+      )}
 
       <button
         onClick={onOpenAddEvent}

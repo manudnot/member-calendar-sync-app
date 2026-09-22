@@ -17,7 +17,9 @@ export default function MonthGrid({
   onMoveEvent,
   onCopyEvent,
   onOpenDayModal,
-  onOpenAddEvent
+  onOpenAddEvent,
+  onPrevMonth,
+  onNextMonth
 }) {
   const [draggedEvt, setDraggedEvt] = useState(null);
   const [dragOverDateStr, setDragOverDateStr] = useState(null);
@@ -26,6 +28,40 @@ export default function MonthGrid({
   // Dynamic max visible event slots based on row height
   const [maxVisibleSlots, setMaxVisibleSlots] = useState(3);
   const gridRef = useRef(null);
+
+  // Touch Swipe Gesture Tracking for TimeTree-style month flipping
+  const touchStartPos = useRef({ x: 0, y: 0, time: 0 });
+
+  const handleTouchStart = (e) => {
+    if (e.touches && e.touches.length === 1) {
+      touchStartPos.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        time: Date.now()
+      };
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!touchStartPos.current.time) return;
+    if (e.changedTouches && e.changedTouches.length === 1) {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const deltaX = endX - touchStartPos.current.x;
+      const deltaY = endY - touchStartPos.current.y;
+      const deltaTime = Date.now() - touchStartPos.current.time;
+
+      // Swipe threshold: horizontal movement > 50px, duration < 500ms, horizontal dominant over vertical
+      if (deltaTime < 500 && Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+        if (deltaX < 0 && onNextMonth) {
+          onNextMonth();
+        } else if (deltaX > 0 && onPrevMonth) {
+          onPrevMonth();
+        }
+      }
+    }
+    touchStartPos.current = { x: 0, y: 0, time: 0 };
+  };
 
   const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -148,7 +184,11 @@ export default function MonthGrid({
   }, [weeks.length]);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-dark-card border-b border-slate-200 dark:border-dark-border relative">
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-dark-card border-b border-slate-200 dark:border-dark-border relative"
+    >
       {/* Weekdays Header */}
       <div className="grid grid-cols-7 border-b border-slate-200 dark:border-dark-border bg-slate-50/50 dark:bg-dark-bg/50 shrink-0">
         <div className="py-2 text-center text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider">Sun</div>

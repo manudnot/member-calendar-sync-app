@@ -38,37 +38,37 @@ export default function DayEventsModal({
       <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-scale-up">
         
         {/* Modal Header */}
-        <div className="px-5 py-4 border-b border-slate-200 dark:border-dark-border flex items-center justify-between bg-slate-50/80 dark:bg-dark-bg/80">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+        <div className="px-3.5 sm:px-5 py-3 sm:py-4 border-b border-slate-200 dark:border-dark-border flex items-center justify-between gap-2 bg-slate-50/80 dark:bg-dark-bg/80">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
               <Calendar className="w-4 h-4" />
             </div>
-            <div>
-              <h2 className="text-sm font-black text-slate-800 dark:text-slate-100">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-100 truncate">
                 ภารกิจประจำวัน
               </h2>
-              <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+              <p className="text-[11px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono leading-tight whitespace-nowrap truncate">
                 {formattedThaiDate}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
               onClick={() => {
                 onClose();
                 onOpenAddEvent(selectedDateStr);
               }}
-              className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5 shadow-sm"
+              className="btn-primary py-1.5 px-2.5 sm:px-3 text-xs flex items-center gap-1 sm:gap-1.5 shadow-sm whitespace-nowrap"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-3.5 h-3.5 shrink-0" />
               <span>เพิ่มภารกิจ</span>
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
             >
               <X className="w-4 h-4" />
             </button>

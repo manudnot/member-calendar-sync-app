@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, KeyRound, ShieldCheck, Fingerprint, Check, AlertCircle, Sparkles, Lock, ArrowRight, RefreshCw, X, Plus, Users, QrCode, Activity, UserCheck } from 'lucide-react';
+import { User, KeyRound, ShieldCheck, Fingerprint, Check, AlertCircle, Sparkles, Lock, ArrowRight, RefreshCw, X, Plus, Users, QrCode, Activity, UserCheck, Sun, Moon } from 'lucide-react';
 import { verifyMasterPasscode, verifyPinCode } from '../../utils/crypto';
 
 export default function FirstTimeUserModal({
@@ -14,7 +14,9 @@ export default function FirstTimeUserModal({
   onOpenMemberManagement,
   onOpenIcalModal,
   onOpenActivityLog,
-  unreadActivityCount = 0
+  unreadActivityCount = 0,
+  theme,
+  setTheme
 }) {
   const [selectedMember, setSelectedMember] = useState(null);
   const [masterPasscodeInput, setMasterPasscodeInput] = useState('');
@@ -180,16 +182,28 @@ export default function FirstTimeUserModal({
         
         {/* Header */}
         <div className="p-5 border-b border-slate-200 dark:border-dark-border bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex flex-col gap-1 text-center relative">
-          {(onClose || activeUser) && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute right-4 top-4 p-1.5 rounded-full bg-black/20 hover:bg-black/40 text-white/90 hover:text-white transition-all cursor-pointer z-10"
-              title="ปิดหน้าต่าง"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+          <div className="absolute right-4 top-4 flex items-center gap-1.5 z-10">
+            {setTheme && (
+              <button
+                type="button"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="p-1.5 rounded-full bg-black/20 hover:bg-black/40 text-white/90 hover:text-white transition-all cursor-pointer"
+                title={theme === 'dark' ? 'เปลี่ยนเป็นโหมดสว่าง' : 'เปลี่ยนเป็นโหมดมืด'}
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-white" />}
+              </button>
+            )}
+            {(onClose || activeUser) && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-full bg-black/20 hover:bg-black/40 text-white/90 hover:text-white transition-all cursor-pointer"
+                title="ปิดหน้าต่าง"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
 
           <div className="w-12 h-12 mx-auto rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white mb-1 shadow-inner">
             <Sparkles className="w-6 h-6 animate-pulse" />
