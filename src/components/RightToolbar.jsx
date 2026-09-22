@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, QrCode, Activity, Plus, Sun, Moon } from 'lucide-react';
+import { Users, QrCode, Activity, Plus, Sun, Moon, Laptop } from 'lucide-react';
 
 export default function RightToolbar({
   onOpenMemberManagement,
@@ -7,9 +7,16 @@ export default function RightToolbar({
   onOpenActivityLog,
   onOpenAddEvent,
   unreadActivityCount,
-  theme,
+  theme = 'light',
   setTheme
 }) {
+  const handleNextTheme = () => {
+    if (!setTheme) return;
+    if (theme === 'light') setTheme('dark');
+    else if (theme === 'dark') setTheme('system');
+    else setTheme('light');
+  };
+
   return (
     <aside className="w-13 bg-white dark:bg-dark-card border-l border-slate-200 dark:border-dark-border flex flex-col items-center py-4 gap-4 shrink-0 hidden lg:flex glass-panel">
       <button
@@ -43,11 +50,19 @@ export default function RightToolbar({
 
       {setTheme && (
         <button
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          onClick={handleNextTheme}
           className="p-2.5 rounded-xl text-slate-500 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none cursor-pointer"
-          title={theme === 'dark' ? 'เปลี่ยนเป็นโหมดสว่าง (Light Mode)' : 'เปลี่ยนเป็นโหมดมืด (Dark Mode)'}
+          title={
+            theme === 'light'
+              ? 'โหมดสว่าง (กดเพื่อเปลี่ยนเป็นโหมดมืด)'
+              : theme === 'dark'
+              ? 'โหมดมืด (กดเพื่อเปลี่ยนเป็นโหมดตามระบบ)'
+              : 'โหมดตามระบบ (กดเพื่อเปลี่ยนเป็นโหมดสว่าง)'
+          }
         >
-          {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
+          {theme === 'light' && <Sun className="w-5 h-5 text-amber-500" />}
+          {theme === 'dark' && <Moon className="w-5 h-5 text-slate-300" />}
+          {theme === 'system' && <Laptop className="w-5 h-5 text-emerald-500" />}
         </button>
       )}
 

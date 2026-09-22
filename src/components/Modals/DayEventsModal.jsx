@@ -222,15 +222,8 @@ export default function DayEventsModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-5 py-3 border-t border-slate-200 dark:border-dark-border bg-slate-50/50 dark:bg-dark-bg/50 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-bold">
+        <div className="px-5 py-2.5 border-t border-slate-200 dark:border-dark-border bg-slate-50/50 dark:bg-dark-bg/50 flex items-center justify-center text-xs text-slate-500 dark:text-slate-400 font-bold">
           <span>รวมทั้งหมด {dayEvents.length} รายการ</span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn-secondary py-1.5 px-4 text-xs"
-          >
-            ปิด
-          </button>
         </div>
 
       </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, KeyRound, ShieldCheck, Fingerprint, Check, AlertCircle, Sparkles, Lock, ArrowRight, RefreshCw, X, Plus, Users, QrCode, Activity, UserCheck, Sun, Moon } from 'lucide-react';
+import { User, KeyRound, ShieldCheck, Fingerprint, Check, AlertCircle, Sparkles, Lock, ArrowRight, RefreshCw, X, Plus, Users, QrCode, Activity, UserCheck, Sun, Moon, Laptop, Search } from 'lucide-react';
 import { verifyMasterPasscode, verifyPinCode } from '../../utils/crypto';
 
 export default function FirstTimeUserModal({
@@ -15,8 +15,10 @@ export default function FirstTimeUserModal({
   onOpenIcalModal,
   onOpenActivityLog,
   unreadActivityCount = 0,
-  theme,
-  setTheme
+  theme = 'light',
+  setTheme,
+  searchQuery = '',
+  setSearchQuery
 }) {
   const [selectedMember, setSelectedMember] = useState(null);
   const [masterPasscodeInput, setMasterPasscodeInput] = useState('');
@@ -186,11 +188,23 @@ export default function FirstTimeUserModal({
             {setTheme && (
               <button
                 type="button"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                onClick={() => {
+                  if (theme === 'light') setTheme('dark');
+                  else if (theme === 'dark') setTheme('system');
+                  else setTheme('light');
+                }}
                 className="p-1.5 rounded-full bg-black/20 hover:bg-black/40 text-white/90 hover:text-white transition-all cursor-pointer"
-                title={theme === 'dark' ? 'เปลี่ยนเป็นโหมดสว่าง' : 'เปลี่ยนเป็นโหมดมืด'}
+                title={
+                  theme === 'light'
+                    ? 'โหมดสว่าง (กดเพื่อสลับเป็นโหมดมืด)'
+                    : theme === 'dark'
+                    ? 'โหมดมืด (กดเพื่อสลับเป็นโหมดตามระบบ)'
+                    : 'โหมดตามระบบ (กดเพื่อสลับเป็นโหมดสว่าง)'
+                }
               >
-                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-white" />}
+                {theme === 'light' && <Sun className="w-4 h-4 text-amber-300" />}
+                {theme === 'dark' && <Moon className="w-4 h-4 text-white" />}
+                {theme === 'system' && <Laptop className="w-4 h-4 text-emerald-300" />}
               </button>
             )}
             {(onClose || activeUser) && (
@@ -240,10 +254,34 @@ export default function FirstTimeUserModal({
 
               {/* Mobile Quick Action Buttons Panel */}
               {activeUser && (
-                <div className="p-3 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-2xl flex flex-col gap-2">
-                  <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                    ⚡ เมนูด่วนใช้งานระบบ (Quick Actions)
-                  </span>
+                <div className="p-3 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-2xl flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      ⚡ เมนูด่วนใช้งานระบบ (Quick Actions)
+                    </span>
+                  </div>
+
+                  {setSearchQuery && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-xl shadow-2xs">
+                      <Search className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <input
+                        type="text"
+                        placeholder="ค้นหาชื่อกิจกรรม..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-2">
                     {onOpenAddEvent && (

@@ -803,10 +803,8 @@ export default function MissionModal({
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm(`คุณต้องการลบกิจกรรม "${editingEvent.title}" ใช่หรือไม่?`)) {
-                    if (onDeleteEvent) onDeleteEvent(editingEvent.id);
-                    onClose();
-                  }
+                  onClose();
+                  if (onDeleteEvent) onDeleteEvent(editingEvent.id);
                 }}
                 className="py-2 px-3 text-xs font-bold flex items-center gap-1.5 bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-200 dark:border-rose-800 rounded-xl transition-all cursor-pointer"
                 title="ลบกิจกรรมนี้ออกจากระบบ"

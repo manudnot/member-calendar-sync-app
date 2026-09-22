@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Sun, Moon, Laptop, QrCode, Plus, Menu, History, Shield, ChevronDown, UserCheck } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Sun, Moon, Laptop, QrCode, Plus, Menu, History, Shield, ChevronDown, UserCheck, Search, X } from 'lucide-react';
 import { THAI_MONTHS } from '../utils/helpers';
 
 export default function Header({
@@ -18,8 +18,12 @@ export default function Header({
   activeUser,
   onOpenSwitchUserModal,
   onOpenActivityLogModal,
-  unreadActivityCount
+  unreadActivityCount,
+  onOpenMonthYearPicker,
+  searchQuery = '',
+  setSearchQuery
 }) {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const monthName = THAI_MONTHS[currentMonth];
   const thaiYear = currentYear + 543;
 
@@ -59,8 +63,13 @@ export default function Header({
             <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
 
-          <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 min-w-[75px] sm:min-w-[110px] text-center select-none font-mono truncate">
-            {monthName} {thaiYear}
+          <span
+            onClick={onOpenMonthYearPicker}
+            className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 min-w-[75px] sm:min-w-[105px] text-center select-none font-mono truncate cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center justify-center gap-0.5 transition-colors px-1"
+            title="กดเพื่อเลือกเดือน และ ปี พ.ศ."
+          >
+            <span>{monthName} {thaiYear}</span>
+            <ChevronDown className="w-3 h-3 opacity-60 shrink-0" />
           </span>
 
           <button
@@ -80,8 +89,62 @@ export default function Header({
         </button>
       </div>
 
-      {/* Right: User Identity Chip */}
+      {/* Right: Expanding Search Bar & User Identity Chip */}
       <div className="flex items-center justify-end gap-1 sm:gap-2 shrink-0">
+        
+        {/* TimeTree-style Expanding Search Bar */}
+        {setSearchQuery && (
+          <div className="relative flex items-center">
+            {isSearchOpen ? (
+              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-dark-bg border border-slate-300 dark:border-slate-700 rounded-xl px-2 py-1 animate-scale-up shadow-xs">
+                <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="ค้นหาชื่อกิจกรรม..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-28 sm:w-44 bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setIsSearchOpen(false);
+                  }}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 border-l border-slate-200 dark:border-slate-700 pl-1 ml-0.5"
+                  title="ปิดช่องค้นหา"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsSearchOpen(true)}
+                className={`p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none cursor-pointer relative ${
+                  searchQuery ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40' : ''
+                }`}
+                title="ค้นหาชื่อกิจกรรม"
+              >
+                <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                {searchQuery && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
+                )}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Per-Device Active User Avatar Chip */}
         {activeUser && (
           <button

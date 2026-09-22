@@ -12,6 +12,7 @@ import AuthPinModal from './components/Modals/AuthPinModal';
 import ActivityLogModal from './components/Modals/ActivityLogModal';
 import ForgotPinModal from './components/Modals/ForgotPinModal';
 import DayEventsModal from './components/Modals/DayEventsModal';
+import MonthYearPickerModal from './components/Modals/MonthYearPickerModal';
 import { fetchLiveHolidays } from './utils/holidays';
 import { formatDateKey, formatThaiDateTime, sanitizeEventsTime, INITIAL_CATEGORIES, ensureEventCategoryAndColor, getLocalDateStr } from './utils/helpers';
 import { supabase } from './utils/supabase';
@@ -110,6 +111,8 @@ export default function App() {
   const [isDayEventsModalOpen, setIsDayEventsModalOpen] = useState(false);
   const [unreadActivityCount, setUnreadActivityCount] = useState(0);
   const [isForgotPinModalOpen, setIsForgotPinModalOpen] = useState(false);
+  const [isMonthYearPickerOpen, setIsMonthYearPickerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [targetMemberForAuth, setTargetMemberForAuth] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
@@ -148,19 +151,33 @@ export default function App() {
     }
   };
 
-  // Theme manager
+  // 3-Mode Theme Manager (light | dark | system)
   useEffect(() => {
     const root = document.documentElement;
     localStorage.setItem('member_calendar_theme', theme);
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else if (theme === 'light') {
-      root.classList.remove('dark');
-    } else {
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+
+    const applyTheme = () => {
+      if (theme === 'dark') {
         root.classList.add('dark');
-      } else {
+      } else if (theme === 'light') {
         root.classList.remove('dark');
+      } else { // system
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+      }
+    };
+
+    applyTheme();
+
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => applyTheme();
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
       }
     }
   }, [theme]);
@@ -1004,13 +1021,22 @@ export default function App() {
     }
   };
 
-  // Active (Non-deleted) Events for MonthGrid and DailyAgenda
-  const activeEvents = events.filter(e => !e.is_deleted);
+  // Active (Non-deleted) Events filtered by searchQuery (matching event title ONLY)
+  const rawActiveEvents = events.filter(e => !e.is_deleted);
+  const activeEvents = rawActiveEvents.filter(e => {
+    if (!searchQuery || !searchQuery.trim()) return true;
+    return e.title && e.title.toLowerCase().includes(searchQuery.trim().toLowerCase());
+  });
   const deletedEvents = events.filter(e => e.is_deleted);
 
   const handleOpenActivityLogModal = () => {
     setUnreadActivityCount(0);
     setIsActivityLogModalOpen(true);
+  };
+
+  const handleSelectMonthYear = (y, m) => {
+    setCurrentYear(y);
+    setCurrentMonth(m);
   };
 
   return (
@@ -1034,6 +1060,9 @@ export default function App() {
         onOpenSwitchUserModal={handleSwitchUserClick}
         onOpenActivityLogModal={handleOpenActivityLogModal}
         unreadActivityCount={unreadActivityCount}
+        onOpenMonthYearPicker={() => setIsMonthYearPickerOpen(true)}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
       />
 
       {/* 2. Three-Column Main Body Layout */}
@@ -1102,6 +1131,16 @@ export default function App() {
         unreadActivityCount={unreadActivityCount}
         theme={theme}
         setTheme={setTheme}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+      />
+
+      <MonthYearPickerModal
+        isOpen={isMonthYearPickerOpen}
+        onClose={() => setIsMonthYearPickerOpen(false)}
+        currentYear={currentYear}
+        currentMonth={currentMonth}
+        onSelectMonthYear={handleSelectMonthYear}
       />
 
       <ForgotPinModal
