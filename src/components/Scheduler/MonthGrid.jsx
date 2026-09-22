@@ -364,7 +364,7 @@ export default function MonthGrid({
                         }}
                         title={`${evt.title} (ลากวางเพื่อย้ายหรือคัดลอก)`}
                       >
-                        <span className="truncate">{evt.title}</span>
+                        <span className="overflow-hidden whitespace-nowrap [text-overflow:clip]">{evt.title}</span>
                       </div>
                     );
                   } else {
@@ -398,7 +398,7 @@ export default function MonthGrid({
                         }}
                         title={`${evt.title} (${timeText}) (ลากวางเพื่อย้ายหรือคัดลอก)`}
                       >
-                        <span className="truncate font-bold text-slate-800 dark:text-slate-100">{evt.title}</span>
+                        <span className="overflow-hidden whitespace-nowrap [text-overflow:clip] font-bold text-slate-800 dark:text-slate-100">{evt.title}</span>
                       </div>
                     );
                   }
