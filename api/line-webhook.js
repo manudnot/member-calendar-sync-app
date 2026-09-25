@@ -1477,16 +1477,17 @@ export default async function handler(req, res) {
                 if (evtTitleLower.includes('งานแต่ง') && !headerText.includes('งานแต่ง')) continue;
                 if (evtTitleLower.includes('หมาย 9') && !headerText.includes('หมาย 9')) continue;
 
+                const eventDateStr = ictDateIso || utcDateIso;
+
                 rosterUpdates.forEach(upd => {
-                  const matchesDate = upd.dateKeys.some(dk => utcDateIso.endsWith(dk) || ictDateIso.endsWith(dk));
+                  const matchesDate = upd.dateKeys.some(dk => eventDateStr.endsWith(dk));
                   if (matchesDate) {
-                    const displayDate = ictDateIso || utcDateIso;
                     const oldMembersStr = formatMemberNamesForDisplay(evt.member_ids, dbMembers) || 'ไม่ระบุ';
                     const newMembersStr = formatMemberNamesForDisplay(upd.member_ids, dbMembers);
                     candidateItems.push({
                       id: evt.id,
                       title: evt.title,
-                      start_date: displayDate,
+                      start_date: eventDateStr,
                       old_member_names: oldMembersStr,
                       new_member_ids: upd.member_ids,
                       new_member_names: newMembersStr
