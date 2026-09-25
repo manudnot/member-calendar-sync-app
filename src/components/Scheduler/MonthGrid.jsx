@@ -622,9 +622,10 @@ export default function MonthGrid({
               type="button"
               onClick={() => {
                 if (onMoveEvent && dropMenu.evt) {
-                  onMoveEvent(dropMenu.evt.id, dropMenu.targetDateStr);
+                  onMoveEvent(dropMenu.evt, dropMenu.targetDateStr);
                 }
                 setDropMenu(null);
+                draggedEvtRef.current = null;
               }}
               className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg transition-colors cursor-pointer text-left"
             >
@@ -639,6 +640,7 @@ export default function MonthGrid({
                   onCopyEvent(dropMenu.evt, dropMenu.targetDateStr);
                 }
                 setDropMenu(null);
+                draggedEvtRef.current = null;
               }}
               className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-colors cursor-pointer text-left"
             >

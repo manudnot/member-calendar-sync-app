@@ -730,9 +730,13 @@ export default function App() {
     }
   };
 
-  const handleMoveEvent = async (eventId, targetDateStr) => {
-    const targetEvt = events.find(e => e.id === eventId);
+  const handleMoveEvent = async (targetEvtOrId, targetDateStr) => {
+    const targetEvt = (typeof targetEvtOrId === 'object' && targetEvtOrId !== null)
+      ? targetEvtOrId
+      : events.find(e => String(e.id) === String(targetEvtOrId));
+
     if (!targetEvt || !targetDateStr) return;
+    const eventId = targetEvt.id;
 
     const isAllDay = isAllDayEvent(targetEvt);
     const oldStartDateStr = getLocalDateStr(targetEvt.start_time) || targetDateStr;
@@ -781,7 +785,7 @@ export default function App() {
     };
 
     const prevEventsState = [...events];
-    const updatedEvents = events.map(e => e.id === eventId ? updatedEvt : e);
+    const updatedEvents = events.map(e => String(e.id) === String(eventId) ? updatedEvt : e);
     setEvents(updatedEvents);
     localStorage.setItem('member_calendar_events', JSON.stringify(updatedEvents));
 
@@ -802,7 +806,11 @@ export default function App() {
     }
   };
 
-  const handleCopyEvent = async (originalEvt, targetDateStr) => {
+  const handleCopyEvent = async (originalEvtOrId, targetDateStr) => {
+    const originalEvt = (typeof originalEvtOrId === 'object' && originalEvtOrId !== null)
+      ? originalEvtOrId
+      : events.find(e => String(e.id) === String(originalEvtOrId));
+
     if (!originalEvt || !targetDateStr) return;
 
     const isAllDay = isAllDayEvent(originalEvt);
