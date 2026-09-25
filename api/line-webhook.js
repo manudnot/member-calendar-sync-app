@@ -1190,7 +1190,20 @@ export default async function handler(req, res) {
 
       // Handle Update Draft Confirmation (for existing database events)
       if (activeDraft.isUpdateDraft && Array.isArray(activeDraft.updateItems)) {
-        const updateItems = activeDraft.updateItems;
+        const reqText = event.message.text;
+        let updateItems = activeDraft.updateItems;
+
+        // If user tapped a specific Quick Reply button (e.g. "บันทึก ซ้อมริ้วขบวน" vs "บันทึก ทั้งหมด")
+        if (!reqText.includes('ทั้งหมด') && !reqText.startsWith('✅') && reqText !== 'ยืนยัน' && reqText !== 'บันทึก') {
+          const selectedChoice = reqText.replace('บันทึก', '').trim().toLowerCase();
+          if (selectedChoice.length > 0) {
+            updateItems = updateItems.filter(u => {
+              const tLower = (u.title || '').toLowerCase();
+              return tLower.includes(selectedChoice) || selectedChoice.split(/\s+/).some(tok => tok.length >= 2 && tLower.includes(tok));
+            });
+          }
+        }
+
         const updatedEvents = [];
         for (const uEvt of updateItems) {
           try {
@@ -1208,11 +1221,18 @@ export default async function handler(req, res) {
 
         await clearActiveDraft(userId);
 
-        const summaryLines = updatedEvents.map((u, i) => `${i + 1}. ${u.start_date} - ${u.title}\n   🎯 ผู้รับผิดชอบ: ${u.new_member_names}`);
-        await replyOrPushLineMessage(replyToken, userId, {
-          type: 'text',
-          text: `✅ ยืนยันบันทึกการอัปเดตผู้รับผิดชอบในปฏิทินเรียบร้อยแล้ว (${updatedEvents.length} รายการ):\n\n` + summaryLines.join('\n\n')
-        });
+        if (updatedEvents.length > 0) {
+          const summaryLines = updatedEvents.map((u, i) => `${i + 1}. ${u.start_date} - ${u.title}\n   🎯 ผู้รับผิดชอบ: ${u.new_member_names}`);
+          await replyOrPushLineMessage(replyToken, userId, {
+            type: 'text',
+            text: `✅ ยืนยันบันทึกการอัปเดตผู้รับผิดชอบในปฏิทินเรียบร้อยแล้ว (${updatedEvents.length} รายการ):\n\n` + summaryLines.join('\n\n')
+          });
+        } else {
+          await replyOrPushLineMessage(replyToken, userId, {
+            type: 'text',
+            text: '❌ ไม่พบภารกิจที่ตรงกับตัวเลือกที่เลือกครับ'
+          });
+        }
         continue;
       }
 
@@ -1413,10 +1433,12 @@ export default async function handler(req, res) {
               const currentYear = new Date().getFullYear();
               const targetYearStr = `${currentYear}`;
 
-              // Smart Military & Ceremony Keyword Matching
+              // Dynamic Title Token Similarity & Target Date Matching
               const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
-              const headerText = lines.slice(0, 3).join(' ');
-              const hasCeremonyTrainingKeyword = ['พระบรมศพ', 'ซ้อม', 'ริ้วขบวน', 'ฝึก', 'roc', 'cpx', 'พิธี'].some(k => headerText.toLowerCase().includes(k));
+              const headerText = lines.slice(0, 3).join(' ').toLowerCase();
+
+              const stopWords = ['พิราบ', 'อัพเดท', 'รายชื่อ', 'นายทหาร', 'ควบคุม', 'ผู้รับผิดชอบ', 'ขอรับ', 'แก้ไข', 'ณ', 'งาน', 'ต.ค.', 'ก.ย.', 'พ.ย.', 'ธ.ค.'];
+              const headerTokens = headerText.split(/[\s,/\(\)]+/).filter(t => t.length >= 2 && !stopWords.includes(t));
 
               const updatedItems = [];
               for (const evt of dbEvents) {
@@ -1424,16 +1446,20 @@ export default async function handler(req, res) {
                 // Rule 1: Must be in target year 2026 (never match past 2025 events)
                 if (!evtDateIso.startsWith(targetYearStr)) continue;
 
-                // Rule 2: Title matching
+                // Rule 2: Exclude unrelated non-unit/personal events unless explicitly mentioned in header
                 const evtTitleLower = (evt.title || '').toLowerCase();
-                if (hasCeremonyTrainingKeyword) {
-                  const isMatchingTrainingCeremony = ['ซ้อม', 'ริ้วขบวน', 'พระบรมศพ', 'ฝึก', 'roc', 'cpx', 'พิธี'].some(k => evtTitleLower.includes(k));
-                  if (!isMatchingTrainingCeremony) continue;
-                } else {
-                  if (evtTitleLower.includes('งานแต่ง') || evtTitleLower.includes('หมาย 9') || evtTitleLower.includes('เปิดหน่วยฝึก') || evtTitleLower.includes('รับส่งหน้าที่')) {
-                    continue;
-                  }
+                if (evtTitleLower.includes('งานแต่ง') && !headerText.includes('งานแต่ง')) continue;
+                if (evtTitleLower.includes('หมาย 9') && !headerText.includes('หมาย 9')) continue;
+
+                // Rule 3: Dynamic title similarity check
+                let isTitleMatched = true;
+                if (headerTokens.length > 0) {
+                  const hasTokenOverlap = headerTokens.some(tok => evtTitleLower.includes(tok) || tok.includes(evtTitleLower));
+                  const hasHeaderOverlap = evtTitleLower.split(/[\s,/\(\)]+/).some(tok => tok.length >= 2 && !stopWords.includes(tok) && headerText.includes(tok));
+                  isTitleMatched = hasTokenOverlap || hasHeaderOverlap;
                 }
+
+                if (!isTitleMatched) continue;
 
                 rosterUpdates.forEach(upd => {
                   const matchesDate = upd.dateKeys.some(dk => evtDateIso.endsWith(dk));
@@ -1464,7 +1490,7 @@ export default async function handler(req, res) {
                 const distinctTitles = [];
                 updatedItems.forEach(u => {
                   let cleanT = u.title.replace('/ ทั้งวัน', '').replace(/การซักซ้อมบนภูมิประเทศจำลอง/g, '').trim();
-                  if (cleanT.includes('ROC') || cleanT.includes('Reheral')) cleanT = 'ROC Reheral';
+                  if (cleanT.includes('ROC') || cleanT.includes('Reheral') || cleanT.includes('CPX')) cleanT = 'ROC Reheral';
                   else if (cleanT.includes('ซ้อมริ้วขบวน') || cleanT.includes('ริ้วขบวน')) cleanT = 'ซ้อมริ้วขบวน';
                   if (!distinctTitles.includes(cleanT) && cleanT.length > 0) {
                     distinctTitles.push(cleanT);
