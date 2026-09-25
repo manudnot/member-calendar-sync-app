@@ -193,8 +193,8 @@ export default function MonthGrid({
     }
     if (!targetEvt) return;
 
-    const clickX = e.clientX;
-    const clickY = e.clientY;
+    const clickX = e.clientX || (typeof window !== 'undefined' ? window.innerWidth / 2 : 200);
+    const clickY = e.clientY || (typeof window !== 'undefined' ? window.innerHeight / 2 : 200);
     const menuWidth = 190;
     const menuHeight = 110;
     const posX = Math.min(clickX, window.innerWidth - menuWidth - 16);
@@ -377,6 +377,16 @@ export default function MonthGrid({
                           if (onOpenDayModal) onOpenDayModal(cell.dateStr);
                         }
                       }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'copy';
+                        if (dragOverDateStr !== cell.dateStr) setDragOverDateStr(cell.dateStr);
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        if (dragOverDateStr === cell.dateStr) setDragOverDateStr(null);
+                      }}
+                      onDrop={(e) => handleCellDrop(e, cell.dateStr)}
                       className="relative w-full flex items-center justify-center gap-1 py-0.5 rounded-t-lg hover:bg-slate-200/60 dark:hover:bg-slate-800/80 cursor-pointer transition-all z-20 pointer-events-auto group/header group"
                       title={holiday ? `${holiday.name} (กดเพื่อดูภารกิจวันนี้)` : `กดที่แถบหัววันที่เพื่อดูภารกิจทั้งหมดในวันที่ ${cell.dayNum}`}
                     >
@@ -415,6 +425,12 @@ export default function MonthGrid({
                             if (onOpenDayModal) onOpenDayModal(cell.dateStr);
                           }
                         }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'copy';
+                          if (dragOverDateStr !== cell.dateStr) setDragOverDateStr(cell.dateStr);
+                        }}
+                        onDrop={(e) => handleCellDrop(e, cell.dateStr)}
                         className="absolute bottom-1 right-1 text-[9px] font-mono font-black px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 shadow-2xs cursor-pointer hover:bg-emerald-500 hover:text-white transition-all z-30 pointer-events-auto"
                         title={`กดเพื่อดูภารกิจทั้งหมด ${totalEventsOnDay} รายการในวันที่ ${cell.dayNum}`}
                       >
@@ -427,12 +443,38 @@ export default function MonthGrid({
 
               {/* Unified Event Banners & Timed Cards Overlay (Strictly Clipped within Week Row) */}
               <div className="absolute inset-0 top-[22px] pointer-events-none grid grid-cols-7 gap-px p-0.5 overflow-hidden">
+                {/* Transparent 7-Column Drop Targets in Overlay */}
+                {week.map((cell, colIdx) => (
+                  <div
+                    key={`overlay-drop-${cell.key}`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'copy';
+                      if (dragOverDateStr !== cell.dateStr) setDragOverDateStr(cell.dateStr);
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      if (dragOverDateStr === cell.dateStr) setDragOverDateStr(null);
+                    }}
+                    onDrop={(e) => handleCellDrop(e, cell.dateStr)}
+                    className="col-span-1 h-full w-full pointer-events-auto bg-transparent"
+                    style={{ gridColumnStart: colIdx + 1, gridRowStart: 1 }}
+                    onClick={() => {
+                      if (cell.dateStr) {
+                        onSelectDate(cell.dateStr);
+                        if (onOpenAddEvent) onOpenAddEvent(cell.dateStr);
+                      }
+                    }}
+                  />
+                ))}
+
                 {itemsWithSlots.filter(item => item.slotIndex < maxVisibleSlots).map(({ evt, startCol, span, isStartOfEvent, isEndOfEvent, slotIndex }) => {
                   const evtColor = getEventColor(evt, categories, members);
                   const gridColStart = startCol + 1;
                   const isAllDay = isAllDayEvent(evt) || span > 1;
                   const timeText = formatTimeShort(evt.start_time);
                   const isBeingDragged = draggedEvt?.id === evt.id;
+                  const cellDateStr = week[startCol]?.dateStr;
 
                   const titleLen = (evt.title || '').length;
                   const maxCharLimit = isMobile ? span * 5 : span * 12;
@@ -450,6 +492,17 @@ export default function MonthGrid({
                           setDraggedEvt(evt);
                           e.dataTransfer.effectAllowed = 'copyMove';
                           e.dataTransfer.setData('text/plain', evt.id);
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          e.dataTransfer.dropEffect = 'copy';
+                          if (cellDateStr && dragOverDateStr !== cellDateStr) setDragOverDateStr(cellDateStr);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (cellDateStr) handleCellDrop(e, cellDateStr);
                         }}
                         onDragEnd={() => {
                           setTimeout(() => {
@@ -493,6 +546,17 @@ export default function MonthGrid({
                           setDraggedEvt(evt);
                           e.dataTransfer.effectAllowed = 'copyMove';
                           e.dataTransfer.setData('text/plain', evt.id);
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          e.dataTransfer.dropEffect = 'copy';
+                          if (cellDateStr && dragOverDateStr !== cellDateStr) setDragOverDateStr(cellDateStr);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (cellDateStr) handleCellDrop(e, cellDateStr);
                         }}
                         onDragEnd={() => {
                           setTimeout(() => {

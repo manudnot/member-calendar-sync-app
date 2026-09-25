@@ -534,6 +534,14 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
 
 สำคัญที่สุด:
 1. "title": ต้องสกัดเฉพาะชื่อภารกิจหรือหัวเรื่องหลัก สั้น กระชับ ได้ใจความ ไม่เกิน 5-10 คำ (เช่น "ติดตั้งทีวีคอนเสิร์ต ทภ.1", "นวป.ทบ. ฉีดพ่นยุง", "ประชุม C4I")
+   - กฎการรวมชื่องานหลักกับขั้นตอนย่อย (Title Synthesis Rule):
+     หากคำสั่งมีหัวเรื่องหรือชื่องานหลัก (เช่น "งาน ส่งกำลังพล ฉก.นราธิวาส") และมีรายการขั้นตอนย่อยตามวันที่ (เช่น "ช่วงเช้าติดตั้ง", "ช่วงบ่ายซ้อม", "เริ่มงานจริง" หรือ "วันจริง"):
+     ให้สร้าง title ของแต่ละภารกิจโดยนำ "คำกริยาขั้นตอนย่อย + ชื่องานหลัก" เสมอ!
+     ตัวอย่าง:
+     - หัวเรื่องหลัก: "งาน ส่งกำลังพล ฉก.นราธิวาส" + ขั้นตอนย่อย "ช่วงเช้าติดตั้ง" ➔ title: "ติดตั้งส่งกำลังพล ฉก.นราธิวาส"
+     - หัวเรื่องหลัก: "งาน ส่งกำลังพล ฉก.นราธิวาส" + ขั้นตอนย่อย "ช่วงบ่ายซ้อม" ➔ title: "ซ้อมส่งกำลังพล ฉก.นราธิวาส"
+     - หัวเรื่องหลัก: "งาน ส่งกำลังพล ฉก.นราธิวาส" + ขั้นตอนย่อย "0830 เริ่มงานจริง" ➔ title: "วันจริงส่งกำลังพล ฉก.นราธิวาส" (หรือ "เริ่มงานจริงส่งกำลังพล ฉก.นราธิวาส")
+     ห้ามตัดชื่องานหลักออก หรือแทนที่ด้วยคำทั่วไปเดี่ยวๆ เช่น "ติดตั้งระบบเสียง", "ซ้อมแถว", "ปฏิบัติงานจริง" ให้คงชื่องานหลักไว้ใน title ทุกรายการ!
    - ห้ามใส่รายละเอียดประชาสัมพันธ์ คำเตือน หรือข้อแนะนำ (เช่น "แจ้งกำลังพลจัดเก็บสิ่งของที่กีดขวาง และงดตากผ้า...") ไว้ใน title ให้สกัดไปใส่ในฟิลด์ "notes"
    - ห้ามระบุยศ นามสกุล หรือรายชื่อผู้รับผิดชอบนำหน้าใน title (เช่น ห้ามใส่ "นอต" หรือ "ร.ท. นิติพัฒน์" ไว้ใน title) ให้สกัดไปใส่ในฟิลด์ "members" เท่านั้น
 2. "notes": รายละเอียดเพิ่มเติม ข้อความประชาสัมพันธ์ ข้อควรระวัง หรือหมายเหตุจากคำสั่ง (ถ้าไม่มีให้ใส่ null)
@@ -615,6 +623,15 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
           // Filter out empty or broken missions
           const validMissions = rawMissions.filter(m => m && m.title && m.start_date && !m.start_date.includes('-00'));
           if (validMissions.length > 0) {
+            // Post-process title synthesis for main topic + sub-task verbs
+            let mainTopic = '';
+            if (text) {
+              const topicMatch = text.match(/(?:พิราบ\s+)?(?:งาน|ภารกิจ)\s+([^\n\*\.\:\,]+)/i);
+              if (topicMatch && topicMatch[1]) {
+                mainTopic = topicMatch[1].trim().replace(/\*\*.*$/, '').trim();
+              }
+            }
+
             validMissions.forEach(m => {
               const rawMembers = Array.isArray(m.members) ? m.members : [];
               const matchedMemberIds = matchMemberIds(rawMembers, dbMembers);
@@ -629,6 +646,28 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
                     }
                   });
                 });
+              }
+
+              // Synthesize main topic into sub-task title if AI returned generic words
+              if (mainTopic && m.title) {
+                const cleanTopic = mainTopic.replace(/^งาน\s+|^ภารกิจ\s+/, '').trim();
+                const locSuffix = m.location ? ` ณ ${m.location}` : '';
+
+                if (m.title.includes('ติดตั้งระบบเสียง')) {
+                  m.title = `ติดตั้ง${cleanTopic}`;
+                } else if (m.title.includes('ซ้อมแถว')) {
+                  m.title = `ซ้อม${cleanTopic}`;
+                } else if (m.title.includes('ปฏิบัติงานจริง')) {
+                  m.title = `วันจริง${cleanTopic}`;
+                } else if (!m.title.includes(cleanTopic)) {
+                  if (m.title.startsWith('ติดตั้ง')) {
+                    m.title = `ติดตั้ง${cleanTopic}`;
+                  } else if (m.title.startsWith('ซ้อม')) {
+                    m.title = `ซ้อม${cleanTopic}`;
+                  } else if (m.title.startsWith('เริ่มงานจริง') || m.title.startsWith('วันจริง')) {
+                    m.title = `วันจริง${cleanTopic}`;
+                  }
+                }
               }
 
               m.member_ids = matchedMemberIds;
