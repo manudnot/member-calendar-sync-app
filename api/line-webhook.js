@@ -401,7 +401,12 @@ export async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pd
   if (!TYPHOON_API_KEY) return '';
   try {
     const uint8 = new Uint8Array(fileBuf);
-    const safeFilename = 'document.pdf';
+    let safeFilename = filename || 'document.pdf';
+    if (mimeType && mimeType.startsWith('image/')) {
+      if (!safeFilename.endsWith('.jpg') && !safeFilename.endsWith('.jpeg') && !safeFilename.endsWith('.png')) {
+        safeFilename = mimeType.includes('png') ? 'image.png' : 'image.jpg';
+      }
+    }
     const file = new File([uint8], safeFilename, { type: mimeType });
     const formData = new FormData();
     formData.append('file', file);
@@ -640,8 +645,16 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
         const parsedObj = JSON.parse(cleanJson);
         if (parsedObj) {
           const rawMissions = Array.isArray(parsedObj.missions) ? parsedObj.missions : [parsedObj];
-          // Filter out empty or broken missions
-          const validMissions = rawMissions.filter(m => m && m.title && m.start_date && !m.start_date.includes('-00'));
+          // Ensure every mission with a valid title has a start_date (fallback to todayIso if null)
+          const validMissions = rawMissions.map(m => {
+            if (!m || !m.title || m.title.trim().length === 0) return null;
+            if (!m.start_date || m.start_date.includes('-00') || m.start_date === 'null') {
+              m.start_date = todayIso;
+              m.end_date = todayIso;
+            }
+            return m;
+          }).filter(Boolean);
+
           if (validMissions.length > 0) {
             // Post-process title synthesis for main topic + sub-task verbs
             let mainTopic = '';
