@@ -1413,10 +1413,10 @@ export default async function handler(req, res) {
               const currentYear = new Date().getFullYear();
               const targetYearStr = `${currentYear}`;
 
-              // Extract title keywords from rawText header (e.g. "งานพระบรมศพ", "ซ้อมริ้วขบวน", "ริ้วขบวน")
+              // Smart Military & Ceremony Keyword Matching
               const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
               const headerText = lines.slice(0, 3).join(' ');
-              const titleKeywords = ['ซ้อมริ้วขบวน', 'ริ้วขบวน', 'งานพระบรมศพ', 'พระบรมศพ', 'พ่นยุง', 'ประชุม', 'ฝึก'].filter(k => headerText.includes(k));
+              const hasCeremonyTrainingKeyword = ['พระบรมศพ', 'ซ้อม', 'ริ้วขบวน', 'ฝึก', 'roc', 'cpx', 'พิธี'].some(k => headerText.toLowerCase().includes(k));
 
               const updatedItems = [];
               for (const evt of dbEvents) {
@@ -1424,13 +1424,13 @@ export default async function handler(req, res) {
                 // Rule 1: Must be in target year 2026 (never match past 2025 events)
                 if (!evtDateIso.startsWith(targetYearStr)) continue;
 
-                // Rule 2: If title keywords were specified in prompt header, match ONLY events containing those keywords!
-                if (titleKeywords.length > 0) {
-                  const matchesTitle = titleKeywords.some(kw => evt.title && evt.title.includes(kw));
-                  if (!matchesTitle) continue;
+                // Rule 2: Title matching
+                const evtTitleLower = (evt.title || '').toLowerCase();
+                if (hasCeremonyTrainingKeyword) {
+                  const isMatchingTrainingCeremony = ['ซ้อม', 'ริ้วขบวน', 'พระบรมศพ', 'ฝึก', 'roc', 'cpx', 'พิธี'].some(k => evtTitleLower.includes(k));
+                  if (!isMatchingTrainingCeremony) continue;
                 } else {
-                  // Ignore general unrelated event titles
-                  if (evt.title && (evt.title.includes('งานแต่ง') || evt.title.includes('หมาย 9') || evt.title.includes('เปิดหน่วยฝึก') || evt.title.includes('รับส่งหน้าที่'))) {
+                  if (evtTitleLower.includes('งานแต่ง') || evtTitleLower.includes('หมาย 9') || evtTitleLower.includes('เปิดหน่วยฝึก') || evtTitleLower.includes('รับส่งหน้าที่')) {
                     continue;
                   }
                 }
@@ -1460,31 +1460,41 @@ export default async function handler(req, res) {
                 };
                 await saveDraft(userId, updateDraftData);
 
-                const firstTitle = updatedItems[0]?.title ? updatedItems[0].title.replace('/ ทั้งวัน', '').trim() : 'ภารกิจ';
+                // Find distinct event titles for quick reply buttons
+                const distinctTitles = [];
+                updatedItems.forEach(u => {
+                  let cleanT = u.title.replace('/ ทั้งวัน', '').replace(/การซักซ้อมบนภูมิประเทศจำลอง/g, '').trim();
+                  if (cleanT.includes('ROC') || cleanT.includes('Reheral')) cleanT = 'ROC Reheral';
+                  else if (cleanT.includes('ซ้อมริ้วขบวน') || cleanT.includes('ริ้วขบวน')) cleanT = 'ซ้อมริ้วขบวน';
+                  if (!distinctTitles.includes(cleanT) && cleanT.length > 0) {
+                    distinctTitles.push(cleanT);
+                  }
+                });
+
                 const summaryLines = updatedItems.map((u, i) => `${i + 1}. ${u.start_date} - ${u.title}\n   🎯 ผู้รับผิดชอบ: ${u.old_member_names} ➔ ${u.new_member_names}`);
 
-                // Build Quick Reply buttons above keyboard
-                const quickReplyItems = [
-                  {
-                    type: 'action',
-                    action: {
-                      type: 'message',
-                      label: `✅ ยืนยันบันทึก (${firstTitle.slice(0, 12)})`,
-                      text: '✅ ยืนยันบันทึกการอัปเดต'
-                    }
-                  }
-                ];
+                // Build Quick Reply buttons: [ "ซ้อมริ้วขบวน", "ROC Reheral", "ทั้งหมด", "❌ ยกเลิก" ]
+                const quickReplyItems = [];
 
-                if (updatedItems.length > 1) {
+                distinctTitles.forEach(t => {
                   quickReplyItems.push({
                     type: 'action',
                     action: {
                       type: 'message',
-                      label: '✅ ยืนยันบันทึกทั้งหมด',
-                      text: '✅ ยืนยันบันทึกการอัปเดต'
+                      label: t.slice(0, 20),
+                      text: `บันทึก ${t}`
                     }
                   });
-                }
+                });
+
+                quickReplyItems.push({
+                  type: 'action',
+                  action: {
+                    type: 'message',
+                    label: 'ทั้งหมด',
+                    text: 'บันทึก ทั้งหมด'
+                  }
+                });
 
                 quickReplyItems.push({
                   type: 'action',
@@ -1494,7 +1504,7 @@ export default async function handler(req, res) {
                 await replyOrPushLineMessage(replyToken, userId, [
                   {
                     type: 'text',
-                    text: `📋 ร่างอัปเดตผู้รับผิดชอบ (${updatedItems.length} รายการ):\n\n` + summaryLines.join('\n\n') + '\n\nโปรดตรวจสอบและเลือกยืนยันการบันทึกเหนือคีย์บอร์ดด้านล่างครับ:',
+                    text: `📋 ร่างอัปเดตผู้รับผิดชอบ (${updatedItems.length} รายการ):\n\n` + summaryLines.join('\n\n') + '\n\nโปรดเลือกภารกิจที่ต้องการบันทึกเหนือคีย์บอร์ดด้านล่างครับ:',
                     quickReply: {
                       items: quickReplyItems
                     }
@@ -1504,7 +1514,7 @@ export default async function handler(req, res) {
               } else {
                 await replyOrPushLineMessage(replyToken, userId, {
                   type: 'text',
-                  text: '❌ ไม่พบภารกิจในปี 2026 ที่ตรงกับวันที่และหัวข้อที่ระบุสำหรับการอัปเดตครับ'
+                  text: '❌ ไม่พบภารกิจในปี 2026 ที่ตรงกับวันที่ระบุสำหรับการอัปเดตครับ'
                 });
                 continue;
               }
