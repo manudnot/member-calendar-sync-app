@@ -91,7 +91,7 @@ function matchMemberIds(memberNamesArray, dbMembers = []) {
 
   const ALIAS_MAP = {
     'mem_manudnot': ['not', 'นอต', 'น็อต', 'นิติพัฒน์', 'มนุษย์นอต', 'โชคกิจ'],
-    'mem_third': ['third', 'สุภณัฐ', 'ศุภณัฐ', 'เติร์ธ', 'เทิร์ธ', 'เติร์ท', 'หมวดเติร์ธ', 'ผู้กองเติร์ธ', 'ทองน้ำวน'],
+    'mem_third': ['third', 'สุภณัฐ', 'ศุภณัฐ', 'เติร์ธ', 'เทิร์ธ', 'เติร์ท', 'หมวดเติร์ธ', 'ผู้กองเติร์ธ', 'ทองน้ำวน', 'ฝอ.3', 'ฝอ3'],
     'mem_phak_ek': ['เอก', 'ภาคเอก', 'จรินทร์', 'จินดานุช', 'เสธ.เอก', 'รองเอก', 'ผู้กองเอก'],
     'mem_thanatat': ['top', 'ท็อป', 'ท๊อป', 'ธนทัต', 'ปานแสง', 'ผู้กองท็อป'],
     'mem_woooddy': ['champ', 'แชมป์', 'ภามพัฒน์', 'ทรัพย์กุลภิญโญ', 'ผู้พันแชมป์', 'แชมพ์'],
@@ -974,6 +974,88 @@ export function parseThaiMissionDates(text) {
   return null;
 }
 
+export function parseRosterUpdatesByDate(text, dbMembers = []) {
+  if (!text) return [];
+
+  const thaiDigits = ['๐','๑','๒','๓','๔','๕','๖','๗','๘','๙'];
+  let s = String(text);
+  thaiDigits.forEach((td, idx) => {
+    s = s.replaceAll(td, String(idx));
+  });
+
+  const monthsMap = {
+    'ม.ค.': '01', 'มค': '01', 'มกราคม': '01',
+    'ก.พ.': '02', 'กพ': '02', 'กุมภาพันธ์': '02',
+    'มี.ค.': '03', 'มีค': '03', 'มีนาคม': '03',
+    'เม.ย.': '04', 'เมย': '04', 'เมษายน': '04',
+    'พ.ค.': '05', 'พค': '05', 'พฤษภาคม': '05',
+    'มิ.ย.': '06', 'มิย': '06', 'มิถุนายน': '06',
+    'ก.ค.': '07', 'กค': '07', 'กรกฎาคม': '07',
+    'ส.ค.': '08', 'สค': '08', 'สิงหาคม': '08',
+    'ก.ย.': '09', 'กย': '09', 'กันยายน': '09',
+    'ต.ค.': '10', 'ตค': '10', 'ตุลาคม': '10',
+    'พ.ย.': '11', 'พย': '11', 'พฤศจิกายน': '11',
+    'ธ.ค.': '12', 'ธค': '12', 'ธันวาคม': '12'
+  };
+
+  const monthRegex = '(ม\\.?ค\\.?|ก\\.?พ\\.?|มี\\.?ค\\.?|เม\\.?ย\\.?|พ\\.?ค\\.?|มิ\\.?ย\\.?|ก\\.?ค\\.?|ส\\.?ค\\.?|ก\\.?ย\\.?|ต\\.?ค\\.?|พ\\.?ย\\.?|ธ\\.?ค\\.?|มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)';
+  const rangePattern = new RegExp(`(\\d{1,2})\\s*[-–ถึง]\\s*(\\d{1,2})\\s*${monthRegex}`, 'i');
+  const singlePattern = new RegExp(`(\\d{1,2})\\s*${monthRegex}`, 'i');
+
+  const lines = s.split('\n').map(l => l.trim()).filter(Boolean);
+  const updates = [];
+
+  lines.forEach(line => {
+    const memberIds = matchMemberIds([line], dbMembers);
+    if (memberIds.length === 0) return;
+
+    let matchedDates = [];
+    const rangeMatch = line.match(rangePattern);
+    if (rangeMatch) {
+      const startDay = parseInt(rangeMatch[1]);
+      const endDay = parseInt(rangeMatch[2]);
+      const monthKey = rangeMatch[3].trim();
+      let monthStr = null;
+      for (const [k, v] of Object.entries(monthsMap)) {
+        if (monthKey.includes(k) || k.includes(monthKey)) {
+          monthStr = v;
+          break;
+        }
+      }
+      if (monthStr && startDay <= endDay) {
+        for (let d = startDay; d <= endDay; d++) {
+          matchedDates.push(`${monthStr}-${String(d).padStart(2, '0')}`);
+        }
+      }
+    } else {
+      const singleMatch = line.match(singlePattern);
+      if (singleMatch) {
+        const day = parseInt(singleMatch[1]);
+        const monthKey = singleMatch[2].trim();
+        let monthStr = null;
+        for (const [k, v] of Object.entries(monthsMap)) {
+          if (monthKey.includes(k) || k.includes(monthKey)) {
+            monthStr = v;
+            break;
+          }
+        }
+        if (monthStr) {
+          matchedDates.push(`${monthStr}-${String(day).padStart(2, '0')}`);
+        }
+      }
+    }
+
+    if (matchedDates.length > 0) {
+      updates.push({
+        dateKeys: matchedDates,
+        member_ids: memberIds
+      });
+    }
+  });
+
+  return updates;
+}
+
 export function formatDraftSummaryMessage(draftObj) {
   const missions = Array.isArray(draftObj.missions) && draftObj.missions.length > 0
     ? draftObj.missions
@@ -1245,6 +1327,90 @@ export default async function handler(req, res) {
           }
         ]);
         continue;
+      }
+    }
+
+    // 2.5 Smart Date-Based Roster Assignment Update (Draft Mode & Supabase Event Mode)
+    if (msgType === 'text') {
+      const rosterUpdates = parseRosterUpdatesByDate(rawText, dbMembers);
+      if (rosterUpdates.length > 0) {
+        if (activeDraft) {
+          // Mode 1: Update Active Draft
+          const targetMissions = Array.isArray(activeDraft.missions) && activeDraft.missions.length > 0
+            ? activeDraft.missions
+            : [activeDraft];
+
+          let updatedCount = 0;
+          targetMissions.forEach(mItem => {
+            if (!mItem.start_date) return;
+            rosterUpdates.forEach(upd => {
+              const matchesDate = upd.dateKeys.some(dk => mItem.start_date.endsWith(dk));
+              if (matchesDate) {
+                mItem.member_ids = upd.member_ids;
+                mItem.member_names = formatMemberNamesForDisplay(upd.member_ids, dbMembers);
+                updatedCount++;
+              }
+            });
+          });
+
+          if (updatedCount > 0) {
+            activeDraft = { missions: targetMissions };
+            await saveDraft(userId, activeDraft);
+
+            await replyOrPushLineMessage(replyToken, userId, [
+              {
+                type: 'text',
+                text: `🔄 อัปเดตรายชื่อผู้รับผิดชอบตามวันที่ในร่างภารกิจสำเร็จแล้ว (${updatedCount} รายการ)! โปรดตรวจสอบความถูกต้อง:\n\n` + formatDraftSummaryMessage(activeDraft),
+                quickReply: {
+                  items: [
+                    {
+                      type: 'action',
+                      action: { type: 'message', label: '✅ ยืนยันบันทึก', text: '✅ ยืนยันบันทึก' }
+                    },
+                    {
+                      type: 'action',
+                      action: { type: 'message', label: '❌ ยกเลิก', text: '❌ ยกเลิก' }
+                    }
+                  ]
+                }
+              }
+            ]);
+            continue;
+          }
+        } else if (rawText.includes('อัพเดท') || rawText.includes('แก้ไข') || rawText.includes('นายทหารควบคุม') || rawText.includes('ผู้รับผิดชอบ') || rawText.includes('รายชื่อ') || rawText.includes('ขอรับรายชื่อ')) {
+          // Mode 2: Update Already Saved Events in Supabase Database
+          try {
+            const { data: dbEvents, error: fetchErr } = await supabase.from('events').select('*');
+            if (!fetchErr && Array.isArray(dbEvents) && dbEvents.length > 0) {
+              const updatedItems = [];
+              for (const evt of dbEvents) {
+                const evtDateIso = evt.start_time ? evt.start_time.split('T')[0] : '';
+                rosterUpdates.forEach(upd => {
+                  const matchesDate = upd.dateKeys.some(dk => evtDateIso.endsWith(dk));
+                  if (matchesDate) {
+                    evt.member_ids = upd.member_ids;
+                    updatedItems.push(evt);
+                  }
+                });
+              }
+
+              for (const uEvt of updatedItems) {
+                await supabase.from('events').update({ member_ids: uEvt.member_ids }).eq('id', uEvt.id);
+              }
+
+              if (updatedItems.length > 0) {
+                const summaryLines = updatedItems.map((u, i) => `${i + 1}. ${u.start_time.split('T')[0]} - ${u.title} 🎯 ผู้รับผิดชอบ: ${formatMemberNamesForDisplay(u.member_ids, dbMembers)}`);
+                await replyOrPushLineMessage(replyToken, userId, {
+                  type: 'text',
+                  text: `🔄 อัพเดตรายชื่อผู้รับผิดชอบในปฏิทิน Supabase สำเร็จแล้ว (${updatedItems.length} รายการ):\n\n` + summaryLines.join('\n')
+                });
+                continue;
+              }
+            }
+          } catch (dbErr) {
+            console.error('Database event roster update error:', dbErr);
+          }
+        }
       }
     }
 
