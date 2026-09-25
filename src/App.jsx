@@ -743,8 +743,8 @@ export default function App() {
 
     if (isAllDay) {
       if (oldStartDateStr === oldEndDateStr) {
-        newStartIso = `${targetDateStr}T17:00:00.000Z`;
-        newEndIso = `${targetDateStr}T16:59:59.000Z`;
+        newStartIso = `${targetDateStr}T00:00:00.000Z`;
+        newEndIso = `${targetDateStr}T23:59:59.000Z`;
       } else {
         const oldStart = new Date(oldStartDateStr);
         const oldEnd = new Date(oldEndDateStr);
@@ -753,8 +753,8 @@ export default function App() {
         const newEndDateObj = new Date(newStartDateObj);
         newEndDateObj.setDate(newEndDateObj.getDate() + durationDays);
         const newEndDateStr = formatDateKey(newEndDateObj);
-        newStartIso = `${targetDateStr}T17:00:00.000Z`;
-        newEndIso = `${newEndDateStr}T16:59:59.000Z`;
+        newStartIso = `${targetDateStr}T00:00:00.000Z`;
+        newEndIso = `${newEndDateStr}T23:59:59.000Z`;
       }
     } else {
       const sTimePart = targetEvt.start_time && targetEvt.start_time.includes('T') ? targetEvt.start_time.split('T')[1] : '09:00:00Z';
@@ -814,8 +814,8 @@ export default function App() {
 
     if (isAllDay) {
       if (oldStartDateStr === oldEndDateStr) {
-        newStartIso = `${targetDateStr}T17:00:00.000Z`;
-        newEndIso = `${targetDateStr}T16:59:59.000Z`;
+        newStartIso = `${targetDateStr}T00:00:00.000Z`;
+        newEndIso = `${targetDateStr}T23:59:59.000Z`;
       } else {
         const oldStart = new Date(oldStartDateStr);
         const oldEnd = new Date(oldEndDateStr);
@@ -824,8 +824,8 @@ export default function App() {
         const newEndDateObj = new Date(newStartDateObj);
         newEndDateObj.setDate(newEndDateObj.getDate() + durationDays);
         const newEndDateStr = formatDateKey(newEndDateObj);
-        newStartIso = `${targetDateStr}T17:00:00.000Z`;
-        newEndIso = `${newEndDateStr}T16:59:59.000Z`;
+        newStartIso = `${targetDateStr}T00:00:00.000Z`;
+        newEndIso = `${newEndDateStr}T23:59:59.000Z`;
       }
     } else {
       const sTimePart = originalEvt.start_time && originalEvt.start_time.includes('T') ? originalEvt.start_time.split('T')[1] : '09:00:00Z';
