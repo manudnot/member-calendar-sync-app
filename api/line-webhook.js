@@ -1239,7 +1239,11 @@ export default async function handler(req, res) {
         await clearActiveDraft(userId);
 
         if (updatedEvents.length > 0) {
-          const summaryLines = updatedEvents.map((u, i) => `${i + 1}. ${u.start_date} - ${u.title}\n   🎯 ผู้รับผิดชอบ: ${u.new_member_names}`);
+          updatedEvents.sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
+          const summaryLines = updatedEvents.map((u, i) => {
+            const cleanTitle = (u.title || '').replace(/\/ ทั้งวัน|\/ทั้งวัน|ทั้งวัน/g, '').trim() || u.title;
+            return `${i + 1}. ${u.start_date} - ${cleanTitle}\n   🎯 ผู้รับผิดชอบ: ${u.new_member_names}`;
+          });
           await replyOrPushLineMessage(replyToken, userId, {
             type: 'text',
             text: `✅ ยืนยันบันทึกการอัปเดตผู้รับผิดชอบในปฏิทินเรียบร้อยแล้ว (${updatedEvents.length} รายการ):\n\n` + summaryLines.join('\n\n')
@@ -1503,6 +1507,7 @@ export default async function handler(req, res) {
               });
 
               const updatedItems = strictMatches.length > 0 ? strictMatches : candidateItems;
+              updatedItems.sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
 
               if (updatedItems.length > 0) {
                 // Save update draft instead of modifying database immediately
@@ -1515,7 +1520,7 @@ export default async function handler(req, res) {
                 // Find distinct event titles for quick reply buttons
                 const distinctTitles = [];
                 updatedItems.forEach(u => {
-                  let cleanT = u.title.replace('/ ทั้งวัน', '').replace(/การซักซ้อมบนภูมิประเทศจำลอง/g, '').trim();
+                  let cleanT = u.title.replace(/\/ ทั้งวัน|\/ทั้งวัน|ทั้งวัน/g, '').replace(/การซักซ้อมบนภูมิประเทศจำลอง/g, '').trim();
                   if (cleanT.includes('ROC') || cleanT.includes('Reheral') || cleanT.includes('CPX')) cleanT = 'ROC Reheral';
                   else if (cleanT.includes('ซ้อมริ้วขบวน') || cleanT.includes('ริ้วขบวน')) cleanT = 'ซ้อมริ้วขบวน';
                   if (!distinctTitles.includes(cleanT) && cleanT.length > 0) {
@@ -1523,7 +1528,10 @@ export default async function handler(req, res) {
                   }
                 });
 
-                const summaryLines = updatedItems.map((u, i) => `${i + 1}. ${u.start_date} - ${u.title}\n   🎯 ผู้รับผิดชอบ: ${u.old_member_names} ➔ ${u.new_member_names}`);
+                const summaryLines = updatedItems.map((u, i) => {
+                  const cleanTitle = (u.title || '').replace(/\/ ทั้งวัน|\/ทั้งวัน|ทั้งวัน/g, '').trim() || u.title;
+                  return `${i + 1}. ${u.start_date} - ${cleanTitle}\n   🎯 ผู้รับผิดชอบ: ${u.old_member_names} ➔ ${u.new_member_names}`;
+                });
 
                 // Build Quick Reply buttons: [ "ซ้อมริ้วขบวน", "ROC Reheral", "ทั้งหมด", "❌ ยกเลิก" ]
                 const quickReplyItems = [];

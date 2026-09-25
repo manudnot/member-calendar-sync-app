@@ -231,7 +231,10 @@ export default function App() {
           console.warn('Supabase fetch events error:', evtErr);
           setToast({ message: '❌ ไม่สามารถเชื่อมต่อข้อมูลภารกิจสดจาก Supabase PostgreSQL ได้', type: 'error' });
         } else if (supaEvents && supaEvents.length > 0) {
-          const cleanEvents = sanitizeEventsTime(supaEvents);
+          const cleanEvents = sanitizeEventsTime(supaEvents).map(e => ({
+            ...e,
+            title: (e.title || '').replace(/\/ ทั้งวัน|\/ทั้งวัน|ทั้งวัน/g, '').trim() || e.title
+          }));
           const freshEvents = cleanEvents.map(supaEvt =>
             ensureEventCategoryAndColor(supaEvt, categories)
           );
@@ -616,19 +619,21 @@ export default function App() {
     }
   };
 
-  const buildSupaEventPayload = (evt) => ({
-    id: evt.id,
-    title: evt.title,
-    start_time: evt.start_time,
-    end_time: evt.end_time,
-    all_day: Boolean(evt.all_day),
-    description: evt.description || '',
-    location: evt.location || evt.url || '',
-    category: evt.category || 'งานกองพัน',
-    category_id: evt.category_id || 'cat_work',
-    member_ids: evt.member_ids || [],
-    alarm_minutes: evt.alarm_minutes || 15
-  });
+  const buildSupaEventPayload = (evt) => {
+    const cleanTitle = (evt.title || '').replace(/\/ ทั้งวัน|\/ทั้งวัน|ทั้งวัน/g, '').trim() || evt.title;
+    return {
+      id: evt.id,
+      title: cleanTitle,
+      start_time: evt.start_time,
+      end_time: evt.end_time,
+      all_day: Boolean(evt.all_day),
+      description: evt.description || '',
+      location: evt.location || evt.url || '',
+      category: evt.category || 'งานกองพัน',
+      member_ids: evt.member_ids || [],
+      alarm_minutes: evt.alarm_minutes || 15
+    };
+  };
 
   const handleSaveEvent = async (eventPayload) => {
     const prevEventsState = [...events];
