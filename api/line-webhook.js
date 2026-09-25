@@ -1188,6 +1188,34 @@ export default async function handler(req, res) {
         continue;
       }
 
+      // Handle Update Draft Confirmation (for existing database events)
+      if (activeDraft.isUpdateDraft && Array.isArray(activeDraft.updateItems)) {
+        const updateItems = activeDraft.updateItems;
+        const updatedEvents = [];
+        for (const uEvt of updateItems) {
+          try {
+            const { error: updErr } = await supabase
+              .from('events')
+              .update({ member_ids: uEvt.new_member_ids })
+              .eq('id', uEvt.id);
+            if (!updErr) {
+              updatedEvents.push(uEvt);
+            }
+          } catch (err) {
+            console.error('Update event error:', err);
+          }
+        }
+
+        await clearActiveDraft(userId);
+
+        const summaryLines = updatedEvents.map((u, i) => `${i + 1}. ${u.start_date} - ${u.title}\n   🎯 ผู้รับผิดชอบ: ${u.new_member_names}`);
+        await replyOrPushLineMessage(replyToken, userId, {
+          type: 'text',
+          text: `✅ ยืนยันบันทึกการอัปเดตผู้รับผิดชอบในปฏิทินเรียบร้อยแล้ว (${updatedEvents.length} รายการ):\n\n` + summaryLines.join('\n\n')
+        });
+        continue;
+      }
+
       // Convert draft to Supabase Event (Supports single or multi-mission)
       const missionsToSave = Array.isArray(activeDraft.missions) && activeDraft.missions.length > 0
         ? activeDraft.missions
@@ -1378,31 +1406,105 @@ export default async function handler(req, res) {
             continue;
           }
         } else if (rawText.includes('อัพเดท') || rawText.includes('แก้ไข') || rawText.includes('นายทหารควบคุม') || rawText.includes('ผู้รับผิดชอบ') || rawText.includes('รายชื่อ') || rawText.includes('ขอรับรายชื่อ')) {
-          // Mode 2: Update Already Saved Events in Supabase Database
+          // Mode 2: Update Already Saved Events in Supabase Database (Draft Preview + Quick Reply Buttons)
           try {
             const { data: dbEvents, error: fetchErr } = await supabase.from('events').select('*');
             if (!fetchErr && Array.isArray(dbEvents) && dbEvents.length > 0) {
+              const currentYear = new Date().getFullYear();
+              const targetYearStr = `${currentYear}`;
+
+              // Extract title keywords from rawText header (e.g. "งานพระบรมศพ", "ซ้อมริ้วขบวน", "ริ้วขบวน")
+              const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+              const headerText = lines.slice(0, 3).join(' ');
+              const titleKeywords = ['ซ้อมริ้วขบวน', 'ริ้วขบวน', 'งานพระบรมศพ', 'พระบรมศพ', 'พ่นยุง', 'ประชุม', 'ฝึก'].filter(k => headerText.includes(k));
+
               const updatedItems = [];
               for (const evt of dbEvents) {
                 const evtDateIso = evt.start_time ? evt.start_time.split('T')[0] : '';
+                // Rule 1: Must be in target year 2026 (never match past 2025 events)
+                if (!evtDateIso.startsWith(targetYearStr)) continue;
+
+                // Rule 2: If title keywords were specified in prompt header, match ONLY events containing those keywords!
+                if (titleKeywords.length > 0) {
+                  const matchesTitle = titleKeywords.some(kw => evt.title && evt.title.includes(kw));
+                  if (!matchesTitle) continue;
+                } else {
+                  // Ignore general unrelated event titles
+                  if (evt.title && (evt.title.includes('งานแต่ง') || evt.title.includes('หมาย 9') || evt.title.includes('เปิดหน่วยฝึก') || evt.title.includes('รับส่งหน้าที่'))) {
+                    continue;
+                  }
+                }
+
                 rosterUpdates.forEach(upd => {
                   const matchesDate = upd.dateKeys.some(dk => evtDateIso.endsWith(dk));
                   if (matchesDate) {
-                    evt.member_ids = upd.member_ids;
-                    updatedItems.push(evt);
+                    const oldMembersStr = formatMemberNamesForDisplay(evt.member_ids, dbMembers) || 'ไม่ระบุ';
+                    const newMembersStr = formatMemberNamesForDisplay(upd.member_ids, dbMembers);
+                    updatedItems.push({
+                      id: evt.id,
+                      title: evt.title,
+                      start_date: evtDateIso,
+                      old_member_names: oldMembersStr,
+                      new_member_ids: upd.member_ids,
+                      new_member_names: newMembersStr
+                    });
                   }
                 });
               }
 
-              for (const uEvt of updatedItems) {
-                await supabase.from('events').update({ member_ids: uEvt.member_ids }).eq('id', uEvt.id);
-              }
-
               if (updatedItems.length > 0) {
-                const summaryLines = updatedItems.map((u, i) => `${i + 1}. ${u.start_time.split('T')[0]} - ${u.title} 🎯 ผู้รับผิดชอบ: ${formatMemberNamesForDisplay(u.member_ids, dbMembers)}`);
+                // Save update draft instead of modifying database immediately
+                const updateDraftData = {
+                  isUpdateDraft: true,
+                  updateItems: updatedItems
+                };
+                await saveDraft(userId, updateDraftData);
+
+                const firstTitle = updatedItems[0]?.title ? updatedItems[0].title.replace('/ ทั้งวัน', '').trim() : 'ภารกิจ';
+                const summaryLines = updatedItems.map((u, i) => `${i + 1}. ${u.start_date} - ${u.title}\n   🎯 ผู้รับผิดชอบ: ${u.old_member_names} ➔ ${u.new_member_names}`);
+
+                // Build Quick Reply buttons above keyboard
+                const quickReplyItems = [
+                  {
+                    type: 'action',
+                    action: {
+                      type: 'message',
+                      label: `✅ ยืนยันบันทึก (${firstTitle.slice(0, 12)})`,
+                      text: '✅ ยืนยันบันทึกการอัปเดต'
+                    }
+                  }
+                ];
+
+                if (updatedItems.length > 1) {
+                  quickReplyItems.push({
+                    type: 'action',
+                    action: {
+                      type: 'message',
+                      label: '✅ ยืนยันบันทึกทั้งหมด',
+                      text: '✅ ยืนยันบันทึกการอัปเดต'
+                    }
+                  });
+                }
+
+                quickReplyItems.push({
+                  type: 'action',
+                  action: { type: 'message', label: '❌ ยกเลิก', text: '❌ ยกเลิก' }
+                });
+
+                await replyOrPushLineMessage(replyToken, userId, [
+                  {
+                    type: 'text',
+                    text: `📋 ร่างอัปเดตผู้รับผิดชอบ (${updatedItems.length} รายการ):\n\n` + summaryLines.join('\n\n') + '\n\nโปรดตรวจสอบและเลือกยืนยันการบันทึกเหนือคีย์บอร์ดด้านล่างครับ:',
+                    quickReply: {
+                      items: quickReplyItems
+                    }
+                  }
+                ]);
+                continue;
+              } else {
                 await replyOrPushLineMessage(replyToken, userId, {
                   type: 'text',
-                  text: `🔄 อัพเดตรายชื่อผู้รับผิดชอบในปฏิทิน Supabase สำเร็จแล้ว (${updatedItems.length} รายการ):\n\n` + summaryLines.join('\n')
+                  text: '❌ ไม่พบภารกิจในปี 2026 ที่ตรงกับวันที่และหัวข้อที่ระบุสำหรับการอัปเดตครับ'
                 });
                 continue;
               }
