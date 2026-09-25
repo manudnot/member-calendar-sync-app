@@ -1464,7 +1464,7 @@ export default async function handler(req, res) {
               const stopWords = ['พิราบ', 'อัพเดท', 'รายชื่อ', 'นายทหาร', 'ควบคุม', 'ผู้รับผิดชอบ', 'ขอรับ', 'แก้ไข', 'ณ', 'งาน', 'ต.ค.', 'ก.ย.', 'พ.ย.', 'ธ.ค.'];
               const headerTokens = headerText.split(/[\s,/\(\)]+/).filter(t => t.length >= 2 && !stopWords.includes(t));
 
-              const updatedItems = [];
+              const candidateItems = [];
               for (const evt of dbEvents) {
                 const utcDateIso = evt.start_time ? evt.start_time.split('T')[0] : '';
                 const ictDateIso = getIctDateStr(evt.start_time);
@@ -1477,23 +1477,13 @@ export default async function handler(req, res) {
                 if (evtTitleLower.includes('งานแต่ง') && !headerText.includes('งานแต่ง')) continue;
                 if (evtTitleLower.includes('หมาย 9') && !headerText.includes('หมาย 9')) continue;
 
-                // Rule 3: Dynamic title similarity check
-                let isTitleMatched = true;
-                if (headerTokens.length > 0) {
-                  const hasTokenOverlap = headerTokens.some(tok => evtTitleLower.includes(tok) || tok.includes(evtTitleLower));
-                  const hasHeaderOverlap = evtTitleLower.split(/[\s,/\(\)]+/).some(tok => tok.length >= 2 && !stopWords.includes(tok) && headerText.includes(tok));
-                  isTitleMatched = hasTokenOverlap || hasHeaderOverlap;
-                }
-
-                if (!isTitleMatched) continue;
-
                 rosterUpdates.forEach(upd => {
                   const matchesDate = upd.dateKeys.some(dk => utcDateIso.endsWith(dk) || ictDateIso.endsWith(dk));
                   if (matchesDate) {
                     const displayDate = ictDateIso || utcDateIso;
                     const oldMembersStr = formatMemberNamesForDisplay(evt.member_ids, dbMembers) || 'ไม่ระบุ';
                     const newMembersStr = formatMemberNamesForDisplay(upd.member_ids, dbMembers);
-                    updatedItems.push({
+                    candidateItems.push({
                       id: evt.id,
                       title: evt.title,
                       start_date: displayDate,
@@ -1504,6 +1494,14 @@ export default async function handler(req, res) {
                   }
                 });
               }
+
+              // Rule 3: Prefer strict token matches if header contains specific terms, otherwise fallback to date candidates
+              const strictMatches = candidateItems.filter(item => {
+                const tLower = (item.title || '').toLowerCase();
+                return headerTokens.some(tok => tLower.includes(tok) || tok.includes(tLower));
+              });
+
+              const updatedItems = strictMatches.length > 0 ? strictMatches : candidateItems;
 
               if (updatedItems.length > 0) {
                 // Save update draft instead of modifying database immediately
