@@ -15,7 +15,7 @@ import DayEventsModal from './components/Modals/DayEventsModal';
 import MonthYearPickerModal from './components/Modals/MonthYearPickerModal';
 import SearchModal from './components/Modals/SearchModal';
 import { fetchLiveHolidays } from './utils/holidays';
-import { formatDateKey, formatThaiDateTime, sanitizeEventsTime, INITIAL_CATEGORIES, ensureEventCategoryAndColor, getLocalDateStr } from './utils/helpers';
+import { formatDateKey, formatThaiDateTime, sanitizeEventsTime, INITIAL_CATEGORIES, ensureEventCategoryAndColor, getLocalDateStr, isAllDayEvent } from './utils/helpers';
 import { supabase } from './utils/supabase';
 import { hashPasscode } from './utils/crypto';
 
