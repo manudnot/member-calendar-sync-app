@@ -23,6 +23,7 @@ export default function MonthGrid({
   slideDirection
 }) {
   const [draggedEvt, setDraggedEvt] = useState(null);
+  const draggedEvtRef = useRef(null);
   const [dragOverDateStr, setDragOverDateStr] = useState(null);
   const [dropMenu, setDropMenu] = useState(null);
 
@@ -184,7 +185,13 @@ export default function MonthGrid({
   const handleCellDrop = (e, cellDateStr) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!draggedEvt) return;
+
+    let targetEvt = draggedEvt || draggedEvtRef.current;
+    if (!targetEvt && e.dataTransfer) {
+      const evtId = e.dataTransfer.getData('text/plain');
+      if (evtId) targetEvt = events.find(evt => evt.id === evtId);
+    }
+    if (!targetEvt) return;
 
     const clickX = e.clientX;
     const clickY = e.clientY;
@@ -194,7 +201,7 @@ export default function MonthGrid({
     const posY = Math.min(clickY, window.innerHeight - menuHeight - 16);
 
     setDropMenu({
-      evt: draggedEvt,
+      evt: targetEvt,
       targetDateStr: cellDateStr,
       position: { x: posX, y: posY }
     });
@@ -439,13 +446,17 @@ export default function MonthGrid({
                         draggable={true}
                         onDragStart={(e) => {
                           e.stopPropagation();
+                          draggedEvtRef.current = evt;
                           setDraggedEvt(evt);
                           e.dataTransfer.effectAllowed = 'copyMove';
                           e.dataTransfer.setData('text/plain', evt.id);
                         }}
                         onDragEnd={() => {
-                          setDraggedEvt(null);
-                          setDragOverDateStr(null);
+                          setTimeout(() => {
+                            draggedEvtRef.current = null;
+                            setDraggedEvt(null);
+                            setDragOverDateStr(null);
+                          }, 150);
                         }}
                         onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
                         className={`pointer-events-auto h-5 px-0.5 sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 ${
@@ -478,13 +489,17 @@ export default function MonthGrid({
                         draggable={true}
                         onDragStart={(e) => {
                           e.stopPropagation();
+                          draggedEvtRef.current = evt;
                           setDraggedEvt(evt);
                           e.dataTransfer.effectAllowed = 'copyMove';
                           e.dataTransfer.setData('text/plain', evt.id);
                         }}
                         onDragEnd={() => {
-                          setDraggedEvt(null);
-                          setDragOverDateStr(null);
+                          setTimeout(() => {
+                            draggedEvtRef.current = null;
+                            setDraggedEvt(null);
+                            setDragOverDateStr(null);
+                          }, 150);
                         }}
                         onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
                         className={`pointer-events-auto h-5 px-[1px] sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-2xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 rounded-md border-l-2 ${

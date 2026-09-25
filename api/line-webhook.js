@@ -1587,7 +1587,16 @@ export default async function handler(req, res) {
     }
 
     // 3. User Command: Interactive Edit Command on Active Draft
-    if (msgType === 'text' && (event.message.text.includes('แก้') || event.message.text.includes('เปลี่ยน') || event.message.text.includes('เพิ่ม'))) {
+    const rawTextTrim = rawText.trim();
+    const editCmdKeywords = ['แก้ไข', 'แก้ข้อ', 'แก้ภารกิจ', 'แก้รายการ', 'เปลี่ยนเป็น', 'เปลี่ยนวันที่'];
+    const isExplicitEditCmd = msgType === 'text' && (
+      editCmdKeywords.some(k => rawTextTrim.includes(k)) ||
+      rawTextTrim.startsWith('แก้ ') ||
+      rawTextTrim.startsWith('เปลี่ยน ') ||
+      rawTextTrim.startsWith('เพิ่มภารกิจ')
+    ) && !rawTextTrim.includes('เกษรแก้ว');
+
+    if (isExplicitEditCmd) {
       if (!activeDraft) {
         await replyOrPushLineMessage(replyToken, userId, {
           type: 'text',
