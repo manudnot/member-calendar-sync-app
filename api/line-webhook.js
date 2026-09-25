@@ -344,15 +344,16 @@ async function clearActiveDraft(userId) {
 
 export function formatCategoryWithBadge(catStr) {
   if (!catStr) return '🔴 ภารกิจหน่วย';
+  const s = String(catStr).toLowerCase();
+  if (s.includes('พ่นยุง') || s.includes('กำจัดยุง') || s.includes('แมลง') || s.includes('นวป') || s.includes('เวชกรรม') || s.includes('บ้านพัก') || s.includes('สวัสดิการ')) return '🟣 งานกองพัน';
   if (catStr.includes('🔴') || catStr.includes('🟡') || catStr.includes('🟢') || catStr.includes('🟣') || catStr.includes('🟤') || catStr.includes('🌸')) {
     return catStr;
   }
-  const s = String(catStr).toLowerCase();
   if (s.includes('หมาย') || s.includes('royal')) return '🟡 ภารกิจหมาย';
   if (s.includes('ประชุม') || s.includes('meeting') || s.includes('vtc') || s.includes('อบรม')) return '🟢 ประชุม';
   if (s.includes('ฝึก') || s.includes('training') || s.includes('cpx') || s.includes('calflex')) return '🟤 ภารกิจการฝึก';
   if (s.includes('กิจกรรม') || s.includes('พิเศษ') || s.includes('เกิด')) return '🌸 กิจกรรมพิเศษ';
-  if (s.includes('งาน') || s.includes('งานหน่วย') || s.includes('งานกองพัน') || s.includes('work') || s.includes('พิธี') || s.includes('เคารพธงชาติ') || s.includes('ส่งคน')) return '🟣 งานกองพัน';
+  if (s.includes('งาน') || s.includes('งานหน่วย') || s.includes('งานกองพัน') || s.includes('work') || s.includes('พิธี') || s.includes('เคารพธงชาติ') || s.includes('ส่งคน') || s.includes('ติดตั้ง')) return '🟣 งานกองพัน';
   if (s.includes('หน่วย') || s.includes('unit')) return '🔴 ภารกิจหน่วย';
   return `🟣 ${catStr}`;
 }
@@ -504,34 +505,41 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
   const activeMembersList = Array.isArray(dbMembers) && dbMembers.length > 0
     ? dbMembers
         .filter(m => !m.is_archived && m.status !== 'resigned' && m.status !== 'inactive' && m.status !== 'archived')
-        .map(m => {
-          const nameParts = [m.nickname, m.name, m.first_name, m.last_name, m.full_name].filter(Boolean);
-          return Array.from(new Set(nameParts)).join('/');
-        }).join(', ')
+        .map(m => m.nickname || m.name || m.first_name).filter(Boolean).join(', ')
     : 'นอต, เติร์ธ, จูน, เอก, เก่ง, ตั้ม, เวรหมาย';
 
   const systemPrompt = `คุณคือเสมียนกองร้อยสายและวิทยุถ่ายทอด มีหน้าที่วิเคราะห์คำสั่งปฏิบัติงาน ภารกิจ รูปภาพ หรือเอกสารข่าวสาร 
 สำคัญที่สุด:
-1. หากในข้อความต้นฉบับมีสัญลักษณ์หรือตัวเลขหัวข้อ เช่น ๑. หรือ ๒.๒.๑ หรือข้อหัวข้อแยกรายการ ให้สกัด 1 รายการภารกิจ ต่อ 1 ข้อหัวข้อเด็ดขาด! ห้ามแยกประโยคย่อยในข้อเดียวกันที่เชื่อมด้วยคำว่า 'และ' หรือ 'และซักซ้อม...' ออกเป็นหลายภารกิจเด็ดขาด
-2. หากมีหลายวันในหัวข้อคนละข้อกัน หรือมีการระบุชุดตัวเลขหลายวันที่ในเดือนเดียวกัน เช่น '11 12 18 19 25 26 ก.ย.' หรือ '11, 12, 18 ก.ย.' ให้สกัดแยกเป็นรายการภารกิจเดี่ยวตามทุกๆ วันที่ระบุ (เช่น 2026-09-11, 2026-09-12, 2026-09-18, 2026-09-19, 2026-09-25, 2026-09-26) ในอาร์เรย์ "missions" โดยทุกรายการใช้ชื่อเรื่อง (title), ผู้รับผิดชอบ (members), สถานที่ (location), การแต่งกาย (dress_code) เดียวกัน
-3. ถอนข้อความส่วนสถานที่ (เช่น ประโยคที่ขึ้นต้นด้วย 'ณ ...') ออกจากชื่อภารกิจ (title) โดยนำสถานที่ไปใส่ไว้เฉพาะในฟิลด์ location เท่านั้น ห้ามใส่สถานที่ซ้ำใน title
-4. ให้รักษาชื่อภารกิจ (title) เต็มตามข้อความต้นฉบับ รวมทั้งคำนำหน้ากลุ่ม/รุ่น/ยศ/ชั้นปี เช่น 'น้อง 63', 'รุ่น 63', 'นักเรียน...' ห้ามตัดคำเหล่านี้ออกจากชื่อภารกิจเด็ดขาด!
-5. ในฟิลด์ "members": ให้สกัดเฉพาะรายชื่อบุคคลที่มีอยู่จริงในฐานข้อมูลกำลังพล Supabase ต่อไปนี้เท่านั้น (ตรงตามชื่อ ชื่อเล่น ยศ หรือนามสกุล): [${activeMembersList}] หากชื่อในข้อความไม่ตรงกับรายชื่อกำลังพลข้างต้น (เช่น เป็นชื่อกลุ่ม/รุ่น 'น้อง 63', 'รุ่น 63', 'ทหาร', 'ฉก.') ให้คงคำนั้นไว้ใน title และให้ members เป็น []
-6. ในฟิลด์ "time_str": ให้ยึดตามห้วงเวลาหรือเวลาที่ระบุในข้อความต้นฉบับอย่างแม่นยำ หากมีทั้ง 'เวลาพร้อม/กำลังพลพร้อม (เช่น 07:45)' และ 'เวลาเริ่มพิธี/เริ่มการปฏิบัติ (เช่น 08:00)' ให้ยึดเวลาพร้อม (07:45) เป็นเวลาเริ่มต้น (start_time) ของกำลังพลเสมอ! หากระบุ '10:00' หรือ 'ประชุม 1000' ให้สกัดเวลานั้นๆ เช่น '10:00 - 12:00' หรือ '10:00', หากระบุ 'เช้า' ให้ใช้ '09:00 - 12:00', หากระบุ 'บ่าย' ให้ใช้ '13:00 - 16:00' หากไม่ได้ระบุเวลาใดๆ ให้ใส่ 'ตลอดวัน' (และใส่ all_day: true)
+1. "title": ต้องสกัดเฉพาะชื่อภารกิจหรือหัวเรื่องหลัก สั้น กระชับ ได้ใจความ ไม่เกิน 5-10 คำ (เช่น "นวป.ทบ. ฉีดพ่นยุง", "ประชุม C4I", "ติดตั้งทีวีห้องประชุม")
+   - ห้ามใส่รายละเอียดประชาสัมพันธ์ คำเตือน หรือข้อแนะนำ (เช่น "แจ้งกำลังพลจัดเก็บสิ่งของที่กีดขวาง และงดตากผ้า...") ไว้ใน title ให้สกัดไปใส่ในฟิลด์ "notes"
+   - ห้ามระบุยศ นามสกุล หรือรายชื่อผู้รับผิดชอบนำหน้าใน title (เช่น ห้ามใส่ "นอต" หรือ "ร.ท. นิติพัฒน์" ไว้ใน title) ให้สกัดไปใส่ในฟิลด์ "members" เท่านั้น
+2. "notes": รายละเอียดเพิ่มเติม ข้อความประชาสัมพันธ์ ข้อควรระวัง หรือหมายเหตุจากคำสั่ง (ถ้าไม่มีให้ใส่ null)
+3. "category": เลือกประเภทภารกิจจากรายการดังต่อไปนี้:
+   - "🟣 งานกองพัน" (สำหรับ: การฉีดพ่นยุง, กำจัดแมลง, งานบ้านพักอาศัย, งานสวัสดิการ, การซ่อมบำรุง, การพัฒนาพื้นที่, การจัดเตรียมสถานที่, งานหน่วยประจำวัน)
+   - "🔴 ภารกิจหน่วย" (สำหรับ: งานซ้อมแถว, งานพิธีการหน่วย, ภารกิจหลักหน่วย)
+   - "🟡 ภารกิจหมาย" (สำหรับ: ภารกิจรับ-ส่งเสด็จ, ภารกิจพระราชพิธี, ภารกิจหมายกำหนดการ)
+   - "🟢 ประชุม" (สำหรับ: ประชุม, VTC, ชี้แจงนโยบาย, สรุปงาน)
+   - "🟤 ภารกิจการฝึก" (สำหรับ: การฝึกประจำปี, ฝึกภาคสนาม, โครงการฝึกทางทหาร)
+   - "🌸 กิจกรรมพิเศษ" (สำหรับ: งานเลี้ยง, วันเกิด, กิจกรรมสันทนาการ)
+4. หากในข้อความต้นฉบับมีสัญลักษณ์หรือตัวเลขหัวข้อ เช่น ๑. หรือ ๒.๒.๑ ให้สกัด 1 รายการภารกิจ ต่อ 1 ข้อหัวข้อเด็ดขาด! ห้ามแยกประโยคย่อยในข้อเดียวกันออกเป็นหลายภารกิจ
+5. หากมีหลายวันที่ ให้สกัดแยกเป็นรายการภารกิจเดี่ยวตามทุกๆ วันที่ระบุ ในอาร์เรย์ "missions" โดยทุกรายการใช้ชื่อเรื่อง (title), ผู้รับผิดชอบ (members), สถานที่ (location), การแต่งกาย (dress_code) เดียวกัน
+6. ถอนข้อความส่วนสถานที่ (เช่น ประโยคที่ขึ้นต้นด้วย 'ณ ...') ออกจากชื่อภารกิจ (title) โดยนำสถานที่ไปใส่ไว้เฉพาะในฟิลด์ location เท่านั้น ห้ามใส่สถานที่ซ้ำใน title
+7. ในฟิลด์ "members": ให้สกัดเฉพาะรายชื่อบุคคลที่มีอยู่จริงในฐานข้อมูลกำลังพล Supabase ต่อไปนี้เท่านั้น: [${activeMembersList}] หากชื่อไม่ตรงกับรายชื่อกำลังพลข้างต้น ให้ members เป็น []
 
 กรุณาวิเคราะห์และสกัดข้อมูลภารกิจตอบกลับเฉพาะ JSON บริสุทธิ์ (ไม่ต้องใส่ markdown codeblock และไม่ใส่คำขึ้นต้นใดๆ) มีโครงสร้างดังนี้:
 {
   "missions": [
     {
-      "title": "ชื่อภารกิจหรือเรื่อง",
+      "title": "ชื่อภารกิจสั้นกระชับ (5-10 คำ)",
       "start_date": "YYYY-MM-DD (พ.ศ. 2569 หรือ 69 แปลงเป็น ค.ศ. 2026 เสมอ)",
       "end_date": "YYYY-MM-DD (พ.ศ. 2569 หรือ 69 แปลงเป็น ค.ศ. 2026 เสมอ)",
-      "time_str": "ห้วงเวลา เช่น 10:00 - 12:00 หรือ 09:00 - 12:00 หรือ ตลอดวัน",
-      "all_day": true,
-      "category": "ภารกิจหน่วย หรือ ภารกิจหมาย หรือ ประชุม หรือ งานกองพัน หรือ ภารกิจการฝึก หรือ กิจกรรมพิเศษ",
+      "time_str": "ห้วงเวลา เช่น 09:30 - 12:00 หรือ 10:00 หรือ ตลอดวัน",
+      "all_day": false,
+      "category": "🟣 งานกองพัน หรือ 🔴 ภารกิจหน่วย หรือ 🟡 ภารกิจหมาย หรือ 🟢 ประชุม หรือ 🟤 ภารกิจการฝึก หรือ 🌸 กิจกรรมพิเศษ",
+      "notes": "รายละเอียดประชาสัมพันธ์ คำเตือน หรือข้อแนะนำ (ถ้ามี)",
       "dress_code": "ชุดการแต่งกาย (หากไม่ได้ระบุในข้อความ ให้ใส่ null หรือเว้นว่างไว้)",
       "location": "สถานที่ปฏิบัติงานหรือลิงก์ประชุม (ถ้ามี)",
-      "members": ["รายชื่อผู้รับผิดชอบเฉพาะที่มีระบุในข้อความและตรงกับฐานข้อมูล Supabase เท่านั้น หากไม่มีให้เป็น []"]
+      "members": ["รายชื่อผู้รับผิดชอบเฉพาะที่มีระบุในข้อความและตรงกับฐานข้อมูล Supabase เท่านั้น"]
     }
   ]
 }`;
@@ -584,25 +592,28 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
           // Filter out empty or broken missions
           const validMissions = rawMissions.filter(m => m && m.title && m.start_date && !m.start_date.includes('-00'));
           if (validMissions.length > 0) {
-            // Post-process to ensure non-member cohort strings (e.g. 'น้อง 63') remain in title and don't pollute members
             validMissions.forEach(m => {
               const rawMembers = Array.isArray(m.members) ? m.members : [];
               const matchedMemberIds = matchMemberIds(rawMembers, dbMembers);
-              
-              // Find unmatched member strings that are not real db members
-              rawMembers.forEach(memStr => {
-                if (typeof memStr === 'string' && memStr.trim()) {
-                  const isDbMember = dbMembers.some(dbM => 
-                    dbM.name === memStr || dbM.nickname === memStr || dbM.full_name?.includes(memStr) || dbM.id === memStr
-                  );
-                  if (!isDbMember && !m.title.includes(memStr)) {
-                    m.title = `${memStr.trim()} ${m.title}`.trim();
-                  }
-                }
-              });
+
+              // Strip assigned member names/nicknames/ranks if prepended in title
+              if (m.title && dbMembers.length > 0) {
+                dbMembers.forEach(dbM => {
+                  const namesToClean = [dbM.nickname, dbM.name, dbM.full_name, dbM.rank ? `${dbM.rank} ${dbM.nickname}` : null].filter(Boolean);
+                  namesToClean.forEach(n => {
+                    if (n && typeof m.title === 'string' && m.title.startsWith(n)) {
+                      m.title = m.title.substring(n.length).trim().replace(/^[\:\-\s]+/, '');
+                    }
+                  });
+                });
+              }
 
               m.member_ids = matchedMemberIds;
               m.member_names = formatMemberNamesForDisplay(matchedMemberIds, dbMembers);
+              
+              if (m.notes && !m.description) {
+                m.description = m.notes;
+              }
             });
 
             return { missions: validMissions };
@@ -927,19 +938,25 @@ export function formatDraftSummaryMessage(draftObj) {
     return `\n👔 ${clean}`;
   };
 
+  const formatNotesLine = (notes) => {
+    if (!notes || notes === 'null' || notes === 'ไม่ระบุ') return '';
+    return `\n📌 รายละเอียด: ${notes}`;
+  };
+
   if (missions.length === 1) {
     const item = missions[0];
     const memberDisplayStr = formatMemberNamesForDisplay(item.member_ids, []) || item.member_names || 'ไม่ระบุ';
     const dateStr = `${item.start_date}${item.end_date && item.end_date !== item.start_date ? ' ถึง ' + item.end_date : ''} (${item.time_str || 'ตลอดวัน'})`;
     const catBadge = formatCategoryWithBadge(item.category);
     const dressLine = formatDressCodeLine(item.dress_code);
+    const notesLine = formatNotesLine(item.notes || item.description);
     const locLine = item.location ? `\n📍 สถานที่: ${item.location}` : '';
 
     return `📋 สรุปร่างภารกิจ (1 รายการ):
 
 ${dateStr}
 📝 ${item.title}
-${catBadge}${dressLine}
+${catBadge}${dressLine}${notesLine}
 🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}
 
 ⏱️ บันทึกให้อัตโนมัติใน 3 นาที`;
@@ -951,9 +968,10 @@ ${catBadge}${dressLine}
     const dateStr = `${item.start_date}${item.end_date && item.end_date !== item.start_date ? ' ถึง ' + item.end_date : ''} (${item.time_str || 'ตลอดวัน'})`;
     const catBadge = formatCategoryWithBadge(item.category);
     const dressLine = formatDressCodeLine(item.dress_code);
+    const notesLine = formatNotesLine(item.notes || item.description);
     const locLine = item.location ? `\n📍 สถานที่: ${item.location}` : '';
 
-    return `${badge} ${dateStr}\n📝 ${item.title}\n${catBadge}${dressLine}\n🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}`;
+    return `${badge} ${dateStr}\n📝 ${item.title}\n${catBadge}${dressLine}${notesLine}\n🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}`;
   }).join('\n\n');
 
   return `📋 สรุปร่างภารกิจ (${missions.length} รายการ):\n\n${itemsText}\n\n⏱️ บันทึกให้อัตโนมัติใน 3 นาที`;
