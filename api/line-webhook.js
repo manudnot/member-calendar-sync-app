@@ -1000,6 +1000,7 @@ export function parseRosterUpdatesByDate(text, dbMembers = []) {
 
   const monthRegex = '(ม\\.?ค\\.?|ก\\.?พ\\.?|มี\\.?ค\\.?|เม\\.?ย\\.?|พ\\.?ค\\.?|มิ\\.?ย\\.?|ก\\.?ค\\.?|ส\\.?ค\\.?|ก\\.?ย\\.?|ต\\.?ค\\.?|พ\\.?ย\\.?|ธ\\.?ค\\.?|มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)';
   const rangePattern = new RegExp(`(\\d{1,2})\\s*[-–ถึง]\\s*(\\d{1,2})\\s*${monthRegex}`, 'i');
+  const multiPattern = new RegExp(`^((?:\\d{1,2}[\\s,]+)+)(\\d{1,2})\\s*${monthRegex}`, 'i');
   const singlePattern = new RegExp(`(\\d{1,2})\\s*${monthRegex}`, 'i');
 
   const lines = s.split('\n').map(l => l.trim()).filter(Boolean);
@@ -1010,8 +1011,27 @@ export function parseRosterUpdatesByDate(text, dbMembers = []) {
     if (memberIds.length === 0) return;
 
     let matchedDates = [];
+    const multiMatch = line.match(multiPattern);
     const rangeMatch = line.match(rangePattern);
-    if (rangeMatch) {
+    const singleMatch = line.match(singlePattern);
+
+    if (multiMatch) {
+      const numbersStr = multiMatch[1] + multiMatch[2];
+      const dayNums = numbersStr.split(/[\s,]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n >= 1 && n <= 31);
+      const monthKey = multiMatch[3].trim();
+      let monthStr = null;
+      for (const [k, v] of Object.entries(monthsMap)) {
+        if (monthKey.includes(k) || k.includes(monthKey)) {
+          monthStr = v;
+          break;
+        }
+      }
+      if (monthStr && dayNums.length > 0) {
+        dayNums.forEach(dNum => {
+          matchedDates.push(`${monthStr}-${String(dNum).padStart(2, '0')}`);
+        });
+      }
+    } else if (rangeMatch) {
       const startDay = parseInt(rangeMatch[1]);
       const endDay = parseInt(rangeMatch[2]);
       const monthKey = rangeMatch[3].trim();
@@ -1027,21 +1047,18 @@ export function parseRosterUpdatesByDate(text, dbMembers = []) {
           matchedDates.push(`${monthStr}-${String(d).padStart(2, '0')}`);
         }
       }
-    } else {
-      const singleMatch = line.match(singlePattern);
-      if (singleMatch) {
-        const day = parseInt(singleMatch[1]);
-        const monthKey = singleMatch[2].trim();
-        let monthStr = null;
-        for (const [k, v] of Object.entries(monthsMap)) {
-          if (monthKey.includes(k) || k.includes(monthKey)) {
-            monthStr = v;
-            break;
-          }
+    } else if (singleMatch) {
+      const day = parseInt(singleMatch[1]);
+      const monthKey = singleMatch[2].trim();
+      let monthStr = null;
+      for (const [k, v] of Object.entries(monthsMap)) {
+        if (monthKey.includes(k) || k.includes(monthKey)) {
+          monthStr = v;
+          break;
         }
-        if (monthStr) {
-          matchedDates.push(`${monthStr}-${String(day).padStart(2, '0')}`);
-        }
+      }
+      if (monthStr) {
+        matchedDates.push(`${monthStr}-${String(day).padStart(2, '0')}`);
       }
     }
 
@@ -1433,7 +1450,14 @@ export default async function handler(req, res) {
               const currentYear = new Date().getFullYear();
               const targetYearStr = `${currentYear}`;
 
-              // Dynamic Title Token Similarity & Target Date Matching
+              // Dynamic Title Token Similarity & Target Date Matching (with ICT Timezone Conversion)
+              const getIctDateStr = (isoStr) => {
+                if (!isoStr) return '';
+                const d = new Date(isoStr);
+                const ictDate = new Date(d.getTime() + (7 * 60 * 60 * 1000));
+                return ictDate.toISOString().split('T')[0];
+              };
+
               const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
               const headerText = lines.slice(0, 3).join(' ').toLowerCase();
 
@@ -1442,9 +1466,11 @@ export default async function handler(req, res) {
 
               const updatedItems = [];
               for (const evt of dbEvents) {
-                const evtDateIso = evt.start_time ? evt.start_time.split('T')[0] : '';
+                const utcDateIso = evt.start_time ? evt.start_time.split('T')[0] : '';
+                const ictDateIso = getIctDateStr(evt.start_time);
+
                 // Rule 1: Must be in target year 2026 (never match past 2025 events)
-                if (!evtDateIso.startsWith(targetYearStr)) continue;
+                if (!utcDateIso.startsWith(targetYearStr) && !ictDateIso.startsWith(targetYearStr)) continue;
 
                 // Rule 2: Exclude unrelated non-unit/personal events unless explicitly mentioned in header
                 const evtTitleLower = (evt.title || '').toLowerCase();
@@ -1462,14 +1488,15 @@ export default async function handler(req, res) {
                 if (!isTitleMatched) continue;
 
                 rosterUpdates.forEach(upd => {
-                  const matchesDate = upd.dateKeys.some(dk => evtDateIso.endsWith(dk));
+                  const matchesDate = upd.dateKeys.some(dk => utcDateIso.endsWith(dk) || ictDateIso.endsWith(dk));
                   if (matchesDate) {
+                    const displayDate = ictDateIso || utcDateIso;
                     const oldMembersStr = formatMemberNamesForDisplay(evt.member_ids, dbMembers) || 'ไม่ระบุ';
                     const newMembersStr = formatMemberNamesForDisplay(upd.member_ids, dbMembers);
                     updatedItems.push({
                       id: evt.id,
                       title: evt.title,
-                      start_date: evtDateIso,
+                      start_date: displayDate,
                       old_member_names: oldMembersStr,
                       new_member_ids: upd.member_ids,
                       new_member_names: newMembersStr
