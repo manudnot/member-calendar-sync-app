@@ -345,6 +345,7 @@ async function clearActiveDraft(userId) {
 export function formatCategoryWithBadge(catStr) {
   if (!catStr) return '🔴 ภารกิจหน่วย';
   const s = String(catStr).toLowerCase();
+  if (s.includes('ติดตั้ง') || s.includes('ติดตั้งทีวี') || s.includes('ติดตั้งระบบ') || s.includes('เดินสาย')) return '🔴 ภารกิจหน่วย';
   if (s.includes('พ่นยุง') || s.includes('กำจัดยุง') || s.includes('แมลง') || s.includes('นวป') || s.includes('เวชกรรม') || s.includes('บ้านพัก') || s.includes('สวัสดิการ')) return '🟣 งานกองพัน';
   if (catStr.includes('🔴') || catStr.includes('🟡') || catStr.includes('🟢') || catStr.includes('🟣') || catStr.includes('🟤') || catStr.includes('🌸')) {
     return catStr;
@@ -353,7 +354,7 @@ export function formatCategoryWithBadge(catStr) {
   if (s.includes('ประชุม') || s.includes('meeting') || s.includes('vtc') || s.includes('อบรม')) return '🟢 ประชุม';
   if (s.includes('ฝึก') || s.includes('training') || s.includes('cpx') || s.includes('calflex')) return '🟤 ภารกิจการฝึก';
   if (s.includes('กิจกรรม') || s.includes('พิเศษ') || s.includes('เกิด')) return '🌸 กิจกรรมพิเศษ';
-  if (s.includes('งาน') || s.includes('งานหน่วย') || s.includes('งานกองพัน') || s.includes('work') || s.includes('พิธี') || s.includes('เคารพธงชาติ') || s.includes('ส่งคน') || s.includes('ติดตั้ง')) return '🟣 งานกองพัน';
+  if (s.includes('งาน') || s.includes('งานหน่วย') || s.includes('งานกองพัน') || s.includes('work') || s.includes('พิธี') || s.includes('เคารพธงชาติ') || s.includes('ส่งคน')) return '🟣 งานกองพัน';
   if (s.includes('หน่วย') || s.includes('unit')) return '🔴 ภารกิจหน่วย';
   return `🟣 ${catStr}`;
 }
@@ -502,6 +503,21 @@ async function extractPdfTextWithTimeout(fileBuf, timeoutMs = 3500, maxChars = 5
 }
 
 export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [], mimeType = 'image/jpeg') {
+  // Current ICT date context (UTC+7)
+  const now = new Date();
+  const ictNow = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+  const todayIso = ictNow.toISOString().split('T')[0];
+  const [cYear, cMonth, cDay] = todayIso.split('-').map(Number);
+
+  const todayDateObj = new Date(Date.UTC(cYear, cMonth - 1, cDay));
+  const tomorrowObj = new Date(todayDateObj);
+  tomorrowObj.setUTCDate(tomorrowObj.getUTCDate() + 1);
+  const tomorrowIso = tomorrowObj.toISOString().split('T')[0];
+
+  const datObj = new Date(todayDateObj);
+  datObj.setUTCDate(datObj.getUTCDate() + 2);
+  const datIso = datObj.toISOString().split('T')[0];
+
   const activeMembersList = Array.isArray(dbMembers) && dbMembers.length > 0
     ? dbMembers
         .filter(m => !m.is_archived && m.status !== 'resigned' && m.status !== 'inactive' && m.status !== 'archived')
@@ -509,14 +525,21 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
     : 'นอต, เติร์ธ, จูน, เอก, เก่ง, ตั้ม, เวรหมาย';
 
   const systemPrompt = `คุณคือเสมียนกองร้อยสายและวิทยุถ่ายทอด มีหน้าที่วิเคราะห์คำสั่งปฏิบัติงาน ภารกิจ รูปภาพ หรือเอกสารข่าวสาร 
+
+บริบทวันที่ปัจจุบัน (เวลาประเทศไทย ICT / UTC+7):
+- "วันนี้" คือวันที่ ${todayIso} (พ.ศ. ${cYear + 543})
+- "พรุ่งนี้" คือวันที่ ${tomorrowIso} (พ.ศ. ${cYear + 543})
+- "มะรืนนี้" คือวันที่ ${datIso} (พ.ศ. ${cYear + 543})
+ข้อกำหนดวันที่สำคัญ: หากในข้อความมีคำว่า "วันนี้", "พรุ่งนี้", "มะรืนนี้" ให้ใช้บริบทวันที่ข้างต้นระบุ start_date และ end_date ให้ถูกต้อง 100% ห้ามเดาวันที่ย้อนหลังหรือมั่วเด็ดขาด!
+
 สำคัญที่สุด:
-1. "title": ต้องสกัดเฉพาะชื่อภารกิจหรือหัวเรื่องหลัก สั้น กระชับ ได้ใจความ ไม่เกิน 5-10 คำ (เช่น "นวป.ทบ. ฉีดพ่นยุง", "ประชุม C4I", "ติดตั้งทีวีห้องประชุม")
+1. "title": ต้องสกัดเฉพาะชื่อภารกิจหรือหัวเรื่องหลัก สั้น กระชับ ได้ใจความ ไม่เกิน 5-10 คำ (เช่น "ติดตั้งทีวีคอนเสิร์ต ทภ.1", "นวป.ทบ. ฉีดพ่นยุง", "ประชุม C4I")
    - ห้ามใส่รายละเอียดประชาสัมพันธ์ คำเตือน หรือข้อแนะนำ (เช่น "แจ้งกำลังพลจัดเก็บสิ่งของที่กีดขวาง และงดตากผ้า...") ไว้ใน title ให้สกัดไปใส่ในฟิลด์ "notes"
    - ห้ามระบุยศ นามสกุล หรือรายชื่อผู้รับผิดชอบนำหน้าใน title (เช่น ห้ามใส่ "นอต" หรือ "ร.ท. นิติพัฒน์" ไว้ใน title) ให้สกัดไปใส่ในฟิลด์ "members" เท่านั้น
 2. "notes": รายละเอียดเพิ่มเติม ข้อความประชาสัมพันธ์ ข้อควรระวัง หรือหมายเหตุจากคำสั่ง (ถ้าไม่มีให้ใส่ null)
 3. "category": เลือกประเภทภารกิจจากรายการดังต่อไปนี้:
-   - "🟣 งานกองพัน" (สำหรับ: การฉีดพ่นยุง, กำจัดแมลง, งานบ้านพักอาศัย, งานสวัสดิการ, การซ่อมบำรุง, การพัฒนาพื้นที่, การจัดเตรียมสถานที่, งานหน่วยประจำวัน)
-   - "🔴 ภารกิจหน่วย" (สำหรับ: งานซ้อมแถว, งานพิธีการหน่วย, ภารกิจหลักหน่วย)
+   - "🔴 ภารกิจหน่วย" (สำหรับ: งานติดตั้งระบบ/ติดตั้งทีวี/เครื่องเสียง, งานซ้อมแถว, งานพิธีการหน่วย, ภารกิจหลักหน่วย)
+   - "🟣 งานกองพัน" (สำหรับ: การฉีดพ่นยุง, กำจัดแมลง, งานบ้านพักอาศัย, งานสวัสดิการ, การซ่อมบำรุงทั่วไป, การพัฒนาพื้นที่, การจัดเตรียมสถานที่, งานหน่วยประจำวัน)
    - "🟡 ภารกิจหมาย" (สำหรับ: ภารกิจรับ-ส่งเสด็จ, ภารกิจพระราชพิธี, ภารกิจหมายกำหนดการ)
    - "🟢 ประชุม" (สำหรับ: ประชุม, VTC, ชี้แจงนโยบาย, สรุปงาน)
    - "🟤 ภารกิจการฝึก" (สำหรับ: การฝึกประจำปี, ฝึกภาคสนาม, โครงการฝึกทางทหาร)
@@ -531,11 +554,11 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
   "missions": [
     {
       "title": "ชื่อภารกิจสั้นกระชับ (5-10 คำ)",
-      "start_date": "YYYY-MM-DD (พ.ศ. 2569 หรือ 69 แปลงเป็น ค.ศ. 2026 เสมอ)",
-      "end_date": "YYYY-MM-DD (พ.ศ. 2569 หรือ 69 แปลงเป็น ค.ศ. 2026 เสมอ)",
+      "start_date": "YYYY-MM-DD",
+      "end_date": "YYYY-MM-DD",
       "time_str": "ห้วงเวลา เช่น 09:30 - 12:00 หรือ 10:00 หรือ ตลอดวัน",
       "all_day": false,
-      "category": "🟣 งานกองพัน หรือ 🔴 ภารกิจหน่วย หรือ 🟡 ภารกิจหมาย หรือ 🟢 ประชุม หรือ 🟤 ภารกิจการฝึก หรือ 🌸 กิจกรรมพิเศษ",
+      "category": "🔴 ภารกิจหน่วย หรือ 🟣 งานกองพัน หรือ 🟡 ภารกิจหมาย หรือ 🟢 ประชุม หรือ 🟤 ภารกิจการฝึก หรือ 🌸 กิจกรรมพิเศษ",
       "notes": "รายละเอียดประชาสัมพันธ์ คำเตือน หรือข้อแนะนำ (ถ้ามี)",
       "dress_code": "ชุดการแต่งกาย (หากไม่ได้ระบุในข้อความ ให้ใส่ null หรือเว้นว่างไว้)",
       "location": "สถานที่ปฏิบัติงานหรือลิงก์ประชุม (ถ้ามี)",
@@ -849,8 +872,34 @@ export function parseAllThaiMissions(text, dbMembers = []) {
 
 export function parseThaiMissionDates(text) {
   if (!text) return null;
-  const thaiDigits = ['๐','๑','๒','๓','๔','๕','๖','๗','๘','๙'];
+
+  const now = new Date();
+  const ictNow = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+  const todayIso = ictNow.toISOString().split('T')[0];
+  const [cYear, cMonth, cDay] = todayIso.split('-').map(Number);
+  const todayDateObj = new Date(Date.UTC(cYear, cMonth - 1, cDay));
+
   let s = String(text);
+
+  if (s.includes('พรุ่งนี้')) {
+    const tomObj = new Date(todayDateObj);
+    tomObj.setUTCDate(tomObj.getUTCDate() + 1);
+    const tomIso = tomObj.toISOString().split('T')[0];
+    return { start_date: tomIso, end_date: tomIso };
+  }
+
+  if (s.includes('มะรืนนี้') || s.includes('มะรืน')) {
+    const datObj = new Date(todayDateObj);
+    datObj.setUTCDate(datObj.getUTCDate() + 2);
+    const datIso = datObj.toISOString().split('T')[0];
+    return { start_date: datIso, end_date: datIso };
+  }
+
+  if (s.includes('วันนี้')) {
+    return { start_date: todayIso, end_date: todayIso };
+  }
+
+  const thaiDigits = ['๐','๑','๒','๓','๔','๕','๖','๗','๘','๙'];
   thaiDigits.forEach((td, idx) => {
     s = s.replaceAll(td, String(idx));
   });
