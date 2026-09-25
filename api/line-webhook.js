@@ -1113,6 +1113,7 @@ export default async function handler(req, res) {
 
       const insertedEvents = [];
       for (const mItem of missionsToSave) {
+        const newEvtId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         const { startTime, endTime } = parseTimeRangeToStartEnd(
           mItem.start_date,
           mItem.end_date,
@@ -1123,8 +1124,8 @@ export default async function handler(req, res) {
         if (mItem.dress_code && mItem.dress_code !== 'ไม่ระบุ' && mItem.dress_code !== 'ชุดอ่อน (กำหนดอัตโนมัติ)') {
           descParts.push(`👔 การแต่งกาย: ${mItem.dress_code}`);
         }
-        if (mItem.notes) {
-          descParts.push(mItem.notes);
+        if (mItem.notes || mItem.description) {
+          descParts.push(mItem.notes || mItem.description);
         }
         const descText = descParts.join('\n');
 
