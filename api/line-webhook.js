@@ -502,7 +502,27 @@ async function extractPdfTextWithTimeout(fileBuf, timeoutMs = 3500, maxChars = 5
   });
 }
 
+export function normalizeThaiDocumentText(str) {
+  if (!str) return '';
+  const thaiNumerals = ['๐', '๑', '๒', '๓', '๔', '๕', '๖', '๗', '๘', '๙'];
+  let s = String(str);
+  for (let i = 0; i < 10; i++) {
+    s = s.replaceAll(thaiNumerals[i], String(i));
+  }
+  // Convert Thai Buddhist Era 2-digit years (e.g. 69 -> 2569 / 2026)
+  const monthAbbrs = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  monthAbbrs.forEach(m => {
+    const escapedM = m.replace(/\./g, '\\.');
+    const regex = new RegExp(`(${escapedM})\\s*69\\b`, 'g');
+    s = s.replace(regex, '$1 2569');
+  });
+  // Convert 4-digit military time (e.g. 1000 -> 10:00, 0830 -> 08:30)
+  s = s.replace(/\b([01]\d|2[0-3])([0-5]\d)\b/g, '$1:$2');
+  return s;
+}
+
 export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMembers = [], mimeType = 'image/jpeg') {
+  const normalizedText = text ? normalizeThaiDocumentText(text) : text;
   // Current ICT date context (UTC+7)
   const now = new Date();
   const ictNow = new Date(now.getTime() + (7 * 60 * 60 * 1000));
@@ -583,7 +603,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
       ];
 
       if (imageBase64) {
-        const userContent = [{ type: 'text', text: text || 'กรุณาวิเคราะห์เอกสารคำสั่งภารกิจจากไฟล์หรือรูปภาพนี้' }];
+        const userContent = [{ type: 'text', text: normalizedText || 'กรุณาวิเคราะห์เอกสารคำสั่งภารกิจจากไฟล์หรือรูปภาพนี้' }];
         if (mimeType && mimeType.startsWith('image/')) {
           userContent.push({ type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageBase64}` } });
         }
@@ -594,7 +614,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
       } else {
         messages.push({
           role: 'user',
-          content: text || 'วิเคราะห์ภารกิจ'
+          content: normalizedText || 'วิเคราะห์ภารกิจ'
         });
       }
 
