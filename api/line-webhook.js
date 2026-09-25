@@ -513,11 +513,11 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
   const systemPrompt = `คุณคือเสมียนกองร้อยสายและวิทยุถ่ายทอด มีหน้าที่วิเคราะห์คำสั่งปฏิบัติงาน ภารกิจ รูปภาพ หรือเอกสารข่าวสาร 
 สำคัญที่สุด:
 1. หากในข้อความต้นฉบับมีสัญลักษณ์หรือตัวเลขหัวข้อ เช่น ๑. หรือ ๒.๒.๑ หรือข้อหัวข้อแยกรายการ ให้สกัด 1 รายการภารกิจ ต่อ 1 ข้อหัวข้อเด็ดขาด! ห้ามแยกประโยคย่อยในข้อเดียวกันที่เชื่อมด้วยคำว่า 'และ' หรือ 'และซักซ้อม...' ออกเป็นหลายภารกิจเด็ดขาด
-2. หากมีหลายวันในหัวข้อคนละข้อกัน ให้สกัดแยกเป็นรายการภารกิจในอาร์เรย์ "missions" ตามจำนวนหัวข้อต้นฉบับ ห้ามนำวันมารวมกันเป็นภารกิจเดียวเด็ดขาด
+2. หากมีหลายวันในหัวข้อคนละข้อกัน หรือมีการระบุชุดตัวเลขหลายวันที่ในเดือนเดียวกัน เช่น '11 12 18 19 25 26 ก.ย.' หรือ '11, 12, 18 ก.ย.' ให้สกัดแยกเป็นรายการภารกิจเดี่ยวตามทุกๆ วันที่ระบุ (เช่น 2026-09-11, 2026-09-12, 2026-09-18, 2026-09-19, 2026-09-25, 2026-09-26) ในอาร์เรย์ "missions" โดยทุกรายการใช้ชื่อเรื่อง (title), ผู้รับผิดชอบ (members), สถานที่ (location), การแต่งกาย (dress_code) เดียวกัน
 3. ถอนข้อความส่วนสถานที่ (เช่น ประโยคที่ขึ้นต้นด้วย 'ณ ...') ออกจากชื่อภารกิจ (title) โดยนำสถานที่ไปใส่ไว้เฉพาะในฟิลด์ location เท่านั้น ห้ามใส่สถานที่ซ้ำใน title
 4. ให้รักษาชื่อภารกิจ (title) เต็มตามข้อความต้นฉบับ รวมทั้งคำนำหน้ากลุ่ม/รุ่น/ยศ/ชั้นปี เช่น 'น้อง 63', 'รุ่น 63', 'นักเรียน...' ห้ามตัดคำเหล่านี้ออกจากชื่อภารกิจเด็ดขาด!
 5. ในฟิลด์ "members": ให้สกัดเฉพาะรายชื่อบุคคลที่มีอยู่จริงในฐานข้อมูลกำลังพล Supabase ต่อไปนี้เท่านั้น (ตรงตามชื่อ ชื่อเล่น ยศ หรือนามสกุล): [${activeMembersList}] หากชื่อในข้อความไม่ตรงกับรายชื่อกำลังพลข้างต้น (เช่น เป็นชื่อกลุ่ม/รุ่น 'น้อง 63', 'รุ่น 63', 'ทหาร', 'ฉก.') ให้คงคำนั้นไว้ใน title และให้ members เป็น []
-6. ในฟิลด์ "time_str": ให้ยึดตามห้วงเวลาหรือเวลาที่ระบุในข้อความต้นฉบับอย่างแม่นยำ เช่น หากระบุ '10:00' หรือ 'ประชุม 1000' ให้สกัดเวลานั้นๆ เช่น '10:00 - 12:00' หรือ '10:00', หากระบุ 'เช้า' ให้ใช้ '09:00 - 12:00', หากระบุ 'บ่าย' ให้ใช้ '13:00 - 16:00' หากไม่ได้ระบุเวลาใดๆ ให้ใส่ 'ตลอดวัน' (และใส่ all_day: true)
+6. ในฟิลด์ "time_str": ให้ยึดตามห้วงเวลาหรือเวลาที่ระบุในข้อความต้นฉบับอย่างแม่นยำ หากมีทั้ง 'เวลาพร้อม/กำลังพลพร้อม (เช่น 07:45)' และ 'เวลาเริ่มพิธี/เริ่มการปฏิบัติ (เช่น 08:00)' ให้ยึดเวลาพร้อม (07:45) เป็นเวลาเริ่มต้น (start_time) ของกำลังพลเสมอ! หากระบุ '10:00' หรือ 'ประชุม 1000' ให้สกัดเวลานั้นๆ เช่น '10:00 - 12:00' หรือ '10:00', หากระบุ 'เช้า' ให้ใช้ '09:00 - 12:00', หากระบุ 'บ่าย' ให้ใช้ '13:00 - 16:00' หากไม่ได้ระบุเวลาใดๆ ให้ใส่ 'ตลอดวัน' (และใส่ all_day: true)
 
 กรุณาวิเคราะห์และสกัดข้อมูลภารกิจตอบกลับเฉพาะ JSON บริสุทธิ์ (ไม่ต้องใส่ markdown codeblock และไม่ใส่คำขึ้นต้นใดๆ) มีโครงสร้างดังนี้:
 {
@@ -631,23 +631,33 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
     cleanTitle = lines.find(l => !l.includes('แผนการปฏิบัติ') && !l.includes('วันอังคาร') && !l.includes('ทดสอบ')) || lines[0] || 'ภารกิจสั่งการ';
   }
 
-  return {
-    missions: [
-      {
-        title: cleanTitle.slice(0, 100),
-        start_date: startDateStr,
-        end_date: endDateStr,
-        time_str: 'ตลอดวัน',
-        all_day: true,
-        category: text && text.includes('หมาย') ? '🔴 ภารกิจหมาย' : '🔵 ภารกิจหน่วย',
-        dress_code: text && (text.includes('เครื่องแบบ') || text.includes('ชุดฝึก') || text.includes('สุภาพ') || text.includes('ชุดอ่อน'))
-          ? (text.includes('เครื่องแบบ') ? 'ชุดเครื่องแบบ' : text.includes('ชุดฝึก') ? 'ชุดฝึก' : text.includes('ชุดอ่อน') ? 'ชุดอ่อน' : 'ชุดสุภาพ')
-          : null,
-        location: text && text.includes('ณ ') ? text.split('ณ ')[1].split('\n')[0].trim() : '',
-        members: []
-      }
-    ]
-  };
+  if (parsedDates) {
+    let cleanTitle = text ? text.trim() : 'ภารกิจสั่งการ';
+    if (cleanTitle.length > 80) {
+      const lines = cleanTitle.split('\n').map(l => l.trim()).filter(Boolean);
+      cleanTitle = lines.find(l => !l.includes('แผนการปฏิบัติ') && !l.includes('วันอังคาร') && !l.includes('ทดสอบ')) || lines[0] || 'ภารกิจสั่งการ';
+    }
+
+    return {
+      missions: [
+        {
+          title: cleanTitle.slice(0, 100),
+          start_date: parsedDates.start_date,
+          end_date: parsedDates.end_date,
+          time_str: 'ตลอดวัน',
+          all_day: true,
+          category: text && text.includes('หมาย') ? '🔴 ภารกิจหมาย' : '🔵 ภารกิจหน่วย',
+          dress_code: text && (text.includes('เครื่องแบบ') || text.includes('ชุดฝึก') || text.includes('สุภาพ') || text.includes('ชุดอ่อน'))
+            ? (text.includes('เครื่องแบบ') ? 'ชุดเครื่องแบบ' : text.includes('ชุดฝึก') ? 'ชุดฝึก' : text.includes('ชุดอ่อน') ? 'ชุดอ่อน' : 'ชุดสุภาพ')
+            : null,
+          location: text && text.includes('ณ ') ? text.split('ณ ')[1].split('\n')[0].trim() : '',
+          members: []
+        }
+      ]
+    };
+  }
+
+  return null;
 }
 
 export function parseAllThaiMissions(text, dbMembers = []) {
@@ -679,9 +689,12 @@ export function parseAllThaiMissions(text, dbMembers = []) {
 
   const lines = s.split('\n').map(l => l.trim()).filter(Boolean);
   const missions = [];
+  let pendingDateMissions = [];
 
   for (const line of lines) {
-    let dateObj = null;
+    let dateObjs = [];
+
+    // Check for range pattern e.g. "11 - 15 ก.ย."
     const rangeMatch = line.match(rangePattern);
     if (rangeMatch) {
       const startDay = rangeMatch[1].padStart(2, '0');
@@ -698,16 +711,18 @@ export function parseAllThaiMissions(text, dbMembers = []) {
         let rawYear = rangeMatch[4] ? parseInt(rangeMatch[4]) : 2569;
         let yearAD = rawYear > 2500 ? rawYear - 543 : (rawYear < 100 ? 2000 + (rawYear > 50 ? rawYear - 43 : rawYear + 57) : rawYear);
         if (yearAD > 2090) yearAD -= 543;
-        dateObj = {
+        dateObjs.push({
           start_date: `${yearAD}-${monthStr}-${startDay}`,
           end_date: `${yearAD}-${monthStr}-${endDay}`
-        };
+        });
       }
     } else {
-      const singleMatch = line.match(singlePattern);
-      if (singleMatch) {
-        const day = singleMatch[1].padStart(2, '0');
-        const monthKey = singleMatch[2].trim();
+      // Check for multi-days pattern e.g. "11 12 18 19 25 26 ก.ย." or "11, 12, 18, 19 ก.ย."
+      const multiMatch = line.match(new RegExp(`^((?:\\d{1,2}[\\s,]+)+)(\\d{1,2})\\s*${monthRegex}\\s*(\\d{2,4})?`, 'i'));
+      if (multiMatch) {
+        const numbersStr = multiMatch[1] + multiMatch[2];
+        const dayNums = numbersStr.split(/[\s,]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n >= 1 && n <= 31);
+        const monthKey = multiMatch[3].trim();
         let monthStr = null;
         for (const [k, v] of Object.entries(monthsMap)) {
           if (monthKey.includes(k) || k.includes(monthKey)) {
@@ -715,87 +730,108 @@ export function parseAllThaiMissions(text, dbMembers = []) {
             break;
           }
         }
-        if (monthStr) {
-          let rawYear = singleMatch[3] ? parseInt(singleMatch[3]) : 2569;
+        if (monthStr && dayNums.length > 0) {
+          let rawYear = multiMatch[4] ? parseInt(multiMatch[4]) : 2569;
           let yearAD = rawYear > 2500 ? rawYear - 543 : (rawYear < 100 ? 2000 + (rawYear > 50 ? rawYear - 43 : rawYear + 57) : rawYear);
           if (yearAD > 2090) yearAD -= 543;
-          dateObj = {
-            start_date: `${yearAD}-${monthStr}-${day}`,
-            end_date: `${yearAD}-${monthStr}-${day}`
-          };
+
+          dayNums.forEach(dNum => {
+            const dStr = String(dNum).padStart(2, '0');
+            dateObjs.push({
+              start_date: `${yearAD}-${monthStr}-${dStr}`,
+              end_date: `${yearAD}-${monthStr}-${dStr}`
+            });
+          });
+        }
+      } else {
+        const singleMatch = line.match(singlePattern);
+        if (singleMatch) {
+          const day = singleMatch[1].padStart(2, '0');
+          const monthKey = singleMatch[2].trim();
+          let monthStr = null;
+          for (const [k, v] of Object.entries(monthsMap)) {
+            if (monthKey.includes(k) || k.includes(monthKey)) {
+              monthStr = v;
+              break;
+            }
+          }
+          if (monthStr) {
+            let rawYear = singleMatch[3] ? parseInt(singleMatch[3]) : 2569;
+            let yearAD = rawYear > 2500 ? rawYear - 543 : (rawYear < 100 ? 2000 + (rawYear > 50 ? rawYear - 43 : rawYear + 57) : rawYear);
+            if (yearAD > 2090) yearAD -= 543;
+            dateObjs.push({
+              start_date: `${yearAD}-${monthStr}-${day}`,
+              end_date: `${yearAD}-${monthStr}-${day}`
+            });
+          }
         }
       }
     }
 
-    if (dateObj) {
-      let location = '';
-      let lineText = line;
-      if (lineText.includes(' ณ ')) {
-        const locParts = lineText.split(' ณ ');
-        location = locParts[1].trim();
-        lineText = locParts[0];
-      } else if (lineText.includes('ณ ') && !lineText.startsWith('ณ ')) {
-        const locParts = lineText.split('ณ ');
-        location = locParts[1].trim();
-        lineText = locParts[0];
-      }
-
-      let title = lineText
-        .replace(/^[\d\.\s\-\*๒๒๑๒๔๕๖๗๘๙๐a-zA-Z]+/g, '')
-        .replace(rangePattern, '')
-        .replace(singlePattern, '')
-        .replace(/^วันที่\s*/, '')
-        .trim();
-
-      if (!title || title.length < 3) {
-        title = lineText.replace(/^[\d\.\s\-\*๒๒๑๒๔๕๖๗๘๙๐]+/g, '').trim();
-      }
-
-      if (title.includes(' ณ ')) {
-        title = title.split(' ณ ')[0].trim();
-      } else if (title.includes('ณ ') && !title.startsWith('ณ ')) {
-        title = title.split('ณ ')[0].trim();
-      }
-
-      let dress_code = null;
-      if (line.includes('เครื่องแบบ') || text.includes('เครื่องแบบ')) dress_code = 'ชุดเครื่องแบบ';
-      else if (line.includes('ชุดฝึก') || text.includes('ชุดฝึก')) dress_code = 'ชุดฝึก';
-      else if (line.includes('สุภาพ') || text.includes('สุภาพ')) dress_code = 'ชุดสุภาพ';
-
-      let category = '🔵 ภารกิจหน่วย';
-      if (line.includes('หมาย') || text.includes('หมาย')) category = '🔴 ภารกิจหมาย';
-      else if (line.includes('ฝึก') || text.includes('ฝึก')) category = '🟢 ภารกิจการฝึก';
-
-      const memberIds = matchMemberIds([line], dbMembers);
-      const memberNames = memberIds.length > 0 ? memberIds.map(id => {
-        const m = dbMembers.find(x => x.id === id);
-        return m ? (m.rank ? `${m.rank} ${m.name}` : m.name) : id;
-      }).join(', ') : 'ไม่ระบุ';
-
-      missions.push({
-        title: title.slice(0, 100),
-        start_date: dateObj.start_date,
-        end_date: dateObj.end_date,
-        time_str: 'ตลอดวัน',
-        all_day: true,
-        category,
-        dress_code,
-        location,
-        member_ids: memberIds,
-        member_names: memberNames
+    if (dateObjs.length > 0) {
+      dateObjs.forEach(dObj => {
+        const newM = {
+          title: '',
+          start_date: dObj.start_date,
+          end_date: dObj.end_date,
+          time_str: 'ตลอดวัน',
+          all_day: true,
+          category: text && text.includes('หมาย') ? '🔴 ภารกิจหมาย' : '🔵 ภารกิจหน่วย',
+          dress_code: text && (text.includes('เครื่องแบบ') || text.includes('ชุดฝึก') || text.includes('สุภาพ') || text.includes('ชุดอ่อน'))
+            ? (text.includes('เครื่องแบบ') ? 'ชุดเครื่องแบบ' : text.includes('ชุดฝึก') ? 'ชุดฝึก' : text.includes('ชุดอ่อน') ? 'ชุดอ่อน' : 'ชุดสุภาพ')
+            : null,
+          location: '',
+          member_ids: [],
+          member_names: 'ไม่ระบุ'
+        };
+        missions.push(newM);
+        pendingDateMissions.push(newM);
       });
-    } else if (missions.length > 0) {
-      const subText = line.replace(/^[\*\-\.\s\d]+/g, '').trim();
-      if (subText && subText.length > 1 && !subText.includes('ครับ') && !subText.includes('ค่ะ')) {
-        const lastM = missions[missions.length - 1];
-        if (!lastM.title || lastM.title.startsWith('วันที่') || lastM.title.length < 3) {
-          lastM.title = subText;
-        } else {
-          lastM.title = `${lastM.title} / ${subText}`;
-        }
+    } else if (pendingDateMissions.length > 0) {
+      // Subtext line applies title, location, dress code, or members to all pending missions
+      let subLine = line;
+      let location = '';
+      if (subLine.includes(' ณ ')) {
+        const locParts = subLine.split(' ณ ');
+        location = locParts[1].trim();
+        subLine = locParts[0];
+      } else if (subLine.includes('ณ ') && !subLine.startsWith('ณ ')) {
+        const locParts = subLine.split('ณ ');
+        location = locParts[1].trim();
+        subLine = locParts[0];
       }
+
+      const memberIds = matchMemberIds([subLine], dbMembers);
+      let isMemberLine = subLine.includes('ผู้รับผิดชอบ') || subLine.includes('รับผิดชอบ') || memberIds.length > 0;
+      let isDressLine = subLine.includes('ชุด') || subLine.includes('แต่งกาย');
+
+      pendingDateMissions.forEach(m => {
+        if (location) m.location = location;
+        if (memberIds.length > 0) {
+          m.member_ids = memberIds;
+          m.member_names = formatMemberNamesForDisplay(memberIds, dbMembers);
+        }
+        if (subLine.includes('ชุดอ่อน')) m.dress_code = 'ชุดอ่อน';
+        else if (subLine.includes('ชุดฝึก')) m.dress_code = 'ชุดฝึก';
+        else if (subLine.includes('เครื่องแบบ')) m.dress_code = 'ชุดเครื่องแบบ';
+
+        if (!isMemberLine && !isDressLine && subLine.length > 1 && !subLine.includes('ครับ') && !subLine.includes('ค่ะ')) {
+          if (!m.title) {
+            m.title = subLine;
+          } else {
+            m.title = `${m.title} / ${subLine}`;
+          }
+        }
+      });
     }
   }
+
+  // Final cleanup of title for any missions that had empty titles
+  missions.forEach(m => {
+    if (!m.title || m.title.trim().length === 0) {
+      m.title = 'ภารกิจสั่งการ';
+    }
+  });
 
   return missions;
 }
@@ -1297,12 +1333,6 @@ export default async function handler(req, res) {
     let analyzedData = null;
 
     if (msgType === 'image') {
-      // Immediate push notification so user receives fast confirmation
-      await pushLineMessage(userId, {
-        type: 'text',
-        text: '⏳ รับรูปภาพเรียบร้อย! กำลังสแกนอ่านด้วย Typhoon OCR กรุณารอสักครู่ครับ...'
-      });
-
       try {
         const imageBuf = await fetchLineBinary(event.message.id);
         const ocrText = await extractTextWithTyphoonOCR(imageBuf, 'image.png', 'image/png');

@@ -28,7 +28,14 @@ export default function MonthGrid({
 
   // Dynamic max visible event slots based on row height
   const [maxVisibleSlots, setMaxVisibleSlots] = useState(3);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
   const gridRef = useRef(null);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Real-time touch drag tracking & slide animation states
   const [dragTranslateX, setDragTranslateX] = useState(0);
@@ -420,6 +427,10 @@ export default function MonthGrid({
                   const timeText = formatTimeShort(evt.start_time);
                   const isBeingDragged = draggedEvt?.id === evt.id;
 
+                  const titleLen = (evt.title || '').length;
+                  const maxCharLimit = isMobile ? span * 5 : span * 12;
+                  const isCentered = titleLen <= maxCharLimit;
+
                   if (isAllDay) {
                     // All-Day Events: Solid background pill (TimeTree Style)
                     return (
@@ -438,6 +449,8 @@ export default function MonthGrid({
                         }}
                         onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
                         className={`pointer-events-auto h-5 px-0.5 sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 ${
+                          isCentered ? 'justify-center text-center' : 'justify-start text-left'
+                        } ${
                           isStartOfEvent ? 'rounded-l-md' : 'rounded-l-none'
                         } ${
                           isEndOfEvent ? 'rounded-r-md' : 'rounded-r-none'
@@ -452,7 +465,9 @@ export default function MonthGrid({
                         }}
                         title={`${evt.title} (ลากวางเพื่อย้ายหรือคัดลอก)`}
                       >
-                        <span className="overflow-hidden whitespace-nowrap [text-overflow:clip]">{evt.title}</span>
+                        <span className={`overflow-hidden whitespace-nowrap [text-overflow:clip] w-full ${isCentered ? 'text-center' : 'text-left'}`}>
+                          {evt.title}
+                        </span>
                       </div>
                     );
                   } else {
@@ -473,6 +488,8 @@ export default function MonthGrid({
                         }}
                         onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
                         className={`pointer-events-auto h-5 px-[1px] sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-2xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 rounded-md border-l-2 ${
+                          isCentered ? 'justify-center text-center' : 'justify-start text-left'
+                        } ${
                           isBeingDragged ? 'opacity-40 scale-95 ring-2 ring-emerald-400' : ''
                         }`}
                         style={{
@@ -486,7 +503,9 @@ export default function MonthGrid({
                         }}
                         title={`${evt.title} (${timeText}) (ลากวางเพื่อย้ายหรือคัดลอก)`}
                       >
-                        <span className="overflow-hidden whitespace-nowrap [text-overflow:clip] font-bold text-slate-800 dark:text-slate-100">{evt.title}</span>
+                        <span className={`overflow-hidden whitespace-nowrap [text-overflow:clip] font-bold text-slate-800 dark:text-slate-100 w-full ${isCentered ? 'text-center' : 'text-left'}`}>
+                          {evt.title}
+                        </span>
                       </div>
                     );
                   }
