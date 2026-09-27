@@ -14,7 +14,7 @@ export default function IcalModal({ isOpen, onClose, members }) {
 
   const webcalUrl = feedUrl.replace(/^https?:\/\//, 'webcal://');
   const googleSubscribeUrl = `https://calendar.google.com/calendar/r/settings/addcalendar?cid=${encodeURIComponent(feedUrl)}`;
-  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(feedUrl)}`;
+  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(webcalUrl)}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(feedUrl);
@@ -149,8 +149,8 @@ export default function IcalModal({ isOpen, onClose, members }) {
 
           {/* QR Code */}
           <div className="text-center p-3 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl flex flex-col items-center gap-2">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-              หรือใช้มือถือสแกน QR Code เพื่อ Subscribe ทันที:
+            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+              หรือใช้กล้องมือถือสแกน QR Code (webcal://) เพื่อ Subscribe ปฏิทินสด 24 ชม. อัตโนมัติ:
             </span>
             <img
               src={qrApiUrl}
