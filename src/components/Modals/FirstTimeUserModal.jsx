@@ -31,6 +31,18 @@ export default function FirstTimeUserModal({
   const [enableBiometrics, setEnableBiometrics] = useState(true);
   const [isResetMode, setIsResetMode] = useState(false);
 
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutTimer, setLockoutTimer] = useState(0);
+
+  useEffect(() => {
+    if (lockoutTimer > 0) {
+      const timer = setInterval(() => {
+        setLockoutTimer(prev => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [lockoutTimer]);
+
   useEffect(() => {
     if (isOpen) {
       setStep('select_user');
@@ -130,6 +142,11 @@ export default function FirstTimeUserModal({
     e.preventDefault();
     setErrorMsg('');
 
+    if (lockoutTimer > 0) {
+      setErrorMsg(`พิมพ์ PIN ผิดเกินจำนวนครั้งที่กำหนด ระบบถูกล็อกชั่วคราว กรุณารอ ${lockoutTimer} วินาที`);
+      return;
+    }
+
     const enteredPin = pinInput.join('');
     if (enteredPin.length < 4) {
       setErrorMsg('กรุณากรอกรหัส PIN 4 หลักให้ครบ');
@@ -138,13 +155,23 @@ export default function FirstTimeUserModal({
 
     const isValid = await verifyPinCode(enteredPin, selectedMember.pin_code);
     if (!isValid) {
-      setErrorMsg('รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+      const nextAttempts = failedAttempts + 1;
+      setFailedAttempts(nextAttempts);
+      if (nextAttempts >= 5) {
+        setLockoutTimer(30);
+        setFailedAttempts(0);
+        setErrorMsg('พิมพ์ PIN ผิดสะสมครบ 5 ครั้ง! ระบบถูกล็อกชั่วคราวเป็นเวลา 30 วินาทีเพื่อความปลอดภัย');
+      } else {
+        setErrorMsg(`รหัส PIN ไม่ถูกต้อง (ผิดครั้งที่ ${nextAttempts}/5)`);
+      }
       setPinInput(['', '', '', '']);
       const firstEl = document.getElementById('pin_0');
       if (firstEl) firstEl.focus();
       return;
     }
 
+    setFailedAttempts(0);
+    setLockoutTimer(0);
     onSelectMemberWithPin(selectedMember.id, enteredPin, enableBiometrics);
   };
 
@@ -221,7 +248,7 @@ export default function FirstTimeUserModal({
                 {theme === 'system' && <Laptop className="w-4 h-4 text-emerald-300" />}
               </button>
             )}
-            {(onClose || activeUser) && (
+            {(onClose && activeUser) && (
               <button
                 type="button"
                 onClick={onClose}

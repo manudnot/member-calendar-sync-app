@@ -105,9 +105,9 @@ export default function App() {
     });
   }, [currentYear]);
 
-  const activeUser = members.find(m => m.id === activeUserId && m.member_type !== 'virtual') || 
-                     members.find(m => m.member_type !== 'virtual') || 
-                     members[0];
+  const activeUser = activeUserId 
+    ? (members.find(m => m.id === activeUserId && m.member_type !== 'virtual') || null)
+    : null;
 
   const handleAddCategory = async (newCategory) => {
     if (!newCategory || !newCategory.id) return;
@@ -323,7 +323,7 @@ export default function App() {
         };
         const { error } = await supabase.from('members').upsert([supaPayload]);
         if (error) {
-          logActivity('PIN_SYNC', null, `PIN_HASH:${target.id}:${hashedPin}`, mem);
+          logActivity('PIN_SYNC', null, 'ซิงค์รหัส PIN เรียบร้อยแล้ว', mem);
         }
       } catch (e) {}
     }
@@ -366,7 +366,7 @@ export default function App() {
         };
         const { error } = await supabase.from('members').upsert([supaPayload]);
         if (error) {
-          logActivity('PIN_SYNC', null, `PIN_HASH:${target.id}:${hashedPin}`, mem);
+          logActivity('PIN_SYNC', null, 'ซิงค์รหัส PIN เรียบร้อยแล้ว', mem);
         }
       } catch (e) {}
     }
