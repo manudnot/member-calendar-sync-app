@@ -345,12 +345,14 @@ async function clearActiveDraft(userId) {
 export function formatCategoryWithBadge(catStr) {
   if (!catStr) return '🔴 ภารกิจหน่วย';
   const s = String(catStr).toLowerCase();
-  if (s.includes('ติดตั้ง') || s.includes('ติดตั้งทีวี') || s.includes('ติดตั้งระบบ') || s.includes('เดินสาย')) return '🔴 ภารกิจหน่วย';
-  if (s.includes('พ่นยุง') || s.includes('กำจัดยุง') || s.includes('แมลง') || s.includes('นวป') || s.includes('เวชกรรม') || s.includes('บ้านพัก') || s.includes('สวัสดิการ')) return '🟣 งานกองพัน';
+  if (s.includes('หมาย') || s.includes('904') || s.includes('hmsv') || s.includes('เสด็จ') || s.includes('royal')) {
+    return '🟡 ภารกิจหมาย';
+  }
   if (catStr.includes('🔴') || catStr.includes('🟡') || catStr.includes('🟢') || catStr.includes('🟣') || catStr.includes('🟤') || catStr.includes('🌸')) {
     return catStr;
   }
-  if (s.includes('หมาย') || s.includes('royal')) return '🟡 ภารกิจหมาย';
+  if (s.includes('ติดตั้ง') || s.includes('ติดตั้งทีวี') || s.includes('ติดตั้งระบบ') || s.includes('เดินสาย')) return '🔴 ภารกิจหน่วย';
+  if (s.includes('พ่นยุง') || s.includes('กำจัดยุง') || s.includes('แมลง') || s.includes('นวป') || s.includes('เวชกรรม') || s.includes('บ้านพัก') || s.includes('สวัสดิการ')) return '🟣 งานกองพัน';
   if (s.includes('ประชุม') || s.includes('meeting') || s.includes('vtc') || s.includes('อบรม')) return '🟢 ประชุม';
   if (s.includes('ฝึก') || s.includes('training') || s.includes('cpx') || s.includes('calflex')) return '🟤 ภารกิจการฝึก';
   if (s.includes('กิจกรรม') || s.includes('พิเศษ') || s.includes('เกิด')) return '🌸 กิจกรรมพิเศษ';
@@ -571,20 +573,22 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
    - ห้ามระบุยศ นามสกุล หรือรายชื่อผู้รับผิดชอบนำหน้าใน title ให้สกัดไปใส่ในฟิลด์ "members" เท่านั้น
 2. "notes": รายละเอียดเพิ่มเติม ข้อความประชาสัมพันธ์ ข้อควรระวัง หรือหมายเหตุจากคำสั่ง (ถ้าไม่มีให้ใส่ null)
 3. "category": เลือกประเภทภารกิจจากรายการดังต่อไปนี้:
-   - "🟡 ภารกิจหมาย" (เฉพาะภารกิจที่มีรหัสภารกิจหมายหรือคำว่า "904", "HMSV", "เสด็จ" เท่านั้น)
+   - "🟡 ภารกิจหมาย" (เฉพาะภารกิจที่มีรหัสภารกิจหมายหรือคำว่า "904", "HMSV", "เสด็จ", "หมาย" เท่านั้น)
    - "🔴 ภารกิจหน่วย" (สำหรับ: งานติดตั้งระบบ/ติดตั้งทีวี/เครื่องเสียง, งานซ้อมย่อย/ซ้อมแถว, งานพิธีการหน่วย, ภารกิจหลักหน่วย)
    - "🟣 งานกองพัน" (สำหรับ: การฉีดพ่นยุง, กำจัดแมลง, งานบ้านพักอาศัย, งานสวัสดิการ, การซ่อมบำรุงทั่วไป, การพัฒนาพื้นที่, งานหน่วยประจำวัน)
    - "🟢 ประชุม" (สำหรับ: ประชุม, VTC, ชี้แจงนโยบาย, สรุปงาน)
    - "🟤 ภารกิจการฝึก" (สำหรับ: การฝึกประจำปี, ฝึกภาคสนาม, โครงการฝึกทางทหาร)
    - "🌸 กิจกรรมพิเศษ" (สำหรับ: งานเลี้ยง, วันเกิด, กิจกรรมสันทนาการ)
 4. หากในข้อความต้นฉบับมีสัญลักษณ์หรือตัวเลขหัวข้อ เช่น ๑. หรือ ๒.๒.๑ ให้สกัด 1 รายการภารกิจ ต่อ 1 ข้อหัวข้อเด็ดขาด!
-5. กฎการสกัดหลายวันที่ (Multi-Date Extraction Rule):
-   หากในข้อความระบุหลายวันที่ (เช่น "31 ต.ค. 69" และ "15 22 พ.ย. 69" หรือ "15, 22 พ.ย. 69") ให้สกัดแยกเป็นรายการภารกิจเดี่ยวสำหรับทุกๆ วันที่ระบุในอาร์เรย์ "missions" เสมอ!
-   ตัวอย่าง: "31 ต.ค. 69 \n 15 22 พ.ย. 69" ➔ ต้องสร้าง 3 ภารกิจในอาร์เรย์ "missions" (วันที่ 2026-10-31, 2026-11-15, และ 2026-11-22) ห้ามละเว้นหรือข้ามตัวเลขวันที่ใดๆ เด็ดขาด!
+5. กฎการสกัดตารางและหลายวันที่ (Multi-Row Table & Multi-Date Extraction Rules):
+   - หากภาพหรือข้อความคือ "ตารางภารกิจ" หรือ "ตารางหมายเสด็จ/ภารกิจหมาย" (เช่น ตารางคำสั่งตารางห้วงเดือนที่มีหลายลำดับ/หลายวัน/หลายรายการ):
+     ต้องสกัดทุกๆ แถว (row) และทุกรายการภารกิจย่อยในตารางออกมาเป็น ภารกิจ (mission) แต่ละรายการแบบแยกกัน 100% ห้ามข้าม ห้ามสรุปรวม หรือละเว้นแถวใดแถวหนึ่งเด็ดขาด! (เช่น ตารางห้วง ต.ค. 69 มี 7 แถวรายการ ➔ ต้องสกัดออกมาให้ได้ครบทั้ง 7 ภารกิจในอาร์เรย์ missions)
+   - หากมีการผสานเซลล์วันที่ (Merged Date Cells) ในตาราง (เช่น วันที่ 13 ต.ค. 69 ผสานครอบคลุม 2 แถวย่อย) ให้คัดลอก start_date ("2026-10-13") เดียวกันไปใส่ให้กับทุกภารกิจย่อยในห้วงวันนั้น
+   - หากในข้อความระบุหลายวันที่ (เช่น "31 ต.ค. 69" และ "15 22 พ.ย. 69" หรือ "15, 22 พ.ย. 69") ให้สกัดแยกเป็นรายการภารกิจเดี่ยวสำหรับทุกๆ วันที่ระบุในอาร์เรย์ "missions" เสมอ!
 6. กฎเฉพาะสำหรับภารกิจหมาย (ที่มีรหัส "904", "HMSV", "เสด็จ"):
-   - กำหนด category เป็น "🟡 ภารกิจหมาย"
+   - กำหนด category เป็น "🟡 ภารกิจหมาย" เสมอ
    - สร้าง title สั้นกระชับเป็น "หมาย <รหัสภารกิจหมาย>" (เช่น "หมาย 904/ HMSV" หรือ "หมาย 904")
-   - ย้ายข้อความคำสั่งและรายละเอียดเต็มทั้งหมด (เช่น "904/ HMSV - เสด็จฯ ไปทรงวางพวงมาลา...") ไปใส่ไว้ในฟิลด์ "notes"
+   - ในฟิลด์ "notes": รวบรวมรายละเอียดข้อมูลทุกคอลัมน์ในแถวนั้นเข้าด้วยกันอย่างสมบูรณ์ เช่น "<ข้อความเสด็จ/ภารกิจ> ณ <สถานที่> (หน่วยรับผิดชอบ: <หน่วยรับผิดชอบ>) (หมายเหตุ: <หมายเหตุ/รายละเอียดอื่น>)"
    - ในฟิลด์ "members": หากไม่ได้ระบุชื่อบุคคลเฉพาะเจาะจง ให้ใส่ ["เวรหมาย"] เสมอ
 7. ถอนข้อความส่วนสถานที่ (เช่น ประโยคที่ขึ้นต้นด้วย 'ณ ...') ออกจากชื่อภารกิจ (title) โดยนำสถานที่ไปใส่ไว้เฉพาะในฟิลด์ location เท่านั้น
 8. ในฟิลด์ "members": ให้สกัดเฉพาะรายชื่อบุคคลที่มีอยู่จริงในฐานข้อมูลกำลังพล Supabase ต่อไปนี้เท่านั้น: [${activeMembersList}] หากชื่อไม่ตรงกับรายชื่อกำลังพลข้างต้นและไม่ใช่ภารกิจหมาย ให้ members เป็น []
@@ -598,7 +602,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
       "end_date": "YYYY-MM-DD",
       "time_str": "ห้วงเวลา เช่น 09:30 - 12:00 หรือ 10:00 หรือ ตลอดวัน",
       "all_day": false,
-      "category": "🔴 ภารกิจหน่วย หรือ 🟣 งานกองพัน หรือ 🟡 ภารกิจหมาย หรือ 🟢 ประชุม หรือ 🟤 ภารกิจการฝึก หรือ 🌸 กิจกรรมพิเศษ",
+      "category": "🟡 ภารกิจหมาย หรือ 🔴 ภารกิจหน่วย หรือ 🟣 งานกองพัน หรือ 🟢 ประชุม หรือ 🟤 ภารกิจการฝึก หรือ 🌸 กิจกรรมพิเศษ",
       "notes": "รายละเอียดประชาสัมพันธ์ คำเตือน หรือข้อแนะนำ (ถ้ามี)",
       "dress_code": "ชุดการแต่งกาย (หากไม่ได้ระบุในข้อความ ให้ใส่ null หรือเว้นว่างไว้)",
       "location": "สถานที่ปฏิบัติงานหรือลิงก์ประชุม (ถ้ามี)",
@@ -640,7 +644,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
           model: 'typhoon-v2.5-30b-a3b-instruct',
           messages,
           temperature: 0.1,
-          max_completion_tokens: 1536
+          max_completion_tokens: 3072
         }),
         signal: AbortSignal.timeout(25000)
       });
@@ -716,11 +720,12 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
               // Royal Mission Post-Processing (for 904 / HMSV / เสด็จ)
               const isRoyalTask = (m.title && (m.title.includes('904') || m.title.includes('HMSV') || m.title.includes('เสด็จ'))) ||
                                   (m.notes && (m.notes.includes('904') || m.notes.includes('HMSV') || m.notes.includes('เสด็จ'))) ||
+                                  (m.category && (m.category.includes('หมาย') || m.category.includes('904') || m.category.includes('HMSV'))) ||
                                   (text && (text.includes('904') || text.includes('HMSV') || text.includes('เสด็จ')));
 
               if (isRoyalTask) {
                 m.category = '🟡 ภารกิจหมาย';
-                const sourceText = (text || m.notes || m.title || '');
+                const sourceText = (m.notes || text || m.title || '');
                 const codeMatch = sourceText.match(/(?:904\s*\/\s*HMSV|904\/HMSV|904|HMSV)/i);
                 const codeStr = codeMatch ? codeMatch[0].replace(/\s+/g, ' ') : '904/ HMSV';
                 m.title = `หมาย ${codeStr}`;
@@ -734,6 +739,9 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
 
               if (m.notes && !m.description) {
                 m.description = m.notes;
+              }
+              if (m.description && !m.notes) {
+                m.notes = m.description;
               }
             });
 
@@ -1954,6 +1962,8 @@ export default async function handler(req, res) {
           category: formatCategoryWithBadge(m.category),
           dress_code: m.dress_code || '',
           location: m.location || '',
+          notes: m.notes || m.description || '',
+          description: m.description || m.notes || '',
           member_ids: memberIds,
           member_names: memberNames
         };
