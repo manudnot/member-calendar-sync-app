@@ -487,7 +487,8 @@ export default function MonthGrid({
                   const timeText = formatTimeShort(evt.start_time);
                   const isBeingDragged = draggedEvt?.id === evt.id;
                   const cellDateStr = week[startCol]?.dateStr;
-                  const isCellSelected = cellDateStr === selectedDateStr;
+                  const eventSpannedDates = week.slice(startCol, startCol + span).map(c => c.dateStr);
+                  const isCellSelected = eventSpannedDates.includes(selectedDateStr);
 
                   const titleLen = (evt.title || '').length;
                   const maxCharLimit = isMobile ? span * 5 : span * 12;
