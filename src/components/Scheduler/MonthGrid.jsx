@@ -343,8 +343,11 @@ export default function MonthGrid({
                     key={cell.key}
                     onClick={() => {
                       if (cell.dateStr) {
-                        onSelectDate(cell.dateStr);
-                        if (onOpenAddEvent) onOpenAddEvent(cell.dateStr);
+                        if (cell.isSelected) {
+                          if (onOpenAddEvent) onOpenAddEvent(cell.dateStr);
+                        } else {
+                          onSelectDate(cell.dateStr);
+                        }
                       }
                     }}
                     onDragOver={(e) => {
@@ -357,24 +360,27 @@ export default function MonthGrid({
                       if (dragOverDateStr === cell.dateStr) setDragOverDateStr(null);
                     }}
                     onDrop={(e) => handleCellDrop(e, cell.dateStr)}
-                    className={`border border-slate-200/80 dark:border-dark-border/80 p-1 flex flex-col justify-between cursor-pointer transition-all duration-150 relative select-none overflow-hidden group ${
+                    className={`border border-slate-200/80 dark:border-dark-border/80 p-1 flex flex-col justify-between cursor-pointer transition-all duration-150 relative select-none [user-select:none] [-webkit-user-select:none] overflow-hidden group ${
                       isDragTarget
                         ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-100/60 dark:bg-emerald-950/40 shadow-inner z-20 scale-[0.99]'
                         : cell.isSelected
-                        ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-50/30 dark:bg-emerald-950/20'
+                        ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-50/40 dark:bg-emerald-950/30 font-semibold z-20'
                         : holiday
                         ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/60 hover:bg-rose-100/80 dark:hover:bg-rose-950/40'
                         : 'bg-white dark:bg-dark-card hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     } ${cell.isOtherMonth ? 'bg-slate-50/60 dark:bg-dark-card/40 opacity-60' : ''}`}
-                    title={holiday ? `${holiday.name} (วันหยุดราชการ)` : 'กดที่พื้นที่ว่างเพื่อสร้างภารกิจใหม่ในวันนี้'}
+                    title={holiday ? `${holiday.name} (วันหยุดราชการ)` : 'กด 1 ครั้งเพื่อเลือกวัน (กรอบสีเขียว) กดซ้ำเพื่อสร้างภารกิจใหม่'}
                   >
                     {/* Day Header Strip Box (Centered Day Number + Clickable for Day Agenda Modal) */}
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
                         if (cell.dateStr) {
-                          onSelectDate(cell.dateStr);
-                          if (onOpenDayModal) onOpenDayModal(cell.dateStr);
+                          if (cell.isSelected) {
+                            if (onOpenDayModal) onOpenDayModal(cell.dateStr);
+                          } else {
+                            onSelectDate(cell.dateStr);
+                          }
                         }
                       }}
                       onDragOver={(e) => {
@@ -387,11 +393,11 @@ export default function MonthGrid({
                         if (dragOverDateStr === cell.dateStr) setDragOverDateStr(null);
                       }}
                       onDrop={(e) => handleCellDrop(e, cell.dateStr)}
-                      className="relative w-full flex items-center justify-center gap-1 py-0.5 rounded-t-lg hover:bg-slate-200/60 dark:hover:bg-slate-800/80 cursor-pointer transition-all z-20 pointer-events-auto group/header group"
+                      className="relative w-full flex items-center justify-center gap-1 py-0.5 rounded-t-lg hover:bg-slate-200/60 dark:hover:bg-slate-800/80 cursor-pointer transition-all z-20 pointer-events-auto group/header group select-none [user-select:none]"
                       title={holiday ? `${holiday.name} (กดเพื่อดูภารกิจวันนี้)` : `กดที่แถบหัววันที่เพื่อดูภารกิจทั้งหมดในวันที่ ${cell.dayNum}`}
                     >
                       <span
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black font-mono transition-transform group-hover/header:scale-110 shadow-2xs ${
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black font-mono transition-transform group-hover/header:scale-110 shadow-2xs select-none ${
                           cell.isToday
                             ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-300'
                             : holiday
@@ -421,8 +427,11 @@ export default function MonthGrid({
                         onClick={(e) => {
                           e.stopPropagation();
                           if (cell.dateStr) {
-                            onSelectDate(cell.dateStr);
-                            if (onOpenDayModal) onOpenDayModal(cell.dateStr);
+                            if (cell.isSelected) {
+                              if (onOpenDayModal) onOpenDayModal(cell.dateStr);
+                            } else {
+                              onSelectDate(cell.dateStr);
+                            }
                           }
                         }}
                         onDragOver={(e) => {
@@ -431,7 +440,7 @@ export default function MonthGrid({
                           if (dragOverDateStr !== cell.dateStr) setDragOverDateStr(cell.dateStr);
                         }}
                         onDrop={(e) => handleCellDrop(e, cell.dateStr)}
-                        className="absolute bottom-1 right-1 text-[9px] font-mono font-black px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 shadow-2xs cursor-pointer hover:bg-emerald-500 hover:text-white transition-all z-30 pointer-events-auto"
+                        className="absolute bottom-1 right-1 text-[9px] font-mono font-black px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 shadow-2xs cursor-pointer hover:bg-emerald-500 hover:text-white transition-all z-30 pointer-events-auto select-none"
                         title={`กดเพื่อดูภารกิจทั้งหมด ${totalEventsOnDay} รายการในวันที่ ${cell.dayNum}`}
                       >
                         +{overflowCount}
@@ -442,7 +451,7 @@ export default function MonthGrid({
               })}
 
               {/* Unified Event Banners & Timed Cards Overlay (Strictly Clipped within Week Row) */}
-              <div className="absolute inset-0 top-[22px] pointer-events-none grid grid-cols-7 gap-px p-0.5 overflow-hidden">
+              <div className="absolute inset-0 top-[22px] pointer-events-none grid grid-cols-7 gap-px p-0.5 overflow-hidden select-none">
                 {/* Transparent 7-Column Drop Targets in Overlay */}
                 {week.map((cell, colIdx) => (
                   <div
@@ -457,12 +466,15 @@ export default function MonthGrid({
                       if (dragOverDateStr === cell.dateStr) setDragOverDateStr(null);
                     }}
                     onDrop={(e) => handleCellDrop(e, cell.dateStr)}
-                    className="col-span-1 h-full w-full pointer-events-auto bg-transparent"
+                    className="col-span-1 h-full w-full pointer-events-auto bg-transparent select-none"
                     style={{ gridColumnStart: colIdx + 1, gridRowStart: 1 }}
                     onClick={() => {
                       if (cell.dateStr) {
-                        onSelectDate(cell.dateStr);
-                        if (onOpenAddEvent) onOpenAddEvent(cell.dateStr);
+                        if (cell.isSelected) {
+                          if (onOpenAddEvent) onOpenAddEvent(cell.dateStr);
+                        } else {
+                          onSelectDate(cell.dateStr);
+                        }
                       }
                     }}
                   />
@@ -511,8 +523,9 @@ export default function MonthGrid({
                             setDragOverDateStr(null);
                           }, 150);
                         }}
+                        onMouseDown={(e) => e.stopPropagation()}
                         onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                        className={`pointer-events-auto h-5 px-0.5 sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 ${
+                        className={`pointer-events-auto h-5 px-0.5 sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 select-none [user-select:none] [-webkit-user-select:none] ${
                           isCentered ? 'justify-center text-center' : 'justify-start text-left'
                         } ${
                           isStartOfEvent ? 'rounded-l-md' : 'rounded-l-none'
@@ -529,7 +542,7 @@ export default function MonthGrid({
                         }}
                         title={`${evt.title} (ลากวางเพื่อย้ายหรือคัดลอก)`}
                       >
-                        <span className={`overflow-hidden whitespace-nowrap [text-overflow:clip] w-full ${isCentered ? 'text-center' : 'text-left'}`}>
+                        <span className={`overflow-hidden whitespace-nowrap [text-overflow:clip] w-full select-none ${isCentered ? 'text-center' : 'text-left'}`}>
                           {evt.title}
                         </span>
                       </div>
@@ -565,8 +578,9 @@ export default function MonthGrid({
                             setDragOverDateStr(null);
                           }, 150);
                         }}
+                        onMouseDown={(e) => e.stopPropagation()}
                         onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                        className={`pointer-events-auto h-5 px-[1px] sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-2xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 rounded-md border-l-2 ${
+                        className={`pointer-events-auto h-5 px-[1px] sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-2xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 rounded-md border-l-2 select-none [user-select:none] [-webkit-user-select:none] ${
                           isCentered ? 'justify-center text-center' : 'justify-start text-left'
                         } ${
                           isBeingDragged ? 'opacity-40 scale-95 ring-2 ring-emerald-400' : ''
@@ -582,7 +596,7 @@ export default function MonthGrid({
                         }}
                         title={`${evt.title} (${timeText}) (ลากวางเพื่อย้ายหรือคัดลอก)`}
                       >
-                        <span className={`overflow-hidden whitespace-nowrap [text-overflow:clip] font-bold text-slate-800 dark:text-slate-100 w-full ${isCentered ? 'text-center' : 'text-left'}`}>
+                        <span className={`overflow-hidden whitespace-nowrap [text-overflow:clip] font-bold text-slate-800 dark:text-slate-100 w-full select-none ${isCentered ? 'text-center' : 'text-left'}`}>
                           {evt.title}
                         </span>
                       </div>
