@@ -487,6 +487,7 @@ export default function MonthGrid({
                   const timeText = formatTimeShort(evt.start_time);
                   const isBeingDragged = draggedEvt?.id === evt.id;
                   const cellDateStr = week[startCol]?.dateStr;
+                  const isCellSelected = cellDateStr === selectedDateStr;
 
                   const titleLen = (evt.title || '').length;
                   const maxCharLimit = isMobile ? span * 5 : span * 12;
@@ -497,8 +498,12 @@ export default function MonthGrid({
                     return (
                       <div
                         key={`${evt.id}-w${weekIdx}`}
-                        draggable={true}
+                        draggable={isCellSelected}
                         onDragStart={(e) => {
+                          if (!isCellSelected) {
+                            e.preventDefault();
+                            return;
+                          }
                           e.stopPropagation();
                           draggedEvtRef.current = evt;
                           setDraggedEvt(evt);
@@ -524,8 +529,17 @@ export default function MonthGrid({
                           }, 150);
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                        className={`pointer-events-auto h-5 px-0.5 sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 select-none [user-select:none] [-webkit-user-select:none] ${
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isCellSelected) {
+                            onEditEvent(evt.id);
+                          } else if (cellDateStr) {
+                            onSelectDate(cellDateStr);
+                          }
+                        }}
+                        className={`pointer-events-auto h-5 px-0.5 sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-xs transition-transform hover:scale-[1.01] truncate select-none [user-select:none] [-webkit-user-select:none] ${
+                          isCellSelected ? 'cursor-grab active:cursor-grabbing z-30 ring-1 ring-white/50' : 'cursor-pointer z-10'
+                        } ${
                           isCentered ? 'justify-center text-center' : 'justify-start text-left'
                         } ${
                           isStartOfEvent ? 'rounded-l-md' : 'rounded-l-none'
@@ -540,7 +554,7 @@ export default function MonthGrid({
                           backgroundColor: evtColor,
                           color: '#ffffff'
                         }}
-                        title={`${evt.title} (ลากวางเพื่อย้ายหรือคัดลอก)`}
+                        title={isCellSelected ? `${evt.title} (กดลากเพื่อย้าย หรือกดเพื่อแก้ไข)` : `${evt.title} (กดเพื่อเลือกวัน)`}
                       >
                         <span className={`overflow-hidden whitespace-nowrap [text-overflow:clip] w-full select-none ${isCentered ? 'text-center' : 'text-left'}`}>
                           {evt.title}
@@ -552,8 +566,12 @@ export default function MonthGrid({
                     return (
                       <div
                         key={`${evt.id}-w${weekIdx}`}
-                        draggable={true}
+                        draggable={isCellSelected}
                         onDragStart={(e) => {
+                          if (!isCellSelected) {
+                            e.preventDefault();
+                            return;
+                          }
                           e.stopPropagation();
                           draggedEvtRef.current = evt;
                           setDraggedEvt(evt);
@@ -579,8 +597,17 @@ export default function MonthGrid({
                           }, 150);
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => { e.stopPropagation(); onEditEvent(evt.id); }}
-                        className={`pointer-events-auto h-5 px-[1px] sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-2xs transition-transform hover:scale-[1.01] cursor-grab active:cursor-grabbing truncate z-10 rounded-md border-l-2 select-none [user-select:none] [-webkit-user-select:none] ${
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isCellSelected) {
+                            onEditEvent(evt.id);
+                          } else if (cellDateStr) {
+                            onSelectDate(cellDateStr);
+                          }
+                        }}
+                        className={`pointer-events-auto h-5 px-[1px] sm:px-1 text-[10px] sm:text-[11px] font-medium leading-tight tracking-tighter flex items-center shadow-2xs transition-transform hover:scale-[1.01] truncate rounded-md border-l-2 select-none [user-select:none] [-webkit-user-select:none] ${
+                          isCellSelected ? 'cursor-grab active:cursor-grabbing z-30 ring-1 ring-emerald-500/50' : 'cursor-pointer z-10'
+                        } ${
                           isCentered ? 'justify-center text-center' : 'justify-start text-left'
                         } ${
                           isBeingDragged ? 'opacity-40 scale-95 ring-2 ring-emerald-400' : ''
@@ -594,7 +621,7 @@ export default function MonthGrid({
                           borderLeftColor: evtColor,
                           color: 'inherit'
                         }}
-                        title={`${evt.title} (${timeText}) (ลากวางเพื่อย้ายหรือคัดลอก)`}
+                        title={isCellSelected ? `${evt.title} (${timeText}) (กดลากเพื่อย้าย หรือกดเพื่อแก้ไข)` : `${evt.title} (กดเพื่อเลือกวัน)`}
                       >
                         <span className={`overflow-hidden whitespace-nowrap [text-overflow:clip] font-bold text-slate-800 dark:text-slate-100 w-full select-none ${isCentered ? 'text-center' : 'text-left'}`}>
                           {evt.title}
