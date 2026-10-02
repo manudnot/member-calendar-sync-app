@@ -1432,7 +1432,11 @@ export default async function handler(req, res) {
       // Clear draft
       await clearActiveDraft(userId);
 
-      const confirmText = `✅ ยืนยันบันทึก ${insertedEvents.length} ภารกิจ\n\n` + insertedEvents.map((item, idx) => `${idx + 1}. ${item.title} (${item.start_date}${item.time_str && item.time_str !== 'ตลอดวัน' ? ' ' + item.time_str : ''})`).join('\n');
+      const confirmText = `✅ ยืนยันบันทึก ${insertedEvents.length} ภารกิจ\n\n` + insertedEvents.map((item, idx) => {
+        const dateRangeStr = `${item.start_date}${item.end_date && item.end_date !== item.start_date ? ' ถึง ' + item.end_date : ''}`;
+        const timeStr = item.time_str && item.time_str !== 'ตลอดวัน' ? ' ' + item.time_str : '';
+        return `${idx + 1}. ${item.title} (${dateRangeStr}${timeStr})`;
+      }).join('\n');
 
       await replyOrPushLineMessage(replyToken, userId, {
         type: 'text',

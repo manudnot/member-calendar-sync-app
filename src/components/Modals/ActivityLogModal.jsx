@@ -1,6 +1,82 @@
 import React, { useState } from 'react';
 import { X, History, Trash2, RotateCcw, Clock, PlusCircle, Edit3, User, UserCheck, UserX, KeyRound, Search, Filter, Calendar } from 'lucide-react';
-import { THAI_MONTHS } from '../../utils/helpers';
+import { THAI_MONTHS, getLocalDateStr } from '../../utils/helpers';
+
+const THAI_MONTH_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+function getEventDateBadge(log, events = [], deletedEvents = []) {
+  if (!log) return '';
+  const evt = events.find(e => e.id === log.event_id) || deletedEvents.find(e => e.id === log.event_id);
+  if (evt && evt.start_time) {
+    const sStr = getLocalDateStr(evt.start_time);
+    const eStr = evt.end_time ? getLocalDateStr(evt.end_time) : sStr;
+    if (sStr && sStr.includes('-')) {
+      const [sY, sM, sD] = sStr.split('-').map(Number);
+      const sMonthName = THAI_MONTH_SHORT[sM - 1] || '';
+      const sYearShort = (sY + 543) % 100;
+
+      if (!eStr || sStr === eStr) {
+        return `${sD} ${sMonthName} ${sYearShort}`;
+      } else {
+        const [eY, eM, eD] = eStr.split('-').map(Number);
+        const eMonthName = THAI_MONTH_SHORT[eM - 1] || '';
+        const eYearShort = (eY + 543) % 100;
+        if (sM === eM && sY === eY) {
+          return `${sD}-${eD} ${sMonthName} ${sYearShort}`;
+        } else {
+          return `${sD} ${sMonthName} - ${eD} ${eMonthName} ${eYearShort}`;
+        }
+      }
+    }
+  }
+
+  if (log.details) {
+    const isoMatches = log.details.match(/\b20\d{2}-\d{2}-\d{2}\b/g);
+    if (isoMatches && isoMatches.length >= 2) {
+      const s = isoMatches[0];
+      const e = isoMatches[1];
+      const [sY, sM, sD] = s.split('-').map(Number);
+      const [eY, eM, eD] = e.split('-').map(Number);
+      const sMonthName = THAI_MONTH_SHORT[sM - 1] || '';
+      const sYearShort = (sY + 543) % 100;
+      if (s === e) {
+        return `${sD} ${sMonthName} ${sYearShort}`;
+      } else if (sM === eM && sY === eY) {
+        return `${sD}-${eD} ${sMonthName} ${sYearShort}`;
+      } else {
+        const eMonthName = THAI_MONTH_SHORT[eM - 1] || '';
+        return `${sD} ${sMonthName} - ${eD} ${eMonthName} ${sYearShort}`;
+      }
+    } else if (isoMatches && isoMatches.length === 1) {
+      const [sY, sM, sD] = isoMatches[0].split('-').map(Number);
+      return `${sD} ${THAI_MONTH_SHORT[sM - 1] || ''} ${(sY + 543) % 100}`;
+    }
+
+    const thaiDateMatch = log.details.match(/(\d{1,2})\s*(?:[-–ถึง]+\s*(\d{1,2}))?\s*(ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\.|มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)\s*(\d{2,4})?/);
+    if (thaiDateMatch) {
+      const d1 = thaiDateMatch[1];
+      const d2 = thaiDateMatch[2];
+      const monthRaw = thaiDateMatch[3];
+      const yrRaw = thaiDateMatch[4];
+      let monthShort = monthRaw;
+      if (monthRaw.length > 5) {
+        const idx = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'].indexOf(monthRaw);
+        if (idx !== -1) monthShort = THAI_MONTH_SHORT[idx];
+      }
+      let yrShort = '69';
+      if (yrRaw) {
+        const yNum = parseInt(yrRaw);
+        yrShort = yNum > 2500 ? String(yNum % 100) : String(yNum);
+      }
+      if (d2) {
+        return `${d1}-${d2} ${monthShort} ${yrShort}`;
+      }
+      return `${d1} ${monthShort} ${yrShort}`;
+    }
+  }
+
+  return '';
+}
 
 export default function ActivityLogModal({
   isOpen,
@@ -302,9 +378,21 @@ export default function ActivityLogModal({
                     </div>
 
                     <div className="flex flex-col gap-1 pl-8 border-l-2 border-slate-200 dark:border-slate-700 ml-3 py-0.5">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                        {log.event_title}
-                      </span>
+                      {(() => {
+                        const eventDateBadge = getEventDateBadge(log, events, deletedEvents);
+                        return (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                              {log.event_title}
+                            </span>
+                            {eventDateBadge && (
+                              <span className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded-md border border-blue-200 dark:border-blue-800/60">
+                                {eventDateBadge}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {log.details && (
                         <div className="flex flex-col gap-0.5 mt-0.5">
                           {log.details.split(' | ').map((part, idx) => (

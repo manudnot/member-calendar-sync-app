@@ -668,7 +668,8 @@ export default function App() {
           const formatEvtTime = (evt, isAllDay) => {
             const sDate = getLocalDateStr(evt.start_time);
             const eDate = getLocalDateStr(evt.end_time) || sDate;
-            if (isAllDay) return `${sDate} (ตลอดวัน)`;
+            const dateRangeStr = (sDate && eDate && sDate !== eDate) ? `${sDate} ถึง ${eDate}` : sDate;
+            if (isAllDay) return `${dateRangeStr} (ตลอดวัน)`;
             return `${formatThaiDateTime(evt.start_time)} - ${formatThaiDateTime(evt.end_time)}`;
           };
           const oldStr = formatEvtTime(oldEvt, oldIsAllDay);
