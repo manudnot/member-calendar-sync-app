@@ -815,7 +815,8 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
               }
             });
 
-            return { missions: validMissions };
+            const expandedMissions = expandMissionsWithMultiDates(validMissions, text);
+            return { missions: expandedMissions };
           }
         }
       }
@@ -1044,6 +1045,96 @@ export function parseAllThaiMissions(text, dbMembers = []) {
   });
 
   return missions;
+}
+
+export function expandMissionsWithMultiDates(missions, text) {
+  if (!Array.isArray(missions) || missions.length === 0 || !text) {
+    return missions;
+  }
+
+  // Convert Thai digits to Arabic digits
+  let s = String(text);
+  const thaiDigits = ['๐','๑','๒','๓','๔','๕','๖','๗','๘','๙'];
+  thaiDigits.forEach((td, idx) => {
+    s = s.replaceAll(td, String(idx));
+  });
+
+  const monthRegexStr = '(ม\\.?ค\\.?|ก\\.?พ\\.?|มี\\.?ค\\.?|เม\\.?ย\\.?|พ\\.?ค\\.?|มิ\\.?ย\\.?|ก\\.?ค\\.?|ส\\.?ค\\.?|ก\\.?ย\\.?|ต\\.?ค\\.?|พ\\.?ย\\.?|ธ\\.?ค\\.?|มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)';
+
+  const monthsMap = {
+    'ม.ค.': '01', 'มค': '01', 'มกราคม': '01',
+    'ก.พ.': '02', 'กพ': '02', 'กุมภาพันธ์': '02',
+    'มี.ค.': '03', 'มีค': '03', 'มีนาคม': '03',
+    'เม.ย.': '04', 'เมย': '04', 'เมษายน': '04',
+    'พ.ค.': '05', 'พค': '05', 'พฤษภาคม': '05',
+    'มิ.ย.': '06', 'มิย': '06', 'มิถุนายน': '06',
+    'ก.ค.': '07', 'กค': '07', 'กรกฎาคม': '07',
+    'ส.ค.': '08', 'สค': '08', 'สิงหาคม': '08',
+    'ก.ย.': '09', 'กย': '09', 'กันยายน': '09',
+    'ต.ค.': '10', 'ตค': '10', 'ตุลาคม': '10',
+    'พ.ย.': '11', 'พย': '11', 'พฤศจิกายน': '11',
+    'ธ.ค.': '12', 'ธค': '12', 'ธันวาคม': '12'
+  };
+
+  // Match comma/space-separated list of day numbers followed by month, e.g., "วันที่ 2 ,3 ,4 ต.ค." or "2, 3, 4 ต.ค."
+  const listPattern = new RegExp(`(?:วันที่\\s*)?((?:\\d{1,2}\\s*[,\\s]+\\s*)+\\d{1,2})\\s*${monthRegexStr}\\s*(\\d{2,4})?`, 'gi');
+
+  let match;
+  const multiDayGroups = [];
+
+  while ((match = listPattern.exec(s)) !== null) {
+    const rawDaysStr = match[1]; // e.g. "2 ,3 ,4"
+    const monthKey = match[2];    // e.g. "ต.ค."
+    const rawYear = match[3];
+
+    let monthStr = null;
+    for (const [k, v] of Object.entries(monthsMap)) {
+      if (monthKey.includes(k) || k.includes(monthKey)) {
+        monthStr = v;
+        break;
+      }
+    }
+
+    if (!monthStr) continue;
+
+    const dayNumbers = rawDaysStr.split(/[\,\s]+/).map(d => d.trim()).filter(Boolean).map(Number);
+    if (dayNumbers.length < 2) continue;
+
+    let yearAD = 2026;
+    if (rawYear) {
+      let y = parseInt(rawYear);
+      if (y > 2500) yearAD = y - 543;
+      else if (y < 100) yearAD = 2000 + (y > 50 ? y - 43 : y + 57);
+      else yearAD = y;
+      if (yearAD > 2090) yearAD -= 543;
+    }
+
+    const isoDates = dayNumbers.map(d => `${yearAD}-${monthStr}-${String(d).padStart(2, '0')}`);
+    multiDayGroups.push(isoDates);
+  }
+
+  if (multiDayGroups.length === 0) {
+    return missions;
+  }
+
+  const result = [];
+  const targetDates = multiDayGroups[0];
+
+  missions.forEach(m => {
+    if (missions.length === 1 || targetDates.includes(m.start_date)) {
+      targetDates.forEach(dateIso => {
+        result.push({
+          ...m,
+          start_date: dateIso,
+          end_date: dateIso
+        });
+      });
+    } else {
+      result.push(m);
+    }
+  });
+
+  return result.length > 0 ? result : missions;
 }
 
 export function parseThaiMissionDates(text) {
