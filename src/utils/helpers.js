@@ -267,12 +267,12 @@ export function ensureEventCategoryAndColor(evt, categories = INITIAL_CATEGORIES
       catId = 'cat_work';
     } else if (catStr.includes('หมาย') || catStr.includes('cat_royal') || catStr.includes('🟡') || titleStr.includes('หมาย') || titleStr.includes('904') || titleStr.includes('905') || titleStr.includes('908') || titleStr.includes('hmsv')) {
       catId = 'cat_royal';
+    } else if (catStr.includes('ฝึก') || catStr.includes('นฝ') || catStr.includes('หน่วยฝึก') || catStr.includes('cat_training') || catStr.includes('🟤') || titleStr.includes('ฝึก') || titleStr.includes('นฝ') || titleStr.includes('หน่วยฝึก') || titleStr.includes('กฝร') || titleStr.includes('staffex') || titleStr.includes('cpx') || titleStr.includes('calflex') || titleStr.includes('unit school')) {
+      catId = 'cat_training';
     } else if (catStr.includes('ภารกิจหน่วย') || catStr.includes('cat_unit') || catStr.includes('🔴') || (catStr.includes('หน่วย') && !catStr.includes('งาน')) || titleStr.includes('จิตอาสา')) {
       catId = 'cat_unit';
     } else if (catStr.includes('ประชุม') || catStr.includes('cat_meeting') || catStr.includes('🟢') || titleStr.includes('ประชุม') || titleStr.includes('vtc') || titleStr.includes('สัมภาษณ์') || titleStr.includes('อบรม')) {
       catId = 'cat_meeting';
-    } else if (catStr.includes('ฝึก') || catStr.includes('cat_training') || catStr.includes('🟤') || titleStr.includes('ฝึก') || titleStr.includes('กฝร') || titleStr.includes('staffex') || titleStr.includes('cpx') || titleStr.includes('calflex') || titleStr.includes('unit school')) {
-      catId = 'cat_training';
     } else if (catStr.includes('กิจกรรม') || catStr.includes('cat_special') || catStr.includes('🌸') || titleStr.includes('วันเด็ก') || titleStr.includes('วันเกิด')) {
       catId = 'cat_special';
     } else {
