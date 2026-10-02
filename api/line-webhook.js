@@ -364,39 +364,71 @@ export function formatCategoryWithBadge(catStr) {
 export function parseTimeRangeToStartEnd(startDate, endDate, timeStr, allDay) {
   const startDay = startDate || new Date().toISOString().split('T')[0];
   const endDay = endDate || startDay;
+  let timeWarning = null;
 
   if (allDay || !timeStr || timeStr === 'ตลอดวัน' || timeStr.includes('ตลอดวัน')) {
     return {
       startTime: new Date(`${startDay}T00:00:00+07:00`).toISOString(),
-      endTime: new Date(`${endDay}T23:59:59+07:00`).toISOString()
+      endTime: new Date(`${endDay}T23:59:59+07:00`).toISOString(),
+      timeWarning: null
     };
   }
 
   const times = timeStr ? timeStr.match(/(\d{1,2})[\:\.](\d{2})/g) : null;
-  if (times && times.length >= 2) {
-    const sTime = times[0].replace('.', ':').padStart(5, '0');
-    const eTime = times[1].replace('.', ':').padStart(5, '0');
-    return {
-      startTime: new Date(`${startDay}T${sTime}:00+07:00`).toISOString(),
-      endTime: new Date(`${endDay}T${eTime}:00+07:00`).toISOString()
-    };
-  } else if (times && times.length === 1) {
-    const sTime = times[0].replace('.', ':').padStart(5, '0');
-    const parts = times[0].split(/[\:\.]/);
-    const sHour = parseInt(parts[0]);
-    const sMin = parts[1];
-    const eHour = Math.min(sHour + 2, 23);
-    const eTime = `${String(eHour).padStart(2, '0')}:${sMin}`;
-    return {
-      startTime: new Date(`${startDay}T${sTime}:00+07:00`).toISOString(),
-      endTime: new Date(`${endDay}T${eTime}:00+07:00`).toISOString()
-    };
+
+  const sanitizeTimeComponent = (timePairStr) => {
+    if (!timePairStr) return { str: '09:00', warning: null };
+    const parts = timePairStr.replace('.', ':').split(':');
+    let h = parseInt(parts[0]);
+    let m = parseInt(parts[1]);
+    let origStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    let warning = null;
+
+    if (isNaN(h) || h < 0) h = 0;
+    if (h > 23) h = 23;
+    if (isNaN(m) || m < 0) m = 0;
+    if (m > 59) {
+      warning = `⚠️ ปรับแก้เวลาผิดปกติจาก ${origStr} น. ➔ เป็น ${String(h).padStart(2, '0')}:59 น.`;
+      m = 59;
+    }
+
+    const cleanStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    return { str: cleanStr, warning };
+  };
+
+  let startTime, endTime;
+  try {
+    if (times && times.length >= 2) {
+      const sComp = sanitizeTimeComponent(times[0]);
+      const eComp = sanitizeTimeComponent(times[1]);
+      if (sComp.warning) timeWarning = sComp.warning;
+      if (eComp.warning) timeWarning = (timeWarning ? timeWarning + '\n' : '') + eComp.warning;
+
+      startTime = new Date(`${startDay}T${sComp.str}:00+07:00`).toISOString();
+      endTime = new Date(`${endDay}T${eComp.str}:00+07:00`).toISOString();
+    } else if (times && times.length === 1) {
+      const sComp = sanitizeTimeComponent(times[0]);
+      if (sComp.warning) timeWarning = sComp.warning;
+
+      const parts = sComp.str.split(':');
+      const sHour = parseInt(parts[0]);
+      const sMin = parts[1];
+      const eHour = Math.min(sHour + 2, 23);
+      const eTime = `${String(eHour).padStart(2, '0')}:${sMin}`;
+
+      startTime = new Date(`${startDay}T${sComp.str}:00+07:00`).toISOString();
+      endTime = new Date(`${endDay}T${eTime}:00+07:00`).toISOString();
+    } else {
+      startTime = new Date(`${startDay}T00:00:00+07:00`).toISOString();
+      endTime = new Date(`${endDay}T23:59:59+07:00`).toISOString();
+    }
+  } catch (e) {
+    console.warn('parseTimeRangeToStartEnd safe fallback triggered:', e);
+    startTime = new Date(`${startDay}T00:00:00+07:00`).toISOString();
+    endTime = new Date(`${endDay}T23:59:59+07:00`).toISOString();
   }
 
-  return {
-    startTime: new Date(`${startDay}T00:00:00+07:00`).toISOString(),
-    endTime: new Date(`${endDay}T23:59:59+07:00`).toISOString()
-  };
+  return { startTime, endTime, timeWarning };
 }
 
 export async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mimeType = 'application/pdf') {
@@ -1235,6 +1267,11 @@ export function formatDraftSummaryMessage(draftObj) {
     return `\n📌 รายละเอียด: ${notes}`;
   };
 
+  const formatWarningLine = (tw) => {
+    if (!tw) return '';
+    return `\n${tw}`;
+  };
+
   if (missions.length === 1) {
     const item = missions[0];
     const memberDisplayStr = formatMemberNamesForDisplay(item.member_ids, []) || item.member_names || 'ไม่ระบุ';
@@ -1242,13 +1279,14 @@ export function formatDraftSummaryMessage(draftObj) {
     const catBadge = formatCategoryWithBadge(item.category);
     const dressLine = formatDressCodeLine(item.dress_code);
     const notesLine = formatNotesLine(item.notes || item.description);
+    const warnLine = formatWarningLine(item.time_warning || item.timeWarning);
     const locLine = item.location ? `\n📍 สถานที่: ${item.location}` : '';
 
     return `📋 สรุปร่างภารกิจ (1 รายการ):
 
 ${dateStr}
 📝 ${item.title}
-${catBadge}${dressLine}${notesLine}
+${catBadge}${warnLine}${dressLine}${notesLine}
 🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}
 
 ⏱️ บันทึกให้อัตโนมัติใน 3 นาที`;
@@ -1261,9 +1299,10 @@ ${catBadge}${dressLine}${notesLine}
     const catBadge = formatCategoryWithBadge(item.category);
     const dressLine = formatDressCodeLine(item.dress_code);
     const notesLine = formatNotesLine(item.notes || item.description);
+    const warnLine = formatWarningLine(item.time_warning || item.timeWarning);
     const locLine = item.location ? `\n📍 สถานที่: ${item.location}` : '';
 
-    return `${badge} ${dateStr}\n📝 ${item.title}\n${catBadge}${dressLine}${notesLine}\n🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}`;
+    return `${badge} ${dateStr}\n📝 ${item.title}\n${catBadge}${warnLine}${dressLine}${notesLine}\n🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}`;
   }).join('\n\n');
 
   return `📋 สรุปร่างภารกิจ (${missions.length} รายการ):\n\n${itemsText}\n\n⏱️ บันทึกให้อัตโนมัติใน 3 นาที`;
@@ -1407,14 +1446,18 @@ export default async function handler(req, res) {
         : [activeDraft];
 
       const insertedEvents = [];
+      const confirmWarnings = [];
+
       for (const mItem of missionsToSave) {
         const newEvtId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        const { startTime, endTime } = parseTimeRangeToStartEnd(
+        const { startTime, endTime, timeWarning } = parseTimeRangeToStartEnd(
           mItem.start_date,
           mItem.end_date,
           mItem.time_str,
           mItem.all_day
         );
+        if (timeWarning) confirmWarnings.push(timeWarning);
+
         const descParts = [];
         if (mItem.dress_code && mItem.dress_code !== 'ไม่ระบุ' && mItem.dress_code !== 'ชุดอ่อน (กำหนดอัตโนมัติ)') {
           descParts.push(`👔 การแต่งกาย: ${mItem.dress_code}`);
@@ -1469,11 +1512,16 @@ export default async function handler(req, res) {
       // Clear draft
       await clearActiveDraft(userId);
 
-      const confirmText = `✅ ยืนยันบันทึก ${insertedEvents.length} ภารกิจ\n\n` + insertedEvents.map((item, idx) => {
+      let confirmText = `✅ ยืนยันบันทึก ${insertedEvents.length} ภารกิจ\n\n` + insertedEvents.map((item, idx) => {
         const dateRangeStr = `${item.start_date}${item.end_date && item.end_date !== item.start_date ? ' ถึง ' + item.end_date : ''}`;
         const timeStr = item.time_str && item.time_str !== 'ตลอดวัน' ? ' ' + item.time_str : '';
         return `${idx + 1}. ${item.title} (${dateRangeStr}${timeStr})`;
       }).join('\n');
+
+      if (confirmWarnings.length > 0) {
+        const uniqueWarns = Array.from(new Set(confirmWarnings));
+        confirmText += `\n\n${uniqueWarns.join('\n')}`;
+      }
 
       await replyOrPushLineMessage(replyToken, userId, {
         type: 'text',
