@@ -338,6 +338,23 @@ export default function ActivityLogModal({
                             <span>ย้อนกลับ (Undo)</span>
                           </button>
                         )}
+                        {log.action === 'DELETE' && log.event_id && onRestoreEvent && (
+                          deletedEvents && deletedEvents.some(e => e.id === log.event_id) ? (
+                            <button
+                              type="button"
+                              onClick={() => onRestoreEvent(log.event_id)}
+                              className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 px-2 py-0.5 rounded-md transition-all flex items-center gap-1 cursor-pointer border border-emerald-200 dark:border-emerald-800/60 shadow-2xs"
+                              title="กู้คืนภารกิจรายการนี้กลับสู่ปฏิทิน"
+                            >
+                              <RotateCcw className="w-2.5 h-2.5" />
+                              <span>กู้คืน (Restore)</span>
+                            </button>
+                          ) : (
+                            <span className="text-[10px] font-mono font-extrabold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
+                              กู้คืนแล้ว
+                            </span>
+                          )
+                        )}
                       </div>
                     </div>
                   </div>
