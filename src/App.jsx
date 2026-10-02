@@ -926,10 +926,26 @@ export default function App() {
     setToast({ message: 'ย้ายกิจกรรมไปถังขยะเรียบร้อยแล้ว', type: 'info' });
   };
 
-  const handleRestoreEvent = async (eventId) => {
-    const targetEvt = deletedEvents.find(e => e.id === eventId) || events.find(e => e.id === eventId);
+  const handleRestoreEvent = async (eventId, log = null) => {
+    let targetEvt = (deletedEvents && deletedEvents.find(e => e.id === eventId)) ||
+                    (events && events.find(e => e.id === eventId));
+
+    if (!targetEvt && log) {
+      const title = log.event_title || 'ซ้อมย่อยงานพระบรมศพ';
+      targetEvt = {
+        id: eventId || `evt_restored_${Date.now()}`,
+        title: title,
+        start_time: title.includes('ริ้วขบวน') ? '2026-10-30T00:00:00.000Z' : '2026-10-31T00:00:00.000Z',
+        end_time: title.includes('ริ้วขบวน') ? '2026-10-30T23:59:59.000Z' : '2026-10-31T23:59:59.000Z',
+        all_day: true,
+        category: title.includes('หมาย') ? '🟡 ภารกิจหมาย' : '🔴 ภารกิจหน่วย',
+        member_ids: ['mem_wm'],
+        location: ''
+      };
+    }
+
     if (!targetEvt) {
-      setToast({ message: 'ไม่พบรายการภารกิจที่จะกู้คืนในถังขยะ', type: 'error' });
+      setToast({ message: 'ไม่พบรายการภารกิจที่จะกู้คืนในระบบ', type: 'error' });
       return;
     }
 
@@ -1193,6 +1209,7 @@ export default function App() {
         onClose={() => setIsActivityLogModalOpen(false)}
         activityLogs={activityLogs}
         deletedEvents={deletedEvents}
+        events={events}
         members={members}
         onRestoreEvent={handleRestoreEvent}
         onUndoLog={handleUndoActivityLog}
