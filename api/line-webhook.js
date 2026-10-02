@@ -572,6 +572,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
      หากข้อความหรือหัวเรื่องมีคำว่า "ตารางหน่วยฝึก", "หน่วยฝึก", หรือ "นฝ.":
      1) กำหนด category เป็น "🟤 ภารกิจการฝึก" สำหรับทุกรายการ
      2) เติมคำนำหน้า "นฝ. " หน้าชื่อภารกิจ (title) ทุกรายการแบบอัตโนมัติ (เช่น "นฝ. รับตัวทหารใหม่เข้าหน่วย", "นฝ. จบการฝึก", "นฝ. เยี่ยมญาติสัปดาห์แรก", "นฝ. เริ่มฝึกครู") เว้นแต่ชื่องานนั้นจะมีคำว่า "นฝ." นำหน้าอยู่แล้ว!
+   - กฎชื่องาน หน่วยฝึกอบรมลมร้อน / อบรมลมร้อน: หากข้อความมีคำว่า "หน่วยฝึกอบรมลมร้อน", "อบรมลมร้อน", "โรคลมร้อน", หรือ "การเจ็บป่วยจากความร้อน": ให้สรุปชื่องานสั้นกระชับเป็น "นฝ. อบรมลมร้อน" เสมอ และจัดหมวดหมู่เป็น "🟤 ภารกิจการฝึก" เสมอ!
    - กฎชื่องาน อบรมทหาร: หากมีคำว่า "อบรมทหารกองประจำการ" หรือ "อบรมทหาร..." ให้สรุปชื่องานสั้นกระชับเป็น "อบรมทหาร" เสมอ!
    - กฎชื่องาน นฝ. / หน่วยฝึก: หากมีคำนำหน้าประเภทการฝึก เช่น "นฝ.", "นฝ", "หน่วยฝึก" ให้คงคำนำหน้านี้ไว้หน้าชื่อภารกิจตามต้นฉบับเสมอ (เช่น "นฝ. ยิงปืน") ห้ามตัดออก ห้ามสลับคำเป็น "ยิงปืนนฝ." หรือย้ายไปท้ายชื่อ!
    - กฎการสกัดหัวข้อ/เรื่องไปใส่ในฟิลด์ notes (Subject to Notes Rule):
@@ -749,8 +750,23 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
                 }
               }
 
+              // Verify & Override exact Thai dates if present in normalizedText (e.g. 15 ตุลาคม 2569 -> 2026-10-15)
+              const exactThaiDates = parseThaiMissionDates(normalizedText);
+              if (exactThaiDates && exactThaiDates.start_date) {
+                m.start_date = exactThaiDates.start_date;
+                m.end_date = exactThaiDates.end_date || exactThaiDates.start_date;
+              }
+
+              // Heatstroke / Heat Illness Training Post-Processing (นฝ. อบรมลมร้อน)
+              const isHeatIllnessTask = (text && (text.includes('ความร้อน') || text.includes('ลมร้อน') || text.includes('โรคลมร้อน') || text.includes('การเจ็บป่วยจากความร้อน'))) ||
+                                        (m.notes && (m.notes.includes('ความร้อน') || m.notes.includes('ลมร้อน') || m.notes.includes('โรคลมร้อน')));
+              if (isHeatIllnessTask && !isRoyalTask) {
+                m.category = '🟤 ภารกิจการฝึก';
+                m.title = 'นฝ. อบรมลมร้อน';
+              }
+
               // Training Unit Post-Processing (for ตารางหน่วยฝึก / หน่วยฝึก / นฝ.)
-              const isTrainingUnitSchedule = (text && (text.includes('ตารางหน่วยฝึก') || text.includes('หน่วยฝึก') || text.includes('ตาราง นฝ.'))) ||
+              const isTrainingUnitSchedule = (text && (text.includes('ตารางหน่วยฝึก') || text.includes('หน่วยฝึก') || text.includes('ตาราง นฝ.') || text.includes('ทหารใหม่'))) ||
                                             (m.title && (m.title.includes('หน่วยฝึก') || m.title.includes('นฝ.')));
               if (isTrainingUnitSchedule && !isRoyalTask) {
                 m.category = '🟤 ภารกิจการฝึก';
