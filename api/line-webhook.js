@@ -828,19 +828,12 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
   // 2. Fallback Smart Multi-Mission Parser (If Typhoon AI is unavailable or fails)
   const multiMissions = parseAllThaiMissions(text, dbMembers);
   if (Array.isArray(multiMissions) && multiMissions.length > 0) {
-    return { missions: multiMissions };
+    const expandedFallback = expandMissionsWithMultiDates(multiMissions, text);
+    return { missions: expandedFallback };
   }
 
   const parsedDates = parseThaiMissionDates(text);
   const todayStr = new Date().toISOString().split('T')[0];
-  const startDateStr = parsedDates ? parsedDates.start_date : todayStr;
-  const endDateStr = parsedDates ? parsedDates.end_date : startDateStr;
-
-  let cleanTitle = text ? text.trim() : 'ภารกิจสั่งการจาก LINE';
-  if (cleanTitle.length > 80) {
-    const lines = cleanTitle.split('\n').map(l => l.trim()).filter(Boolean);
-    cleanTitle = lines.find(l => !l.includes('แผนการปฏิบัติ') && !l.includes('วันอังคาร') && !l.includes('ทดสอบ')) || lines[0] || 'ภารกิจสั่งการ';
-  }
 
   if (parsedDates) {
     let cleanTitle = text ? text.trim() : 'ภารกิจสั่งการ';
@@ -849,23 +842,24 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
       cleanTitle = lines.find(l => !l.includes('แผนการปฏิบัติ') && !l.includes('วันอังคาร') && !l.includes('ทดสอบ')) || lines[0] || 'ภารกิจสั่งการ';
     }
 
-    return {
-      missions: [
-        {
-          title: cleanTitle.slice(0, 100),
-          start_date: parsedDates.start_date,
-          end_date: parsedDates.end_date,
-          time_str: 'ตลอดวัน',
-          all_day: true,
-          category: text && text.includes('หมาย') ? '🔴 ภารกิจหมาย' : '🔵 ภารกิจหน่วย',
-          dress_code: text && (text.includes('เครื่องแบบ') || text.includes('ชุดฝึก') || text.includes('สุภาพ') || text.includes('ชุดอ่อน'))
-            ? (text.includes('เครื่องแบบ') ? 'ชุดเครื่องแบบ' : text.includes('ชุดฝึก') ? 'ชุดฝึก' : text.includes('ชุดอ่อน') ? 'ชุดอ่อน' : 'ชุดสุภาพ')
-            : null,
-          location: text && text.includes('ณ ') ? text.split('ณ ')[1].split('\n')[0].trim() : '',
-          members: []
-        }
-      ]
-    };
+    const singleFallback = [
+      {
+        title: cleanTitle.slice(0, 100),
+        start_date: parsedDates.start_date,
+        end_date: parsedDates.end_date,
+        time_str: 'ตลอดวัน',
+        all_day: true,
+        category: text && text.includes('หมาย') ? '🔴 ภารกิจหมาย' : '🔵 ภารกิจหน่วย',
+        dress_code: text && (text.includes('เครื่องแบบ') || text.includes('ชุดฝึก') || text.includes('สุภาพ') || text.includes('ชุดอ่อน'))
+          ? (text.includes('เครื่องแบบ') ? 'ชุดเครื่องแบบ' : text.includes('ชุดฝึก') ? 'ชุดฝึก' : text.includes('ชุดอ่อน') ? 'ชุดอ่อน' : 'ชุดสุภาพ')
+          : null,
+        location: text && text.includes('ณ ') ? text.split('ณ ')[1].split('\n')[0].trim() : '',
+        members: []
+      }
+    ];
+
+    const expandedSingle = expandMissionsWithMultiDates(singleFallback, text);
+    return { missions: expandedSingle };
   }
 
   return null;
@@ -2126,6 +2120,10 @@ export default async function handler(req, res) {
     }
 
     if (analyzedData) {
+      if (Array.isArray(analyzedData.missions)) {
+        analyzedData.missions = expandMissionsWithMultiDates(analyzedData.missions, cleanMissionText || event.message.text || ocrText);
+      }
+
       const rawMissions = Array.isArray(analyzedData.missions) && analyzedData.missions.length > 0
         ? analyzedData.missions
         : [analyzedData];
