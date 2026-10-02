@@ -73,6 +73,17 @@ export default function App() {
 
   const [events, setEvents] = useState([]);
 
+  const [deletedEvents, setDeletedEvents] = useState(() => {
+    const saved = localStorage.getItem('member_calendar_deleted_events');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return [];
+  });
+
   const [activityLogs, setActivityLogs] = useState([]);
 
   const [visibleMemberIds, setVisibleMemberIds] = useState(() => {
@@ -895,9 +906,13 @@ export default function App() {
       deleted_at: new Date().toISOString()
     };
 
-    const updated = events.map(e => e.id === eventId ? softDeletedEvt : e);
-    setEvents(updated);
-    localStorage.setItem('member_calendar_events', JSON.stringify(updated));
+    const newDeletedEvents = [softDeletedEvt, ...deletedEvents.filter(e => e.id !== eventId)];
+    setDeletedEvents(newDeletedEvents);
+    localStorage.setItem('member_calendar_deleted_events', JSON.stringify(newDeletedEvents));
+
+    const updatedEvents = events.filter(e => e.id !== eventId);
+    setEvents(updatedEvents);
+    localStorage.setItem('member_calendar_events', JSON.stringify(updatedEvents));
 
     logActivity('DELETE', targetEvt, 'ย้ายกิจกรรมลงถังขยะ');
 
@@ -912,8 +927,11 @@ export default function App() {
   };
 
   const handleRestoreEvent = async (eventId) => {
-    const targetEvt = events.find(e => e.id === eventId);
-    if (!targetEvt) return;
+    const targetEvt = deletedEvents.find(e => e.id === eventId) || events.find(e => e.id === eventId);
+    if (!targetEvt) {
+      setToast({ message: 'ไม่พบรายการภารกิจที่จะกู้คืนในถังขยะ', type: 'error' });
+      return;
+    }
 
     const restoredEvt = {
       ...targetEvt,
@@ -921,15 +939,20 @@ export default function App() {
       deleted_at: null
     };
 
-    const updated = events.map(e => e.id === eventId ? restoredEvt : e);
-    setEvents(updated);
-    localStorage.setItem('member_calendar_events', JSON.stringify(updated));
+    const newDeletedEvents = deletedEvents.filter(e => e.id !== eventId);
+    setDeletedEvents(newDeletedEvents);
+    localStorage.setItem('member_calendar_deleted_events', JSON.stringify(newDeletedEvents));
 
-    logActivity('RESTORE', targetEvt, 'กู้คืนกิจกรรมกลับมายังปฏิทิน');
+    const updatedEvents = [...events.filter(e => e.id !== eventId), restoredEvt];
+    setEvents(updatedEvents);
+    localStorage.setItem('member_calendar_events', JSON.stringify(updatedEvents));
+
+    logActivity('RESTORE', restoredEvt, 'กู้คืนกิจกรรมกลับมายังปฏิทิน');
 
     if (supabase) {
       try {
-        await supabase.from('events').upsert([restoredEvt]);
+        const supaEvtPayload = buildSupaEventPayload(restoredEvt);
+        await supabase.from('events').upsert([supaEvtPayload]);
       } catch(e) {
         console.warn('Supabase restore event warning:', e);
       }
@@ -1020,7 +1043,6 @@ export default function App() {
     if (!searchQuery || !searchQuery.trim()) return true;
     return e.title && e.title.toLowerCase().includes(searchQuery.trim().toLowerCase());
   });
-  const deletedEvents = events.filter(e => e.is_deleted);
 
   const handleOpenActivityLogModal = () => {
     setUnreadActivityCount(0);
