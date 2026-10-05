@@ -2092,11 +2092,13 @@ export default async function handler(req, res) {
 
     // 4. New Mission Order Input (Text, Image, or File)
     let analyzedData = null;
+    let cleanMissionText = '';
+    let ocrText = '';
 
     if (msgType === 'image') {
       try {
         const imageBuf = await fetchLineBinary(event.message.id);
-        const ocrText = await extractTextWithTyphoonOCR(imageBuf, 'image.png', 'image/png');
+        ocrText = await extractTextWithTyphoonOCR(imageBuf, 'image.png', 'image/png');
         if (ocrText && ocrText.length > 5) {
           analyzedData = await analyzeMissionOrderWithAI(ocrText, null, dbMembers);
         }
@@ -2129,7 +2131,6 @@ export default async function handler(req, res) {
         continue;
       }
 
-      let ocrText = '';
       let ocrErrStr = '';
 
       const lowerName = fileName.toLowerCase();
@@ -2180,13 +2181,14 @@ export default async function handler(req, res) {
         continue;
       }
     } else if (msgType === 'text') {
-      const cleanMissionText = event.message.text.replace(/พิราบ\s*/gi, '').trim();
+      cleanMissionText = event.message.text ? event.message.text.replace(/พิราบ\s*/gi, '').trim() : '';
       analyzedData = await analyzeMissionOrderWithAI(cleanMissionText || event.message.text, null, dbMembers);
     }
 
     if (analyzedData) {
       if (Array.isArray(analyzedData.missions)) {
-        analyzedData.missions = expandMissionsWithMultiDates(analyzedData.missions, cleanMissionText || event.message.text || ocrText);
+        const textForMultiDate = cleanMissionText || (event.message && event.message.text) || ocrText || '';
+        analyzedData.missions = expandMissionsWithMultiDates(analyzedData.missions, textForMultiDate);
       }
 
       const rawMissions = Array.isArray(analyzedData.missions) && analyzedData.missions.length > 0
