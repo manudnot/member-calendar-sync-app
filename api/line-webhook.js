@@ -909,8 +909,10 @@ export function parseAllThaiMissions(text, dbMembers = []) {
   const firstDateLineIdx = lines.findIndex(l => rangePattern.test(l) || singlePattern.test(l) || l.match(new RegExp(`\\d{1,2}\\s*${monthRegex}`, 'i')));
 
   if (firstDateLineIdx > 0) {
-    const headerText = lines.slice(0, firstDateLineIdx).join(' ');
-    headerMembers = matchMemberIds([headerText], dbMembers);
+    const headerLines = lines.slice(0, firstDateLineIdx);
+    const headerText = headerLines.join(' ');
+    const headerTokens = headerLines.concat(headerText.split(/\s+/));
+    headerMembers = matchMemberIds(headerTokens, dbMembers);
     if (headerText.includes('ภารกิจหมาย') || headerText.includes('หมายเสด็จ')) headerCategory = '🔴 ภารกิจหมาย';
     else if (headerText.includes('ภารกิจหน่วย') || headerText.includes('งานหน่วย')) headerCategory = '🔵 ภารกิจหน่วย';
     else if (headerText.includes('ภารกิจการฝึก') || headerText.includes('การฝึก')) headerCategory = '🟤 ภารกิจการฝึก';
