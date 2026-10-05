@@ -691,7 +691,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
           temperature: 0.1,
           max_completion_tokens: 3072
         }),
-        signal: AbortSignal.timeout(25000)
+        signal: AbortSignal.timeout(7500)
       });
 
       if (res.ok) {
@@ -893,15 +893,37 @@ export function parseAllThaiMissions(text, dbMembers = []) {
   const singlePattern = new RegExp(`(\\d{1,2})\\s*${monthRegex}\\s*(\\d{2,4})?`, 'i');
 
   const lines = s.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // Scan header lines (lines before first date line) for global assigned members & category
+  let headerMembers = [];
+  let headerCategory = null;
+  const firstDateLineIdx = lines.findIndex(l => rangePattern.test(l) || singlePattern.test(l) || l.match(new RegExp(`\\d{1,2}\\s*${monthRegex}`, 'i')));
+
+  if (firstDateLineIdx > 0) {
+    const headerText = lines.slice(0, firstDateLineIdx).join(' ');
+    headerMembers = matchMemberIds([headerText], dbMembers);
+    if (headerText.includes('ภารกิจหมาย') || headerText.includes('หมายเสด็จ')) headerCategory = '🔴 ภารกิจหมาย';
+    else if (headerText.includes('ภารกิจหน่วย') || headerText.includes('งานหน่วย')) headerCategory = '🔵 ภารกิจหน่วย';
+    else if (headerText.includes('ภารกิจการฝึก') || headerText.includes('การฝึก')) headerCategory = '🟤 ภารกิจการฝึก';
+    else if (headerText.includes('ประชุม') || headerText.includes('VTC')) headerCategory = '🟢 ประชุม';
+  }
+
   const missions = [];
   let pendingDateMissions = [];
 
-  for (const line of lines) {
-    let dateObjs = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
 
-    // Check for range pattern e.g. "11 - 15 ก.ย."
+    if (i < firstDateLineIdx && headerMembers.length > 0) {
+      continue;
+    }
+
+    let dateObjs = [];
+    let matchedDateText = '';
+
     const rangeMatch = line.match(rangePattern);
     if (rangeMatch) {
+      matchedDateText = rangeMatch[0];
       const startDay = rangeMatch[1].padStart(2, '0');
       const endDay = rangeMatch[2].padStart(2, '0');
       const monthKey = rangeMatch[3].trim();
@@ -922,9 +944,9 @@ export function parseAllThaiMissions(text, dbMembers = []) {
         });
       }
     } else {
-      // Check for multi-days pattern e.g. "11 12 18 19 25 26 ก.ย." or "11, 12, 18, 19 ก.ย."
       const multiMatch = line.match(new RegExp(`^((?:\\d{1,2}[\\s,]+)+)(\\d{1,2})\\s*${monthRegex}\\s*(\\d{2,4})?`, 'i'));
       if (multiMatch) {
+        matchedDateText = multiMatch[0];
         const numbersStr = multiMatch[1] + multiMatch[2];
         const dayNums = numbersStr.split(/[\s,]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n >= 1 && n <= 31);
         const monthKey = multiMatch[3].trim();
@@ -951,6 +973,7 @@ export function parseAllThaiMissions(text, dbMembers = []) {
       } else {
         const singleMatch = line.match(singlePattern);
         if (singleMatch) {
+          matchedDateText = singleMatch[0];
           const day = singleMatch[1].padStart(2, '0');
           const monthKey = singleMatch[2].trim();
           let monthStr = null;
@@ -974,26 +997,68 @@ export function parseAllThaiMissions(text, dbMembers = []) {
     }
 
     if (dateObjs.length > 0) {
+      let timeStr = 'ตลอดวัน';
+      let isAllDay = true;
+      const timeRangeMatch = line.match(/(\d{1,2}(?:\:\d{2})?|\d{4})\s*[-–ถึง]\s*(\d{1,2}(?:\:\d{2})?|\d{4})/);
+      let timeMatchText = '';
+
+      if (timeRangeMatch) {
+        timeMatchText = timeRangeMatch[0];
+        let tStart = timeRangeMatch[1];
+        let tEnd = timeRangeMatch[2];
+
+        if (!tStart.includes(':') && tStart.length === 4) {
+          tStart = `${tStart.slice(0, 2)}:${tStart.slice(2)}`;
+        }
+        if (!tEnd.includes(':') && tEnd.length === 4) {
+          tEnd = `${tEnd.slice(0, 2)}:${tEnd.slice(2)}`;
+        }
+        timeStr = `${tStart} - ${tEnd}`;
+        isAllDay = false;
+      }
+
+      let location = '';
+      let locationMatchText = '';
+      if (line.includes(' ณ ')) {
+        const locParts = line.split(' ณ ');
+        locationMatchText = ' ณ ' + locParts[1];
+        location = locParts[1].trim();
+      } else if (line.includes('ณ ') && !line.startsWith('ณ ')) {
+        const locParts = line.split('ณ ');
+        locationMatchText = 'ณ ' + locParts[1];
+        location = locParts[1].trim();
+      }
+
+      let inlineTitle = line
+        .replace(matchedDateText, '')
+        .replace(timeMatchText, '')
+        .replace(locationMatchText, '')
+        .trim()
+        .replace(/^[\:\-\s\.\,]+/, '')
+        .trim();
+
       dateObjs.forEach(dObj => {
+        const defaultCategory = headerCategory || (text && text.includes('หมาย') ? '🔴 ภารกิจหมาย' : '🔵 ภารกิจหน่วย');
+        const defaultMembers = headerMembers.length > 0 ? headerMembers : [];
+
         const newM = {
-          title: '',
+          title: inlineTitle,
           start_date: dObj.start_date,
           end_date: dObj.end_date,
-          time_str: 'ตลอดวัน',
-          all_day: true,
-          category: text && text.includes('หมาย') ? '🔴 ภารกิจหมาย' : '🔵 ภารกิจหน่วย',
+          time_str: timeStr,
+          all_day: isAllDay,
+          category: defaultCategory,
           dress_code: text && (text.includes('เครื่องแบบ') || text.includes('ชุดฝึก') || text.includes('สุภาพ') || text.includes('ชุดอ่อน'))
             ? (text.includes('เครื่องแบบ') ? 'ชุดเครื่องแบบ' : text.includes('ชุดฝึก') ? 'ชุดฝึก' : text.includes('ชุดอ่อน') ? 'ชุดอ่อน' : 'ชุดสุภาพ')
             : null,
-          location: '',
-          member_ids: [],
-          member_names: 'ไม่ระบุ'
+          location: location,
+          member_ids: defaultMembers,
+          member_names: formatMemberNamesForDisplay(defaultMembers, dbMembers)
         };
         missions.push(newM);
         pendingDateMissions.push(newM);
       });
     } else if (pendingDateMissions.length > 0) {
-      // Subtext line applies title, location, dress code, or members to all pending missions
       let subLine = line;
       let location = '';
       if (subLine.includes(' ณ ')) {
