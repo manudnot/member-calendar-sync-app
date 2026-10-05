@@ -45,7 +45,7 @@ export default function Header({
           </div>
           <div className="flex items-center gap-1 whitespace-nowrap min-w-0">
             <h1 className="text-xs sm:text-base font-black tracking-tight text-purple-600 dark:text-purple-400 whitespace-nowrap flex items-center gap-1 min-w-0">
-              Signal21 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 hidden sm:inline">Team Calendar</span>
+              CalSignal21 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 hidden sm:inline">Team Calendar</span>
             </h1>
           </div>
         </div>
