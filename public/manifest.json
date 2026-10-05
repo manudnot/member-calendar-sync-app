@@ -1,16 +1,18 @@
 {
   "short_name": "CalSignal21",
-  "name": "CalSignal21 Team Calendar",
+  "name": "CalSignal21",
   "icons": [
     {
       "src": "/icon-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     },
     {
       "src": "/apple-touch-icon.png",
