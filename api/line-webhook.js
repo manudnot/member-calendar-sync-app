@@ -105,21 +105,30 @@ function matchMemberIds(memberNamesArray, dbMembers = []) {
     const s = String(nameStr).toLowerCase().trim();
     if (!s || s === 'ไม่ระบุ' || s === 'ไม่มี' || s === 'รวม') return;
 
-    activeDbMembers.forEach(mem => {
-      const searchTerms = [
-        mem.name,
-        mem.first_name,
-        mem.last_name,
-        mem.nickname,
-        mem.full_name,
-        mem.rank ? `${mem.rank} ${mem.name}` : '',
-        mem.rank ? `${mem.rank} ${mem.first_name}` : '',
-        mem.rank ? `${mem.rank} ${mem.nickname}` : '',
-        mem.rank ? `${mem.rank} ${mem.full_name}` : ''
-      ].concat(ALIAS_MAP[mem.id] || []).filter(Boolean).map(t => String(t).toLowerCase());
+    if (activeDbMembers.length > 0) {
+      activeDbMembers.forEach(mem => {
+        const searchTerms = [
+          mem.name,
+          mem.first_name,
+          mem.last_name,
+          mem.nickname,
+          mem.full_name,
+          mem.rank ? `${mem.rank} ${mem.name}` : '',
+          mem.rank ? `${mem.rank} ${mem.first_name}` : '',
+          mem.rank ? `${mem.rank} ${mem.nickname}` : '',
+          mem.rank ? `${mem.rank} ${mem.full_name}` : ''
+        ].concat(ALIAS_MAP[mem.id] || []).filter(Boolean).map(t => String(t).toLowerCase());
 
-      if (searchTerms.some(term => s.includes(term) || term.includes(s))) {
-        matched.add(mem.id);
+        if (searchTerms.some(term => s.includes(term) || (term.length > 1 && term.includes(s)))) {
+          matched.add(mem.id);
+        }
+      });
+    }
+
+    // Always check fallback ALIAS_MAP in case dbMembers is empty or didn't catch nickname
+    Object.entries(ALIAS_MAP).forEach(([memId, aliases]) => {
+      if (aliases.some(alias => s.includes(alias.toLowerCase()))) {
+        matched.add(memId);
       }
     });
   });
@@ -999,7 +1008,7 @@ export function parseAllThaiMissions(text, dbMembers = []) {
     if (dateObjs.length > 0) {
       let timeStr = 'ตลอดวัน';
       let isAllDay = true;
-      const timeRangeMatch = line.match(/(\d{1,2}(?:\:\d{2})?|\d{4})\s*[-–ถึง]\s*(\d{1,2}(?:\:\d{2})?|\d{4})/);
+      const timeRangeMatch = line.match(/(\d{4})\s*[-–ถึง]\s*(\d{4})/) || line.match(/(\d{1,2}(?:\:\d{2})?)\s*[-–ถึง]\s*(\d{1,2}(?:\:\d{2})?)/);
       let timeMatchText = '';
 
       if (timeRangeMatch) {
@@ -1991,6 +2000,14 @@ export default async function handler(req, res) {
             else if (editContent.includes('ชุดฝึก')) mItem.dress_code = 'ชุดฝึก';
             else if (editContent.includes('สุภาพ')) mItem.dress_code = 'ชุดสุภาพ';
 
+            // Check category
+            if (editContent.includes('ภารกิจหมาย') || editContent.includes('หมายเสด็จ')) mItem.category = formatCategoryWithBadge('🔴 ภารกิจหมาย');
+            else if (editContent.includes('ภารกิจหน่วย') || editContent.includes('งานหน่วย')) mItem.category = formatCategoryWithBadge('🔵 ภารกิจหน่วย');
+            else if (editContent.includes('ภารกิจการฝึก') || editContent.includes('การฝึก') || editContent.includes('นฝ.')) mItem.category = formatCategoryWithBadge('🟤 ภารกิจการฝึก');
+            else if (editContent.includes('ประชุม') || editContent.includes('VTC')) mItem.category = formatCategoryWithBadge('🟢 ประชุม');
+            else if (editContent.includes('งานกองพัน')) mItem.category = formatCategoryWithBadge('🟣 งานกองพัน');
+            else if (editContent.includes('กิจกรรมพิเศษ')) mItem.category = formatCategoryWithBadge('🌸 กิจกรรมพิเศษ');
+
             // Check member
             const mMemberIds = matchMemberIds([editContent], dbMembers);
             if (mMemberIds.length > 0) {
@@ -2002,6 +2019,7 @@ export default async function handler(req, res) {
             let cleanTitle = editContent
               .replace(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})|(\d{1,2}\/\d{1,2})/, '')
               .replace(/เครื่องแบบ|ชุดฝึก|ชุดสุภาพ|ชุดอ่อน/g, '')
+              .replace(/ภารกิจหน่วย|ภารกิจหมาย|ภารกิจการฝึก|งานหน่วย|งานกองพัน|กิจกรรมพิเศษ|ประชุม/g, '')
               .replace(/^ภารกิจ\s*/, '')
               .trim();
 
@@ -2035,6 +2053,14 @@ export default async function handler(req, res) {
         else if (userText.includes('สุภาพ')) newDressCode = 'ชุดสุภาพ';
         else if (userText.includes('ชุดอ่อน')) newDressCode = 'ชุดอ่อน (กำหนดอัตโนมัติ)';
 
+        let newCategory = null;
+        if (userText.includes('ภารกิจหมาย') || userText.includes('หมายเสด็จ')) newCategory = '🔴 ภารกิจหมาย';
+        else if (userText.includes('ภารกิจหน่วย') || userText.includes('งานหน่วย')) newCategory = '🔵 ภารกิจหน่วย';
+        else if (userText.includes('ภารกิจการฝึก') || userText.includes('การฝึก') || userText.includes('นฝ.')) newCategory = '🟤 ภารกิจการฝึก';
+        else if (userText.includes('ประชุม') || userText.includes('VTC')) newCategory = '🟢 ประชุม';
+        else if (userText.includes('งานกองพัน')) newCategory = '🟣 งานกองพัน';
+        else if (userText.includes('กิจกรรมพิเศษ')) newCategory = '🌸 กิจกรรมพิเศษ';
+
         const newMemberIds = matchMemberIds([userText], dbMembers);
 
         targetMissions.forEach((mItem, idx) => {
@@ -2054,6 +2080,10 @@ export default async function handler(req, res) {
 
             if (newDressCode) {
               mItem.dress_code = newDressCode;
+            }
+
+            if (newCategory) {
+              mItem.category = formatCategoryWithBadge(newCategory);
             }
 
             if (newMemberIds.length > 0) {
