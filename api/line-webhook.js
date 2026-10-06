@@ -814,10 +814,13 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
                   }
                 }
               } else {
-                const exactThaiDates = parseThaiMissionDates(normalizedText);
-                if (exactThaiDates && exactThaiDates.start_date) {
-                  m.start_date = exactThaiDates.start_date;
-                  m.end_date = exactThaiDates.end_date || exactThaiDates.start_date;
+                // Only override date if validMissions has 1 single mission OR m.start_date is missing/invalid
+                if (validMissions.length === 1 || !m.start_date) {
+                  const exactThaiDates = parseThaiMissionDates(normalizedText);
+                  if (exactThaiDates && exactThaiDates.start_date) {
+                    m.start_date = exactThaiDates.start_date;
+                    m.end_date = exactThaiDates.end_date || exactThaiDates.start_date;
+                  }
                 }
               }
 
