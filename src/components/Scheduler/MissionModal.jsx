@@ -45,6 +45,50 @@ function getAlarmMinutesFromNotif(notif) {
   return val;
 }
 
+function TimePicker24h({ value, onChange }) {
+  const timeStr = value || '09:00';
+  const parts = timeStr.split(':');
+  const currentHour = parts[0] ? parts[0].padStart(2, '0') : '09';
+  const currentMin = parts[1] ? parts[1].padStart(2, '0') : '00';
+
+  const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+  const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+
+  return (
+    <div className="flex items-center gap-1">
+      <div className="relative flex-1">
+        <select
+          className="w-full input-field font-mono text-xs py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold shadow-sm focus:ring-2 focus:ring-emerald-500 cursor-pointer appearance-none pr-6"
+          value={currentHour}
+          onChange={(e) => onChange(`${e.target.value}:${currentMin}`)}
+        >
+          {hours.map((h) => (
+            <option key={h} value={h}>
+              {h} น.
+            </option>
+          ))}
+        </select>
+        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">▼</span>
+      </div>
+      <span className="font-extrabold text-slate-500 text-sm">:</span>
+      <div className="relative flex-1">
+        <select
+          className="w-full input-field font-mono text-xs py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold shadow-sm focus:ring-2 focus:ring-emerald-500 cursor-pointer appearance-none pr-6"
+          value={currentMin}
+          onChange={(e) => onChange(`${currentHour}:${e.target.value}`)}
+        >
+          {minutes.map((m) => (
+            <option key={m} value={m}>
+              {m} นาที
+            </option>
+          ))}
+        </select>
+        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">▼</span>
+      </div>
+    </div>
+  );
+}
+
 export default function MissionModal({
   isOpen,
   onClose,
@@ -406,13 +450,11 @@ export default function MissionModal({
             {!allDay && (
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-emerald-600" /> เวลาเริ่ม
+                  <Clock className="w-3.5 h-3.5 text-emerald-600" /> เวลาเริ่ม (24 ชม.)
                 </label>
-                <input
-                  type="time"
-                  className="input-field font-mono text-xs"
+                <TimePicker24h
                   value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
+                  onChange={(val) => setStartTime(val)}
                 />
               </div>
             )}
@@ -436,13 +478,11 @@ export default function MissionModal({
             {!allDay && (
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-emerald-600" /> เวลาสิ้นสุด
+                  <Clock className="w-3.5 h-3.5 text-emerald-600" /> เวลาสิ้นสุด (24 ชม.)
                 </label>
-                <input
-                  type="time"
-                  className="input-field font-mono text-xs"
+                <TimePicker24h
                   value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
+                  onChange={(val) => setEndTime(val)}
                 />
               </div>
             )}
