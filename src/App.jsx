@@ -658,7 +658,8 @@ export default function App() {
       end_time: evt.end_time,
       all_day: Boolean(evt.all_day),
       description: evt.description || '',
-      location: evt.location || evt.url || '',
+      location: evt.location || '',
+      attachment_url: evt.attachment_url || evt.url || '',
       category: evt.category || 'งานกองพัน',
       member_ids: evt.member_ids || [],
       alarm_minutes: evt.alarm_minutes || 15

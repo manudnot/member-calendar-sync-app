@@ -190,3 +190,97 @@ function formatDateToICS(date) {
 function escapeICS(str) {
   return (str || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
+
+/**
+ * 4. GOOGLE DRIVE FILE ATTACHMENT & MONTHLY AUTO-CLEANUP
+ * Uploads files to Google Drive folder named YYYY-MM-DD and sets monthly cleanup trigger (>365 days)
+ */
+const ATTACHMENTS_PARENT_FOLDER_NAME = "MemberCalendarAttachments";
+
+function getOrCreateAttachmentsFolder(folderName) {
+  let parentFolders = DriveApp.getFoldersByName(ATTACHMENTS_PARENT_FOLDER_NAME);
+  let parentFolder = parentFolders.hasNext() ? parentFolders.next() : DriveApp.createFolder(ATTACHMENTS_PARENT_FOLDER_NAME);
+  
+  if (!folderName) return parentFolder;
+  
+  let subFolders = parentFolder.getFoldersByName(folderName);
+  return subFolders.hasNext() ? subFolders.next() : parentFolder.createFolder(folderName);
+}
+
+function uploadFileToDrive(fileBase64, fileName, mimeType, dateStr) {
+  try {
+    const folder = getOrCreateAttachmentsFolder(dateStr || new Date().toISOString().split('T')[0]);
+    const bytes = Utilities.base64Decode(fileBase64);
+    const blob = Utilities.newBlob(bytes, mimeType || 'application/octet-stream', fileName || `file_${Date.now()}`);
+    const file = folder.createFile(blob);
+    
+    // Set view access permission to anyone with link
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    const viewUrl = file.getUrl();
+    Logger.log("Uploaded file to Google Drive: " + viewUrl);
+    return { success: true, url: viewUrl, fileId: file.getId() };
+  } catch (e) {
+    Logger.log("Error uploading file to Drive: " + e.toString());
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Monthly Cron Trigger Function: Cleans up files older than 365 days from Google Drive
+ * Scans every month automatically (e.g. 1st day of every month at 02:00 AM)
+ */
+function autoCleanupOldDriveFiles() {
+  Logger.log("Starting monthly cleanup of Google Drive attachments older than 365 days...");
+  const parentFolder = getOrCreateAttachmentsFolder();
+  const subFolders = parentFolder.getFolders();
+  const now = new Date();
+  const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+  
+  let deletedCount = 0;
+  
+  while (subFolders.hasNext()) {
+    const folder = subFolders.next();
+    const created = folder.getDateCreated();
+    if (now.getTime() - created.getTime() > ONE_YEAR_MS) {
+      Logger.log("Moving expired folder to trash: " + folder.getName() + " (Created: " + created + ")");
+      folder.setTrashed(true);
+      deletedCount++;
+    } else {
+      // Check individual files inside subfolder
+      const files = folder.getFiles();
+      while (files.hasNext()) {
+        const file = files.next();
+        if (now.getTime() - file.getDateCreated().getTime() > ONE_YEAR_MS) {
+          Logger.log("Moving expired file to trash: " + file.getName());
+          file.setTrashed(true);
+          deletedCount++;
+        }
+      }
+    }
+  }
+  
+  Logger.log(`Monthly cleanup complete! Removed ${deletedCount} expired items.`);
+}
+
+/**
+ * Setup Monthly Cleanup Trigger (Executes on the 1st of every month at 02:00 AM)
+ */
+function setupMonthlyCleanupTrigger() {
+  // Clear existing triggers for autoCleanupOldDriveFiles to avoid duplicates
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(t => {
+    if (t.getHandlerFunction() === 'autoCleanupOldDriveFiles') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+  
+  // Create monthly trigger on 1st day of month at 2:00 AM
+  ScriptApp.newTrigger('autoCleanupOldDriveFiles')
+    .timeBased()
+    .onMonthDay(1)
+    .atHour(2)
+    .create();
+    
+  Logger.log("Monthly Google Drive cleanup trigger created successfully!");
+}

@@ -68,10 +68,16 @@ CREATE TABLE IF NOT EXISTS public.events (
     category TEXT DEFAULT 'General',
     member_ids JSONB NOT NULL DEFAULT '[]'::jsonb, -- Array of member IDs e.g. ["mem_woooddy", "mem_supanut"]
     alarm_minutes INTEGER DEFAULT 15,             -- Notification alarm minutes before event (e.g. 15)
+    attachment_url TEXT,                          -- Google Drive / External attachment URL
+    attachments JSONB DEFAULT '[]'::jsonb,        -- Array of file attachment objects
     is_deleted BOOLEAN DEFAULT FALSE,             -- Soft delete flag for Recycle Bin
     deleted_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Ensure attachment columns exist if table was previously created
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb;
 
 -- 5. Create Activity Audit Logs Table
 CREATE TABLE IF NOT EXISTS public.activity_logs (

@@ -1684,6 +1684,7 @@ export default async function handler(req, res) {
             category: formatCategoryWithBadge(mItem.category),
             description: descText,
             location: mItem.location || '',
+            attachment_url: mItem.attachment_url || mItem.url || '',
             member_ids: Array.isArray(mItem.member_ids) ? mItem.member_ids : [],
             alarm_minutes: 1440
           });
@@ -1698,6 +1699,7 @@ export default async function handler(req, res) {
               category: formatCategoryWithBadge(mItem.category),
               description: descText,
               location: mItem.location || '',
+              attachment_url: mItem.attachment_url || mItem.url || '',
               member_ids: Array.isArray(mItem.member_ids) ? mItem.member_ids : [],
               alarm_minutes: 1440
             });

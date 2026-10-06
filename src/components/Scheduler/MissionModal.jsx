@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Check, Users, Plus, Trash2, Palette } from 'lucide-react';
+import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Check, Users, Plus, Trash2, Palette, ExternalLink, FileText, Upload } from 'lucide-react';
 import { isAllDayEvent, convertMinutesToNotif, getLocalDateStr, getLocalTimeStr } from '../../utils/helpers';
 
 const DEFAULT_COLOR_PALETTE = [
@@ -821,17 +821,48 @@ export default function MissionModal({
               />
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                <LinkIcon className="w-3.5 h-3.5 text-emerald-600" /> URL
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <FileText className="w-3.5 h-3.5 text-emerald-600" /> เอกสารแนบ / Google Drive Link
+                </span>
+                {url && (
+                  <button
+                    type="button"
+                    onClick={() => setUrl('')}
+                    className="text-[11px] text-rose-500 hover:underline flex items-center gap-0.5"
+                  >
+                    <Trash2 className="w-3 h-3" /> ลบไฟล์แนบ
+                  </button>
+                )}
               </label>
-              <input
-                type="url"
-                className="input-field text-xs"
-                placeholder="Add URL (https://...)"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-              />
+
+              {url ? (
+                <div className="flex items-center gap-2">
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-between p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 rounded-xl text-emerald-700 dark:text-emerald-300 font-bold text-xs hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all shadow-sm"
+                  >
+                    <span className="flex items-center gap-2 truncate">
+                      <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="truncate">📄 ดูไฟล์แนบเอกสาร (Google Drive)</span>
+                    </span>
+                    <ExternalLink className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />
+                  </a>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="url"
+                    className="input-field text-xs flex-1 font-mono"
+                    placeholder="วางลิงก์ Google Drive (https://drive.google.com/...)"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
