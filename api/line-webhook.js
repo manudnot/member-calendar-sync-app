@@ -276,17 +276,22 @@ if (!globalThis.inMemoryDraftStore) {
   globalThis.inMemoryDraftStore = new Map();
 }
 
+const DRAFT_TTL_MS = 15 * 60 * 1000; // 15 minutes TTL for drafts
+
 async function saveDraft(userId, draftData) {
   if (!userId) return;
-  globalThis.inMemoryDraftStore.set(userId, draftData);
-  globalThis.inMemoryDraftStore.set('latest', draftData);
+  const draftWithTimestamp = {
+    ...draftData,
+    createdAt: Date.now()
+  };
+  globalThis.inMemoryDraftStore.set(userId, draftWithTimestamp);
 
   try {
     const draftId = 'draft_' + userId;
     await supabase.from('events').upsert({
       id: draftId,
       title: '[DRAFT]',
-      description: JSON.stringify(draftData),
+      description: JSON.stringify(draftWithTimestamp),
       category: 'DRAFT',
       start_time: '2099-01-01T00:00:00Z',
       end_time: '2099-01-01T00:00:00Z',
@@ -298,54 +303,48 @@ async function saveDraft(userId, draftData) {
 }
 
 async function getActiveDraft(userId) {
+  if (!userId) return null;
+
+  let draftObj = null;
+
   if (globalThis.inMemoryDraftStore.has(userId)) {
-    return globalThis.inMemoryDraftStore.get(userId);
-  }
+    draftObj = globalThis.inMemoryDraftStore.get(userId);
+  } else {
+    try {
+      const draftId = 'draft_' + userId;
+      const { data: userDrafts } = await supabase
+        .from('events')
+        .select('description')
+        .eq('id', draftId)
+        .limit(1);
 
-  try {
-    const draftId = 'draft_' + userId;
-    const { data: userDrafts } = await supabase
-      .from('events')
-      .select('description')
-      .eq('id', draftId)
-      .limit(1);
-
-    if (userDrafts && userDrafts.length > 0 && userDrafts[0].description) {
-      const parsed = JSON.parse(userDrafts[0].description);
-      globalThis.inMemoryDraftStore.set(userId, parsed);
-      return parsed;
+      if (userDrafts && userDrafts.length > 0 && userDrafts[0].description) {
+        draftObj = JSON.parse(userDrafts[0].description);
+        globalThis.inMemoryDraftStore.set(userId, draftObj);
+      }
+    } catch (e) {
+      console.warn('Supabase draft select notice:', e?.message || e);
     }
-
-    const { data: latestDrafts } = await supabase
-      .from('events')
-      .select('description')
-      .eq('category', 'DRAFT')
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (latestDrafts && latestDrafts.length > 0 && latestDrafts[0].description) {
-      const parsed = JSON.parse(latestDrafts[0].description);
-      return parsed;
-    }
-  } catch (e) {
-    console.warn('Supabase draft select notice:', e?.message || e);
   }
 
-  if (globalThis.inMemoryDraftStore.has('latest')) {
-    return globalThis.inMemoryDraftStore.get('latest');
+  if (!draftObj) return null;
+
+  // Check TTL (15 minutes expiry)
+  if (draftObj.createdAt && (Date.now() - draftObj.createdAt > DRAFT_TTL_MS)) {
+    await clearActiveDraft(userId);
+    return null;
   }
 
-  return null;
+  return draftObj;
 }
 
 async function clearActiveDraft(userId) {
-  if (userId) globalThis.inMemoryDraftStore.delete(userId);
-  globalThis.inMemoryDraftStore.delete('latest');
+  if (!userId) return;
+  globalThis.inMemoryDraftStore.delete(userId);
 
   try {
     const draftId = 'draft_' + userId;
     await supabase.from('events').delete().eq('id', draftId);
-    await supabase.from('events').delete().eq('category', 'DRAFT');
   } catch (e) {
     console.warn('Supabase draft delete notice:', e?.message || e);
   }
