@@ -185,49 +185,48 @@ export function getEventColor(evt, categories = INITIAL_CATEGORIES, members = []
   if (!evt) return '#8b5cf6';
 
   const catList = Array.isArray(categories) && categories.length > 0 ? categories : INITIAL_CATEGORIES;
+  const catStr = String(evt.category || '').toLowerCase();
 
-  // 1. By category_id match
-  if (evt.category_id) {
-    const matchedCat = catList.find(c => c.id === evt.category_id);
+  // 1. By explicit category text match (Highest Priority)
+  if (catStr.includes('กิจกรรม') || catStr.includes('cat_special') || catStr.includes('🌸')) {
+    const matchedCat = catList.find(c => c.id === 'cat_special');
+    if (matchedCat && matchedCat.color) return matchedCat.color;
+  }
+  if (catStr.includes('ประชุม') || catStr.includes('cat_meeting') || catStr.includes('🟢')) {
+    const matchedCat = catList.find(c => c.id === 'cat_meeting');
+    if (matchedCat && matchedCat.color) return matchedCat.color;
+  }
+  if (catStr.includes('หมาย') || catStr.includes('cat_royal') || catStr.includes('🟡')) {
+    const matchedCat = catList.find(c => c.id === 'cat_royal');
+    if (matchedCat && matchedCat.color) return matchedCat.color;
+  }
+  if (catStr.includes('ฝึก') || catStr.includes('cat_training') || catStr.includes('🟤')) {
+    const matchedCat = catList.find(c => c.id === 'cat_training');
+    if (matchedCat && matchedCat.color) return matchedCat.color;
+  }
+  if (catStr.includes('ภารกิจหน่วย') || catStr.includes('cat_unit') || catStr.includes('🔴')) {
+    const matchedCat = catList.find(c => c.id === 'cat_unit');
+    if (matchedCat && matchedCat.color) return matchedCat.color;
+  }
+  if (catStr.includes('งานกองพัน') || catStr.includes('งานหน่วย') || catStr.includes('cat_work') || catStr.includes('🟣')) {
+    const matchedCat = catList.find(c => c.id === 'cat_work');
     if (matchedCat && matchedCat.color) return matchedCat.color;
   }
 
-  // 2. By category text match
-  if (evt.category) {
-    const catStr = String(evt.category).toLowerCase();
-    if (catStr.includes('งานกองพัน') || catStr.includes('งานหน่วย') || catStr.includes('cat_work') || catStr.includes('🟣')) {
-      const matchedCat = catList.find(c => c.id === 'cat_work');
-      if (matchedCat && matchedCat.color) return matchedCat.color;
-    }
-    if (catStr.includes('ภารกิจหน่วย') || catStr.includes('cat_unit') || catStr.includes('🔴')) {
-      const matchedCat = catList.find(c => c.id === 'cat_unit');
-      if (matchedCat && matchedCat.color) return matchedCat.color;
-    }
-    if (catStr.includes('หมาย') || catStr.includes('cat_royal') || catStr.includes('🟡')) {
-      const matchedCat = catList.find(c => c.id === 'cat_royal');
-      if (matchedCat && matchedCat.color) return matchedCat.color;
-    }
-    if (catStr.includes('ประชุม') || catStr.includes('cat_meeting') || catStr.includes('🟢')) {
-      const matchedCat = catList.find(c => c.id === 'cat_meeting');
-      if (matchedCat && matchedCat.color) return matchedCat.color;
-    }
-    if (catStr.includes('ฝึก') || catStr.includes('cat_training') || catStr.includes('🟤')) {
-      const matchedCat = catList.find(c => c.id === 'cat_training');
-      if (matchedCat && matchedCat.color) return matchedCat.color;
-    }
-    if (catStr.includes('กิจกรรม') || catStr.includes('cat_special') || catStr.includes('🌸')) {
-      const matchedCat = catList.find(c => c.id === 'cat_special');
-      if (matchedCat && matchedCat.color) return matchedCat.color;
-    }
-    const matchedCat = catList.find(c => c.name && catStr.includes(c.name.toLowerCase()));
+  // 2. By category_id match
+  if (evt.category_id) {
+    const matchedCat = catList.find(c => c.id === evt.category_id);
     if (matchedCat && matchedCat.color) return matchedCat.color;
   }
 
   // 3. Custom explicit color if valid
   if (evt.color) return evt.color;
 
-  // 4. By title keywords fallback
+  // 4. By title keywords fallback ONLY
   const title = (evt.title || '').toLowerCase();
+  if (title.includes('ประชุมเพลิง') || title.includes('วันเด็ก') || title.includes('วันเกิด')) {
+    return '#ec4899';
+  }
   if (title.includes('หมาย') || title.includes('904') || title.includes('905') || title.includes('908') || title.includes('hmsv')) {
     return '#f59e0b';
   }
@@ -236,9 +235,6 @@ export function getEventColor(evt, categories = INITIAL_CATEGORIES, members = []
   }
   if (title.includes('ฝึก') || title.includes('กฝร') || title.includes('staffex') || title.includes('cpx') || title.includes('calflex') || title.includes('unit school')) {
     return '#795548';
-  }
-  if (title.includes('วันเด็ก') || title.includes('วันเกิด')) {
-    return '#ec4899';
   }
   if (title.includes('ภารกิจหน่วย') || title.includes('จเร')) {
     return '#ef4444';
@@ -257,24 +253,40 @@ export function ensureEventCategoryAndColor(evt, categories = INITIAL_CATEGORIES
   if (!evt) return evt;
 
   const catList = Array.isArray(categories) && categories.length > 0 ? categories : INITIAL_CATEGORIES;
-  let catId = evt.category_id;
+  const catStr = (evt.category || '').toLowerCase();
+  const titleStr = (evt.title || '').toLowerCase();
 
+  let catId = null;
+
+  // 1. Explicit Category String Match HAS HIGHEST PRIORITY
+  if (catStr.includes('กิจกรรม') || catStr.includes('cat_special') || catStr.includes('🌸')) {
+    catId = 'cat_special';
+  } else if (catStr.includes('ประชุม') || catStr.includes('cat_meeting') || catStr.includes('🟢')) {
+    catId = 'cat_meeting';
+  } else if (catStr.includes('หมาย') || catStr.includes('cat_royal') || catStr.includes('🟡')) {
+    catId = 'cat_royal';
+  } else if (catStr.includes('ฝึก') || catStr.includes('นฝ') || catStr.includes('หน่วยฝึก') || catStr.includes('cat_training') || catStr.includes('🟤')) {
+    catId = 'cat_training';
+  } else if (catStr.includes('ภารกิจหน่วย') || catStr.includes('cat_unit') || catStr.includes('🔴')) {
+    catId = 'cat_unit';
+  } else if (catStr.includes('งานกองพัน') || catStr.includes('งานหน่วย') || catStr.includes('cat_work') || catStr.includes('🟣')) {
+    catId = 'cat_work';
+  } else if (evt.category_id && catList.some(c => c.id === evt.category_id)) {
+    catId = evt.category_id;
+  }
+
+  // 2. Title Keyword Fallback ONLY IF Category is Unrecognized/Default
   if (!catId) {
-    const catStr = (evt.category || '').toLowerCase();
-    const titleStr = (evt.title || '').toLowerCase();
-
-    if (catStr.includes('งานกองพัน') || catStr.includes('งานหน่วย') || catStr.includes('cat_work') || catStr.includes('🟣')) {
-      catId = 'cat_work';
-    } else if (catStr.includes('หมาย') || catStr.includes('cat_royal') || catStr.includes('🟡') || titleStr.includes('หมาย') || titleStr.includes('904') || titleStr.includes('905') || titleStr.includes('908') || titleStr.includes('hmsv')) {
-      catId = 'cat_royal';
-    } else if (catStr.includes('ฝึก') || catStr.includes('นฝ') || catStr.includes('หน่วยฝึก') || catStr.includes('cat_training') || catStr.includes('🟤') || titleStr.includes('ฝึก') || titleStr.includes('นฝ') || titleStr.includes('หน่วยฝึก') || titleStr.includes('กฝร') || titleStr.includes('staffex') || titleStr.includes('cpx') || titleStr.includes('calflex') || titleStr.includes('unit school')) {
-      catId = 'cat_training';
-    } else if (catStr.includes('ภารกิจหน่วย') || catStr.includes('cat_unit') || catStr.includes('🔴') || (catStr.includes('หน่วย') && !catStr.includes('งาน')) || titleStr.includes('จิตอาสา')) {
-      catId = 'cat_unit';
-    } else if (catStr.includes('ประชุม') || catStr.includes('cat_meeting') || catStr.includes('🟢') || titleStr.includes('ประชุม') || titleStr.includes('vtc') || titleStr.includes('สัมภาษณ์') || titleStr.includes('อบรม')) {
-      catId = 'cat_meeting';
-    } else if (catStr.includes('กิจกรรม') || catStr.includes('cat_special') || catStr.includes('🌸') || titleStr.includes('วันเด็ก') || titleStr.includes('วันเกิด')) {
+    if (titleStr.includes('ประชุมเพลิง') || titleStr.includes('วันเด็ก') || titleStr.includes('วันเกิด') || titleStr.includes('สันทนาการ')) {
       catId = 'cat_special';
+    } else if (titleStr.includes('หมาย') || titleStr.includes('904') || titleStr.includes('905') || titleStr.includes('908') || titleStr.includes('hmsv')) {
+      catId = 'cat_royal';
+    } else if (titleStr.includes('ฝึก') || titleStr.includes('นฝ') || titleStr.includes('หน่วยฝึก') || titleStr.includes('กฝร') || titleStr.includes('staffex') || titleStr.includes('cpx') || titleStr.includes('calflex') || titleStr.includes('unit school')) {
+      catId = 'cat_training';
+    } else if (titleStr.includes('ประชุม') || titleStr.includes('vtc') || titleStr.includes('สัมภาษณ์') || titleStr.includes('อบรม')) {
+      catId = 'cat_meeting';
+    } else if (titleStr.includes('จิตอาสา')) {
+      catId = 'cat_unit';
     } else {
       catId = 'cat_work';
     }

@@ -993,14 +993,18 @@ export default function App() {
     if (details.includes('เปลี่ยนหมวดหมู่:')) {
       const match = details.match(/เปลี่ยนหมวดหมู่:\s*จาก\s*"([^"]+)"\s*➔\s*เป็น\s*"([^"]+)"/);
       if (match && match[1]) {
-        const oldCatName = match[1];
-        const matchedCat = categories.find(c => (c.name || c.category || '').toLowerCase() === oldCatName.toLowerCase());
-        updatedEvt.category = oldCatName;
+        const oldCatName = match[1].trim();
+        const cleanOldName = oldCatName.replace(/^[🟢🔴🟡🟣🟤🌸🔵]\s*/, '').trim();
+        const matchedCat = categories.find(c => {
+          const cName = (c.name || c.category || '').toLowerCase();
+          return cName === oldCatName.toLowerCase() || cName === cleanOldName.toLowerCase() || oldCatName.toLowerCase().includes(cName);
+        });
+        updatedEvt.category = matchedCat ? matchedCat.name : oldCatName;
         if (matchedCat) {
           updatedEvt.category_id = matchedCat.id;
           updatedEvt.color = matchedCat.color || matchedCat.hex;
         }
-        revertedChanges.push(`หมวดหมู่ ➔ "${oldCatName}"`);
+        revertedChanges.push(`หมวดหมู่ ➔ "${updatedEvt.category}"`);
       }
     }
 
