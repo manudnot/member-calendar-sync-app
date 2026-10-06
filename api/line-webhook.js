@@ -1169,6 +1169,15 @@ export function expandMissionsWithMultiDates(missions, text) {
     return missions;
   }
 
+  // If AI already returned multiple distinct missions with valid unique dates, return as-is without duplicate expansion!
+  if (missions.length > 1) {
+    const dates = missions.map(m => m.start_date).filter(Boolean);
+    const uniqueDates = new Set(dates);
+    if (uniqueDates.size === missions.length && !dates.includes('2099-01-01')) {
+      return missions;
+    }
+  }
+
   // Convert Thai digits to Arabic digits
   let s = String(text);
   const thaiDigits = ['๐','๑','๒','๓','๔','๕','๖','๗','๘','๙'];
@@ -1193,8 +1202,9 @@ export function expandMissionsWithMultiDates(missions, text) {
     'ธ.ค.': '12', 'ธค': '12', 'ธันวาคม': '12'
   };
 
-  // Match comma/space-separated list of day numbers followed by month, e.g., "วันที่ 2 ,3 ,4 ต.ค." or "2, 3, 4 ต.ค."
-  const listPattern = new RegExp(`(?:วันที่\\s*)?((?:\\d{1,2}\\s*[,\\s]+\\s*)+\\d{1,2})\\s*${monthRegexStr}\\s*(\\d{2,4})?`, 'gi');
+  // Match comma/space-separated list of day numbers ON THE SAME LINE followed by month, e.g., "วันที่ 2 ,3 ,4 ต.ค." or "2, 3, 4 ต.ค."
+  // Note: [^\S\r\n] matches horizontal whitespace only, preventing matching across newlines!
+  const listPattern = new RegExp(`(?:วันที่[^\\S\\r\\n]*)?((?:\\d{1,2}[^\\S\\r\\n]*[,\\s][^\\S\\r\\n]*)+\\d{1,2})[^\\S\\r\\n]*${monthRegexStr}[^\\S\\r\\n]*(\\d{2,4})?`, 'gi');
 
   let match;
   const multiDayGroups = [];
@@ -1214,7 +1224,8 @@ export function expandMissionsWithMultiDates(missions, text) {
 
     if (!monthStr) continue;
 
-    const dayNumbers = rawDaysStr.split(/[\,\s]+/).map(d => d.trim()).filter(Boolean).map(Number);
+    // Filter ONLY valid calendar day numbers (1 to 31)
+    const dayNumbers = rawDaysStr.split(/[\,\s]+/).map(d => d.trim()).filter(Boolean).map(Number).filter(d => d >= 1 && d <= 31);
     if (dayNumbers.length < 2) continue;
 
     let yearAD = 2026;
