@@ -631,7 +631,11 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
    - "🟢 ประชุม" (สำหรับ: ประชุม, VTC, อบรม, อบรมทหาร, ชี้แจงนโยบาย, สรุปงาน)
    - "🟤 ภารกิจการฝึก" (สำหรับ: ภารกิจที่มีคำว่า "นฝ.", "นฝ", "หน่วยฝึก", "ฝึก", การฝึกประจำปี, ฝึกภาคสนาม, โครงการฝึกทางทหาร)
    - "🌸 กิจกรรมพิเศษ" (สำหรับ: งานเลี้ยง, วันเกิด, กิจกรรมสันทนาการ)
-4. หากในข้อความต้นฉบับมีสัญลักษณ์หรือตัวเลขหัวข้อ เช่น ๑. หรือ ๒.๒.๑ ให้สกัด 1 รายการภารกิจ ต่อ 1 ข้อหัวข้อเด็ดขาด!
+4. หากในข้อความต้นฉบับมีสัญลักษณ์หรือตัวเลขหัวข้อ เช่น ๑. หรือ ๒.๒.๑ (ยกเว้นเอกสารบันทึกข้อความ/หนังสือราชการ) ให้สกัด 1 รายการภารกิจ ต่อ 1 ข้อหัวข้อเด็ดขาด!
+   - กฎเฉพาะสำหรับเอกสารบันทึกข้อความ / หนังสือราชการ (Official Memos & Letters):
+     1) ห้ามใช้วันที่ส่วนหัวกระดาษ (เช่น "วันที่ ๒ ต.ค. ๖๙") หรือวันที่ส่วนลงนามท้ายเอกสาร (เช่น "๕ ต.ค. ๖๙") มาเป็น start_date เด็ดขาด! เพราะเป็นเพียงวันที่จัดทำหรืออนุมัติเอกสาร ให้สกัดเฉพาะวันที่เกิดกิจกรรมจริงซึ่งระบุในเนื้อหา ข้อ ๑. (เช่น "ในวันพฤหัสบดีที่ ๘ ต.ค. ๖๙ ตั้งแต่เวลา ๑๐๐๐" -> 2026-10-08) มาเป็น start_date เสมอ
+     2) รวมรายการเตรียมการย่อย (ข้อ ๒., ๒.๑, ๒.๒) เข้ากับภารกิจหลักใน ข้อ ๑. เพียง 1 รายการภารกิจเท่านั้น ห้ามแตกข้อ ๒.๑, ๒.๒ เป็นหลายภารกิจย่อยซ้ำซ้อนเด็ดขาด!
+     3) สรุปรายละเอียดการจัดเตรียมอุปกรณ์ สถานที่ หรือการแต่งกายใน ข้อ ๒. ไปใส่ในฟิลด์ "notes" แบบสั้นกระชับ 1-2 บรรทัด (เช่น "จัดเตรียมสถานที่ เก้าอี้นวม ระบบภาพ-คอมพิวเตอร์พรีเซนต์ เครื่องขยายเสียง แท่นบรรยาย และช่างภาพ")
 5. กฎการสกัดตารางและภารกิจย่อยในวันเดียวกัน (Multi-Row Table & Same-Date Sub-Event Extraction Rules):
    - ห้ามนำภารกิจที่เกิดขึ้นในวันเดียวกันมารวมเป็นภารกิจเดียวเด็ดขาด! หากในวันเดียวกันมีประโยคภารกิจย่อย เช่น "เสด็จฯ ไป..." หรือมีสถานที่/หน่วยรับผิดชอบต่างกันมากกว่า 1 รายการ (เช่น วันที่ 13 ต.ค. หรือ 23 ต.ค. มี 2 ภารกิจย่อย) ต้องแยกสร้างเป็นภารกิจใหม่แต่ละรายการในอาร์เรย์ "missions" โดยใช้ start_date เดียวกัน (1 ภารกิจย่อย = 1 วัตถุใน missions)
    - หากภาพหรือข้อความคือ "ตารางภารกิจ" หรือ "ตารางหมายเสด็จ/ภารกิจหมาย" (เช่น ตารางคำสั่งห้วงเดือนที่มีหลายลำดับ/หลายวัน/หลายรายการ):
@@ -791,10 +795,30 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
               }
 
               // Verify & Override exact Thai dates if present in normalizedText (e.g. 15 ตุลาคม 2569 -> 2026-10-15)
-              const exactThaiDates = parseThaiMissionDates(normalizedText);
-              if (exactThaiDates && exactThaiDates.start_date) {
-                m.start_date = exactThaiDates.start_date;
-                m.end_date = exactThaiDates.end_date || exactThaiDates.start_date;
+              // NOTE: Skip top document date override for official memos (บันทึกข้อความ / หนังสือราชการ)
+              const isOfficialMemo = (normalizedText && (
+                normalizedText.includes('บันทึกข้อความ') ||
+                normalizedText.includes('หนังสือราชการ') ||
+                (normalizedText.includes('ข้อ ๑') && normalizedText.includes('ข้อ ๒')) ||
+                normalizedText.includes('เสนาสนเทศ')
+              ));
+
+              if (isOfficialMemo) {
+                // For official memos, look specifically for Section 1 date (ข้อ ๑.) rather than top header creation date
+                const sec1Match = normalizedText.match(/(?:ข้อ\s*๑|๑\.)[\s\S]{1,400}?(?:ในวัน|วันที่|เมื่อวัน)?\s*([๐-๙\d]{1,2})\s*(ม\.?ค\.?|ก\.?พ\.?|มี\.?ค\.?|เม\.?ย\.?|พ\.?ค\.?|มิ\.?ย\.?|ก\.?ค\.?|ส\.?ค\.?|ก\.?ย\.?|ต\.?ค\.?|พ\.?ย\.?|ธ\.?ค\.?|มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)\s*([๐-๙\d]{2,4})?/i);
+                if (sec1Match) {
+                  const sec1Dates = parseThaiMissionDates(sec1Match[0]);
+                  if (sec1Dates && sec1Dates.start_date) {
+                    m.start_date = sec1Dates.start_date;
+                    m.end_date = sec1Dates.end_date || sec1Dates.start_date;
+                  }
+                }
+              } else {
+                const exactThaiDates = parseThaiMissionDates(normalizedText);
+                if (exactThaiDates && exactThaiDates.start_date) {
+                  m.start_date = exactThaiDates.start_date;
+                  m.end_date = exactThaiDates.end_date || exactThaiDates.start_date;
+                }
               }
 
               // Heatstroke / Heat Illness Training Post-Processing (นฝ. อบรมลมร้อน)
@@ -822,6 +846,27 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
                 m.notes = m.description;
               }
             });
+
+            // Post-processing deduplication for official memo documents
+            const isMemoDoc = (normalizedText && (
+              normalizedText.includes('บันทึกข้อความ') ||
+              normalizedText.includes('หนังสือราชการ') ||
+              (normalizedText.includes('ข้อ ๑') && normalizedText.includes('ข้อ ๒')) ||
+              normalizedText.includes('เสนาสนเทศ')
+            ));
+
+            if (isMemoDoc && validMissions.length > 1) {
+              const mainMemoMission = validMissions.find(m => m.title && (m.title.includes('เสนาสนเทศ') || m.title.includes('พบปะกำลังพล') || m.title.includes('ประชุม'))) || validMissions[0];
+              if (mainMemoMission) {
+                const prepTasks = validMissions.filter(m => m !== mainMemoMission);
+                const prepNotes = prepTasks.map(m => m.notes || m.title).filter(Boolean);
+                if (prepNotes.length > 0 && (!mainMemoMission.notes || mainMemoMission.notes.length < 20)) {
+                  mainMemoMission.notes = `การเตรียมการ/อุปกรณ์: ${prepNotes.slice(0, 3).join(', ')}`;
+                }
+                validMissions.length = 0;
+                validMissions.push(mainMemoMission);
+              }
+            }
 
             const expandedMissions = expandMissionsWithMultiDates(validMissions, text);
             return { missions: expandedMissions };
