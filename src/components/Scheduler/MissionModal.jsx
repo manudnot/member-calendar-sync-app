@@ -499,8 +499,20 @@ export default function MissionModal({
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
-                Label Color *
+                หมวดหมู่ภารกิจ &amp; สี *
               </label>
+              {(() => {
+                const activeCatObj = colorOptions.find(c => c.id === selectedCategoryId) || colorOptions.find(c => c.hex.toLowerCase() === color.toLowerCase()) || colorOptions[0];
+                return (
+                  <span 
+                    className="px-2.5 py-0.5 rounded-full text-xs font-black text-white shadow-xs transition-all flex items-center gap-1.5 animate-fade-in"
+                    style={{ backgroundColor: activeCatObj?.hex || color }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-white/90 animate-pulse" />
+                    {activeCatObj?.category || 'งานหน่วย'}
+                  </span>
+                );
+              })()}
             </div>
             
             <div className="flex flex-wrap gap-2.5 p-2.5 bg-slate-50 dark:bg-dark-bg/60 border border-slate-200 dark:border-dark-border rounded-xl items-center">

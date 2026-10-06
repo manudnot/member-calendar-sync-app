@@ -172,6 +172,8 @@ export default function App() {
     }
   }, [theme]);
 
+  const optimisticUpdatesRef = useRef(new Map());
+
   // Load & Sync between LocalStorage and Supabase on mount and periodically
   useEffect(() => {
     async function fetchData() {
@@ -246,9 +248,26 @@ export default function App() {
             ...e,
             title: (e.title || '').replace(/\/ ทั้งวัน|\/ทั้งวัน|ทั้งวัน/g, '').trim() || e.title
           }));
-          const freshEvents = cleanEvents.map(supaEvt =>
-            ensureEventCategoryAndColor(supaEvt, categories)
-          );
+          const freshEvents = cleanEvents.map(supaEvt => {
+            const processed = ensureEventCategoryAndColor(supaEvt, categories);
+            if (optimisticUpdatesRef.current.has(processed.id)) {
+              const optData = optimisticUpdatesRef.current.get(processed.id);
+              if (Date.now() - optData.timestamp < 6000) {
+                return {
+                  ...processed,
+                  category: optData.payload.category || processed.category,
+                  category_id: optData.payload.category_id || processed.category_id,
+                  color: optData.payload.color || processed.color,
+                  title: optData.payload.title || processed.title,
+                  location: optData.payload.location || processed.location,
+                  member_ids: optData.payload.member_ids || processed.member_ids
+                };
+              } else {
+                optimisticUpdatesRef.current.delete(processed.id);
+              }
+            }
+            return processed;
+          });
           setEvents(freshEvents);
         }
 
@@ -713,6 +732,10 @@ export default function App() {
     }
 
     // 1. Optimistic UI update locally
+    optimisticUpdatesRef.current.set(eventPayload.id, {
+      payload: eventPayload,
+      timestamp: Date.now()
+    });
     setEvents(updated);
     localStorage.setItem('member_calendar_events', JSON.stringify(updated));
 
