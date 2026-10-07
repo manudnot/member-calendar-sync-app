@@ -1,5 +1,18 @@
 # Development Session Log & Architecture History
 
+## 📅 Session Log: 2026-10-07
+
+### Version 4.3 - Direct-Typing 24h TimePicker, Auto-Adjust Time Validation, & Typhoon AI Title Fix
+- **LINE Webhook Hardcoded Title Override Removal**: Removed lines 835–851 in `api/line-webhook.js` that hardcoded `m.title = 'นฝ. อบรมลมร้อน'` for any input containing "ความร้อน". Preserved pure Typhoon AI JSON extracted mission titles across multi-item requests.
+- **Direct-Typing 24h TimePicker (`TimePicker24h`)**: Replaced `<select>` dropdown lists in `MissionModal.jsx` with an auto-tabbing direct numeric input:
+  - Hours: 00-23. Auto-focuses to minutes when 2 digits are entered. Formats with `padStart(2, '0')` on blur or Tab.
+  - Minutes: 00-59. Backspace on empty minute input jumps focus back to hour input.
+- **Auto-Adjust & Start/End Time Validation**:
+  - Automatically updates `endTime` in the modal UI (+1 hour) when `startTime` is changed and `startDate === endDate`.
+  - Automatically syncs `endDate` if earlier than `startDate`.
+  - Added real-time invalid time warning banner (`⚠️ เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่มต้น`) and prevents saving invalid event times in `handleSubmit`.
+- **Git Commit**: `d77f670` pushed to `manudnot/member-calendar-sync-app` main branch. Deployed to Vercel.
+
 ## 📅 Session Log: 2026-09-07
 
 ### Version 3.4 - Enhanced Member Name & Color Customization UX
