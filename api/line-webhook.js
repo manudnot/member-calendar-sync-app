@@ -98,7 +98,7 @@ function matchMemberIds(memberNamesArray, dbMembers = []) {
     'mem_june': ['june', 'จูน', 'อภิสิทธิ์', 'เย็นใส', 'หมวดจูน'],
     'mem_keng': ['keng', 'เก่ง', 'พัทธ์รวิน', 'อภินันท์ศิริเดช', 'เก่งการ', 'หมวดเก่ง', 'จ่าเก่ง'],
     'mem_tum': ['tum', 'ตั้ม', 'ตั๊ม', 'อภิชาติ', 'เกษรแก้ว', 'หมวดตั้ม', 'จ่าตั้ม'],
-    'mem_wm': ['เวรหมาย', 'เวร']
+    'mem_wm': ['เวรหมาย', 'เวรปฏิบัติการหมาย']
   };
 
   memberNamesArray.forEach(nameStr => {
@@ -608,11 +608,11 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
 
 สำคัญที่สุด:
 1. "title": ต้องสกัดเฉพาะชื่อภารกิจหรือหัวเรื่องหลัก สั้น กระชับ ได้ใจความ ไม่เกิน 2-5 คำ (เช่น "นฝ. ยิงปืน", "อบรมทหาร", "ติดตั้งทีวีคอนเสิร์ต ทภ.1", "ประชุม C4I")
-   - กฎบริบทตารางหน่วยฝึก (Training Schedule Context Rule):
-     หากข้อความหรือหัวเรื่องมีคำว่า "ตารางหน่วยฝึก", "หน่วยฝึก", หรือ "นฝ.":
+   - กฎบริบทตารางหน่วยฝึก / การเตรียมความพร้อมรับทหารใหม่ (Training Schedule Context Rule):
+     หากข้อความหรือหัวเรื่องมีคำว่า "ตารางหน่วยฝึก", "หน่วยฝึก", "นฝ.", หรือ "เตรียมความพร้อมก่อนรับทหารใหม่":
      1) กำหนด category เป็น "🟤 ภารกิจการฝึก" สำหรับทุกรายการ
-     2) เติมคำนำหน้า "นฝ. " หน้าชื่อภารกิจ (title) ทุกรายการแบบอัตโนมัติ (เช่น "นฝ. รับตัวทหารใหม่เข้าหน่วย", "นฝ. จบการฝึก", "นฝ. เยี่ยมญาติสัปดาห์แรก", "นฝ. เริ่มฝึกครู") เว้นแต่ชื่องานนั้นจะมีคำว่า "นฝ." นำหน้าอยู่แล้ว!
-   - กฎชื่องาน หน่วยฝึกอบรมลมร้อน / อบรมลมร้อน: หากข้อความมีคำว่า "หน่วยฝึกอบรมลมร้อน", "อบรมลมร้อน", "โรคลมร้อน", หรือ "การเจ็บป่วยจากความร้อน": ให้สรุปชื่องานสั้นกระชับเป็น "นฝ. อบรมลมร้อน" เสมอ และจัดหมวดหมู่เป็น "🟤 ภารกิจการฝึก" เสมอ!
+     2) เติมคำนำหน้า "นฝ. " หน้าชื่อภารกิจ (title) ทุกรายการแบบอัตโนมัติ (เช่น "นฝ. ฉีดวัคซีนไข้หวัดใหญ่", "นฝ. อบรมเฝ้าระวังโรคลมร้อน", "นฝ. ประชุมเตรียมรับทหารใหม่", "นฝ. นิเทศตรวจสุขาภิบาล", "นฝ. รับตัวทหารใหม่เข้าหน่วย") เว้นแต่ชื่องานนั้นจะมีคำว่า "นฝ." นำหน้าอยู่แล้ว!
+     3) หากเป็นรายการข้อความลำดับข้อ (เช่น ข้อ 1., 2., 3., 4. หรือ 1., 2.): ต้องสกัดชื่อภารกิจ (title) ให้ตรงกับกิจกรรมหลักที่ระบุในข้อนั้นๆ แยกเป็นอิสระ ห้ามนำชื่อของข้อใดข้อหนึ่ง (เช่น อบรมลมร้อน) ไปทับชื่อของข้ออื่นโดยเด็ดขาด! และต้องสกัดภารกิจให้ครบทุกข้อที่มีการระบุวันที่ (ห้ามละเว้นข้อ 1 หรือข้อใดข้อหนึ่งเด็ดขาด!)
    - กฎชื่องาน อบรมทหาร: หากมีคำว่า "อบรมทหารกองประจำการ" หรือ "อบรมทหาร..." ให้สรุปชื่องานสั้นกระชับเป็น "อบรมทหาร" เสมอ!
    - กฎชื่องาน นฝ. / หน่วยฝึก: หากมีคำนำหน้าประเภทการฝึก เช่น "นฝ.", "นฝ", "หน่วยฝึก" ให้คงคำนำหน้านี้ไว้หน้าชื่อภารกิจตามต้นฉบับเสมอ (เช่น "นฝ. ยิงปืน") ห้ามตัดออก ห้ามสลับคำเป็น "ยิงปืนนฝ." หรือย้ายไปท้ายชื่อ!
    - กฎการสกัดหัวข้อ/เรื่องไปใส่ในฟิลด์ notes (Subject to Notes Rule):
@@ -642,6 +642,14 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
      ต้องสกัดทุกๆ แถว (row) และทุกรายการภารกิจย่อยในตารางออกมาเป็นภารกิจ (mission) แต่ละรายการแบบแยกกัน 100% ห้ามข้าม ห้ามสรุปรวม หรือละเว้นแถวใดแถวหนึ่งเด็ดขาด! (ตัวอย่าง: ตารางห้วง ต.ค. 69 มี 7 รายการภารกิจย่อย ➔ ต้องสกัดออกมาให้ได้ครบทั้ง 7 ภารกิจในอาร์เรย์ missions โดยวันที่ 13 ต.ค. มี 2 ภารกิจ และวันที่ 23 ต.ค. มี 2 ภารกิจ)
    - หากมีการผสานเซลล์วันที่ (Merged Date Cells) ในตาราง (เช่น วันที่ 13 ต.ค. 69 ครอบคลุม 2 แถวย่อย) ให้คัดลอก start_date ("2026-10-13") เดียวกันไปใส่ให้กับภารกิจย่อยทั้ง 2 รายการ
    - หากในข้อความระบุหลายวันที่คั่นด้วยจุลภาคหรือเว้นวรรค (เช่น "1,4 พ.ย.", "1, 4 พ.ย.", "31 ต.ค. 69" และ "15 22 พ.ย. 69"): ต้องสกัดแยกเป็นรายการภารกิจเดี่ยวสำหรับทุกๆ วันที่ระบุในอาร์เรย์ "missions" เสมอ! (ตัวอย่าง: "1,4 พ.ย. รับตัวทหารใหม่เข้าหน่วย" ➔ แยกเป็น 2 ภารกิจเดี่ยว: 2026-11-01 "นฝ. รับตัวทหารใหม่เข้าหน่วย" และ 2026-11-04 "นฝ. รับตัวทหารใหม่เข้าหน่วย")
+   - กฎคำสั่งตารางเวร / มอบหมายรายบุคคลหลายวัน (Roster Duty Assignment Rule):
+     หากข้อความมีชื่องานหรือเวรเป็นหัวเรื่อง (เช่น "เวร MB 0800-0900") และตามด้วยรายชื่อกำลังพลกับรายการวันที่ (เช่น "นอต 7,26 ต.ค.", "จูน 9,28 ต.ค."):
+     1) ให้ใช้ชื่องาน/เวรหลักจากหัวเรื่องเป็น "title" (เช่น "เวร MB") เสมอ! ห้ามนำชื่อคนกับวันที่ เช่น "นอต 7," มาเป็น title เด็ดขาด!
+     2) สกัดเวลาจากหัวเรื่องใส่ใน "time_str" (เช่น "08:00 - 09:00")
+     3) แตกรายการแยกตามแต่ละวันที่และกำหนด "members" ให้ตรงกับบุคคลในบรรทัดนั้น (ตัวอย่าง: "นอต 7,26 ต.ค." ➔ ได้ 2 ภารกิจ: วันที่ 2026-10-07 title: "เวร MB" members: ["นอต"], และ วันที่ 2026-10-26 title: "เวร MB" members: ["นอต"])
+   - กฎชื่องานหลักคลุมรายการวันด้านล่าง (Header Title with Multi-Date List Rule):
+     หากข้อความขึ้นต้นด้วยชื่องาน/ภารกิจ (เช่น "คัดเลือกพลทหารอาสา มทบ.11 คณะที่ 2 จว.นนทบุรี") แล้วตามด้วยรายการวันที่หลายบรรทัด (เช่น "28 พ.ย. 69", "19 ธ.ค. 69", "23 ม.ค. 70"):
+     ให้ใช้ชื่องานนั้นเป็น "title" ให้กับทุกๆ วันที่ที่ระบุ (เช่น "คัดเลือกพลทหารอาสา") ทุกรายการ ห้ามใช้คำว่า "ภารกิจสั่งการ" เด็ดขาด!
 6. กฎเฉพาะสำหรับภารกิจหมาย (ที่มีรหัส "904", "HMSV", "เสด็จ"):
    - กำหนด category เป็น "🟡 ภารกิจหมาย" เสมอ
    - สร้าง title สั้นกระชับเป็น "หมาย <รหัสภารกิจหมาย>" (เช่น "หมาย 904/ HMSV" หรือ "หมาย 904")
@@ -703,7 +711,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
           temperature: 0.1,
           max_completion_tokens: 3072
         }),
-        signal: AbortSignal.timeout(7500)
+        signal: AbortSignal.timeout(20000)
       });
 
       if (res.ok) {
@@ -871,8 +879,8 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
               }
             }
 
-            const expandedMissions = expandMissionsWithMultiDates(validMissions, text);
-            return { missions: expandedMissions };
+            // Return pure AI parsed JSON missions directly
+            return { missions: validMissions };
           }
         }
       }
@@ -884,8 +892,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
   // 2. Fallback Smart Multi-Mission Parser (If Typhoon AI is unavailable or fails)
   const multiMissions = parseAllThaiMissions(text, dbMembers);
   if (Array.isArray(multiMissions) && multiMissions.length > 0) {
-    const expandedFallback = expandMissionsWithMultiDates(multiMissions, text);
-    return { missions: expandedFallback };
+    return { missions: multiMissions };
   }
 
   const parsedDates = parseThaiMissionDates(text);
@@ -914,8 +921,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
       }
     ];
 
-    const expandedSingle = expandMissionsWithMultiDates(singleFallback, text);
-    return { missions: expandedSingle };
+    return { missions: singleFallback };
   }
 
   return null;
@@ -950,9 +956,10 @@ export function parseAllThaiMissions(text, dbMembers = []) {
 
   const lines = s.split('\n').map(l => l.trim()).filter(Boolean);
 
-  // Scan header lines (lines before first date line) for global assigned members & category
+  // Scan header lines (lines before first date line) for global assigned members, category & main title
   let headerMembers = [];
   let headerCategory = null;
+  let headerTitle = '';
   const firstDateLineIdx = lines.findIndex(l => rangePattern.test(l) || singlePattern.test(l) || l.match(new RegExp(`\\d{1,2}\\s*${monthRegex}`, 'i')));
 
   if (firstDateLineIdx > 0) {
@@ -964,6 +971,12 @@ export function parseAllThaiMissions(text, dbMembers = []) {
     else if (headerText.includes('ภารกิจหน่วย') || headerText.includes('งานหน่วย')) headerCategory = '🔵 ภารกิจหน่วย';
     else if (headerText.includes('ภารกิจการฝึก') || headerText.includes('การฝึก')) headerCategory = '🟤 ภารกิจการฝึก';
     else if (headerText.includes('ประชุม') || headerText.includes('VTC')) headerCategory = '🟢 ประชุม';
+
+    // Find non-noise line for headerTitle
+    const cleanHeaderLines = headerLines.filter(l => !l.startsWith('พิราบ') && !l.includes('ขอรับรายชื่อ') && !l.includes('อัพเดท'));
+    if (cleanHeaderLines.length > 0) {
+      headerTitle = cleanHeaderLines[0].trim();
+    }
   }
 
   const missions = [];
@@ -1147,7 +1160,10 @@ export function parseAllThaiMissions(text, dbMembers = []) {
           if (!m.title) {
             m.title = subLine;
           } else {
-            m.title = `${m.title} / ${subLine}`;
+            // Preserve original title; do not concatenate additional sublines unless title is empty
+          if (!m.title) {
+            m.title = subLine;
+          }
           }
         }
       });
@@ -1157,7 +1173,7 @@ export function parseAllThaiMissions(text, dbMembers = []) {
   // Final cleanup of title for any missions that had empty titles
   missions.forEach(m => {
     if (!m.title || m.title.trim().length === 0) {
-      m.title = 'ภารกิจสั่งการ';
+      m.title = headerTitle || 'ภารกิจสั่งการ';
     }
   });
 
@@ -1167,15 +1183,6 @@ export function parseAllThaiMissions(text, dbMembers = []) {
 export function expandMissionsWithMultiDates(missions, text) {
   if (!Array.isArray(missions) || missions.length === 0 || !text) {
     return missions;
-  }
-
-  // If AI already returned multiple distinct missions with valid unique dates, return as-is without duplicate expansion!
-  if (missions.length > 1) {
-    const dates = missions.map(m => m.start_date).filter(Boolean);
-    const uniqueDates = new Set(dates);
-    if (uniqueDates.size === missions.length && !dates.includes('2099-01-01')) {
-      return missions;
-    }
   }
 
   // Convert Thai digits to Arabic digits
@@ -1246,11 +1253,13 @@ export function expandMissionsWithMultiDates(missions, text) {
   }
 
   const result = [];
-  const targetDates = multiDayGroups[0];
 
-  missions.forEach(m => {
-    if (missions.length === 1 || targetDates.includes(m.start_date)) {
-      targetDates.forEach(dateIso => {
+  missions.forEach((m, idx) => {
+    // If there is a matching date group for this mission (e.g. line 1 -> group 1, line 2 -> group 2)
+    const matchingGroup = multiDayGroups.find(group => group.includes(m.start_date)) || (multiDayGroups.length === missions.length ? multiDayGroups[idx] : (missions.length === 1 ? multiDayGroups[0] : null));
+
+    if (matchingGroup && matchingGroup.length > 0) {
+      matchingGroup.forEach(dateIso => {
         result.push({
           ...m,
           start_date: dateIso,
@@ -1504,8 +1513,8 @@ export function formatDraftSummaryMessage(draftObj) {
     return `📋 สรุปร่างภารกิจ (1 รายการ):
 
 ${dateStr}
-📝 ${item.title}
-${catBadge}${warnLine}${dressLine}${notesLine}
+📝 ชื่อ: ${item.title}
+🏷️ หมวดหมู่: ${catBadge}${warnLine}${dressLine}${notesLine}
 🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}
 
 ⏱️ บันทึกให้อัตโนมัติใน 3 นาที`;
@@ -1521,7 +1530,7 @@ ${catBadge}${warnLine}${dressLine}${notesLine}
     const warnLine = formatWarningLine(item.time_warning || item.timeWarning);
     const locLine = item.location ? `\n📍 สถานที่: ${item.location}` : '';
 
-    return `${badge} ${dateStr}\n📝 ${item.title}\n${catBadge}${warnLine}${dressLine}${notesLine}\n🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}`;
+    return `${badge} ${dateStr}\n📝 ชื่อ: ${item.title}\n🏷️ หมวดหมู่: ${catBadge}${warnLine}${dressLine}${notesLine}\n🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}`;
   }).join('\n\n');
 
   return `📋 สรุปร่างภารกิจ (${missions.length} รายการ):\n\n${itemsText}\n\n⏱️ บันทึกให้อัตโนมัติใน 3 นาที`;
@@ -1689,7 +1698,7 @@ export default async function handler(req, res) {
         const isExplicitAllDay = mItem.all_day === true || (!mItem.time_str || mItem.time_str === 'ตลอดวัน' || mItem.time_str.includes('ตลอดวัน'));
 
         try {
-          let { error: insertErr } = await supabase.from('events').insert({
+          const insertPayload = {
             id: newEvtId,
             title: mItem.title,
             start_time: startTime,
@@ -1698,14 +1707,19 @@ export default async function handler(req, res) {
             category: formatCategoryWithBadge(mItem.category),
             description: descText,
             location: mItem.location || '',
-            attachment_url: mItem.attachment_url || mItem.url || '',
             member_ids: Array.isArray(mItem.member_ids) ? mItem.member_ids : [],
             alarm_minutes: 1440
-          });
+          };
 
-          // Fallback if all_day column is not yet created in Supabase events table
-          if (insertErr && insertErr.code === 'PGRST204') {
-            const fallbackRes = await supabase.from('events').insert({
+          if (mItem.attachment_url || mItem.url) {
+            insertPayload.attachment_url = mItem.attachment_url || mItem.url;
+          }
+
+          let { error: insertErr } = await supabase.from('events').insert(insertPayload);
+
+          // Fallback if attachment_url or all_day column is not yet in Supabase schema cache
+          if (insertErr && (insertErr.code === 'PGRST204' || insertErr.message?.includes('attachment_url') || insertErr.message?.includes('all_day'))) {
+            const cleanPayload = {
               id: newEvtId,
               title: mItem.title,
               start_time: startTime,
@@ -1713,18 +1727,18 @@ export default async function handler(req, res) {
               category: formatCategoryWithBadge(mItem.category),
               description: descText,
               location: mItem.location || '',
-              attachment_url: mItem.attachment_url || mItem.url || '',
               member_ids: Array.isArray(mItem.member_ids) ? mItem.member_ids : [],
               alarm_minutes: 1440
-            });
+            };
+            const fallbackRes = await supabase.from('events').insert(cleanPayload);
             insertErr = fallbackRes.error;
           }
 
           if (insertErr) {
             console.error('Supabase event insert error:', insertErr);
-            throw insertErr;
+          } else {
+            insertedEvents.push(mItem);
           }
-          insertedEvents.push(mItem);
         } catch (e) {
           console.error('Failed to insert event into Supabase:', e);
         }
@@ -2032,6 +2046,34 @@ export default async function handler(req, res) {
       const lines = userText.split('\n').map(l => l.trim()).filter(Boolean);
       let isItemizedEdit = false;
 
+      // Parse field‑label style edits (supporting both colon and whitespace, e.g. "ชื่อ: ...", "ชื่อ ...", "แก้ไขทั้งหมด ชื่อ ...")
+      const fieldLabelMap = {
+        'ชื่อ': 'title',
+        'รายละเอียด': 'description',
+        'ผู้รับผิดชอบ': 'member_names',
+        'สถานที่': 'location',
+        'เวลา': 'time_str',
+        'ประเภท': 'category',
+        'หมวดหมู่': 'category',
+        'ภารกิจ': 'category',
+        'แจ้งเตือน': 'alarm_minutes'
+      };
+      const parsedFields = {};
+      lines.forEach(line => {
+        // Remove prefixes like "แก้ไขทั้งหมด", "แก้ไข", "แก้"
+        const cleanL = line.replace(/^(?:แก้ไขทั้งหมด|แก้ไขทุกภารกิจ|แก้ไข|แก้)\s*/i, '').trim();
+        const labelRegex = /^(ชื่อ|รายละเอียด|ผู้รับผิดชอบ|สถานที่|เวลา|ประเภท|หมวดหมู่|ภารกิจ|แจ้งเตือน)(?:[\s*[:：]|\s+)(.+)$/i;
+        const match = cleanL.match(labelRegex);
+        if (match) {
+          const key = match[1];
+          const value = match[2].trim();
+          const mapped = fieldLabelMap[key];
+          if (mapped) {
+            parsedFields[mapped] = value;
+          }
+        }
+      });
+
       lines.forEach(line => {
         const numMatch = line.match(/(?:ภารกิจ\s*|ข้อ\s*|รายการ\s*)?(\d{1,2})[\:\.\)\s]+(.+)/i);
         if (numMatch) {
@@ -2151,6 +2193,35 @@ export default async function handler(req, res) {
             if (newMemberIds.length > 0) {
               mItem.member_ids = newMemberIds;
               mItem.member_names = formatMemberNamesForDisplay(newMemberIds, dbMembers);
+            }
+
+            // Apply explicit field labels if provided (e.g. "ชื่อ: ...", "ผู้รับผิดชอบ: ...", "รายละเอียด: ...")
+            if (parsedFields.title) {
+              mItem.title = parsedFields.title;
+            }
+            if (parsedFields.description) {
+              mItem.notes = parsedFields.description;
+            }
+            if (parsedFields.location) {
+              mItem.location = parsedFields.location;
+            }
+            if (parsedFields.time_str) {
+              mItem.time_str = parsedFields.time_str;
+              mItem.all_day = false;
+            }
+            if (parsedFields.category) {
+              mItem.category = formatCategoryWithBadge(parsedFields.category);
+            }
+            if (parsedFields.alarm_minutes) {
+              const alm = parseInt(parsedFields.alarm_minutes);
+              if (!isNaN(alm)) mItem.alarm_minutes = alm;
+            }
+            if (parsedFields.member_names) {
+              const matchedFromLabel = matchMemberIds([parsedFields.member_names], dbMembers);
+              if (matchedFromLabel.length > 0) {
+                mItem.member_ids = matchedFromLabel;
+                mItem.member_names = formatMemberNamesForDisplay(matchedFromLabel, dbMembers);
+              }
             }
           }
         });
@@ -2278,11 +2349,6 @@ export default async function handler(req, res) {
     }
 
     if (analyzedData) {
-      if (Array.isArray(analyzedData.missions)) {
-        const textForMultiDate = cleanMissionText || (event.message && event.message.text) || ocrText || '';
-        analyzedData.missions = expandMissionsWithMultiDates(analyzedData.missions, textForMultiDate);
-      }
-
       const rawMissions = Array.isArray(analyzedData.missions) && analyzedData.missions.length > 0
         ? analyzedData.missions
         : [analyzedData];
