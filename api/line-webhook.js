@@ -832,24 +832,6 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
                 }
               }
 
-              // Heatstroke / Heat Illness Training Post-Processing (นฝ. อบรมลมร้อน)
-              const isHeatIllnessTask = (text && (text.includes('ความร้อน') || text.includes('ลมร้อน') || text.includes('โรคลมร้อน') || text.includes('การเจ็บป่วยจากความร้อน'))) ||
-                                        (m.notes && (m.notes.includes('ความร้อน') || m.notes.includes('ลมร้อน') || m.notes.includes('โรคลมร้อน')));
-              if (isHeatIllnessTask && !isRoyalTask) {
-                m.category = '🟤 ภารกิจการฝึก';
-                m.title = 'นฝ. อบรมลมร้อน';
-              }
-
-              // Training Unit Post-Processing (for ตารางหน่วยฝึก / หน่วยฝึก / นฝ.)
-              const isTrainingUnitSchedule = (text && (text.includes('ตารางหน่วยฝึก') || text.includes('หน่วยฝึก') || text.includes('ตาราง นฝ.') || text.includes('ทหารใหม่'))) ||
-                                            (m.title && (m.title.includes('หน่วยฝึก') || m.title.includes('นฝ.')));
-              if (isTrainingUnitSchedule && !isRoyalTask) {
-                m.category = '🟤 ภารกิจการฝึก';
-                if (m.title && !m.title.startsWith('นฝ.') && !m.title.startsWith('นฝ')) {
-                  m.title = `นฝ. ${m.title.replace(/^หน่วยฝึก\s*/, '')}`;
-                }
-              }
-
               if (m.notes && !m.description) {
                 m.description = m.notes;
               }

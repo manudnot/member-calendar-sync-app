@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Check, Users, Plus, Trash2, Palette, ExternalLink, FileText, Upload } from 'lucide-react';
 import { isAllDayEvent, convertMinutesToNotif, getLocalDateStr, getLocalTimeStr } from '../../utils/helpers';
 
@@ -45,46 +45,173 @@ function getAlarmMinutesFromNotif(notif) {
   return val;
 }
 
-function TimePicker24h({ value, onChange }) {
-  const timeStr = value || '09:00';
+function addOneHour(timeStr) {
+  if (!timeStr) return '10:00';
   const parts = timeStr.split(':');
-  const currentHour = parts[0] ? parts[0].padStart(2, '0') : '09';
-  const currentMin = parts[1] ? parts[1].padStart(2, '0') : '00';
+  const h = parseInt(parts[0] || '0', 10);
+  const m = parseInt(parts[1] || '0', 10);
+  const newH = (h + 1) % 24;
+  return `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
 
-  const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-  const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+function TimePicker24h({ value, onChange, hasError }) {
+  const [hour, setHour] = useState('09');
+  const [min, setMin] = useState('00');
+  const hourRef = useRef(null);
+  const minRef = useRef(null);
+
+  // Sync state when external value changes
+  useEffect(() => {
+    const timeStr = value || '09:00';
+    const parts = timeStr.split(':');
+    setHour(parts[0] ? parts[0].padStart(2, '0') : '09');
+    setMin(parts[1] ? parts[1].padStart(2, '0') : '00');
+  }, [value]);
+
+  const handleHourChange = (e) => {
+    let raw = e.target.value.replace(/\D/g, '');
+    if (raw.length > 2) raw = raw.slice(0, 2);
+
+    if (raw === '') {
+      setHour('');
+      return;
+    }
+
+    let num = parseInt(raw, 10);
+    if (num > 23) {
+      raw = '23';
+    }
+
+    setHour(raw);
+
+    // If 2 digits typed, notify parent and auto-tab to minute
+    if (raw.length === 2) {
+      onChange(`${raw}:${min ? min.padStart(2, '0') : '00'}`);
+      setTimeout(() => {
+        if (minRef.current) {
+          minRef.current.focus();
+          minRef.current.select();
+        }
+      }, 10);
+    }
+  };
+
+  const handleHourBlur = () => {
+    let formatted = hour === '' ? '00' : hour.padStart(2, '0');
+    let num = parseInt(formatted, 10);
+    if (num > 23) formatted = '23';
+    setHour(formatted);
+    onChange(`${formatted}:${min ? min.padStart(2, '0') : '00'}`);
+  };
+
+  const handleHourKeyDown = (e) => {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const current = parseInt(hour || '0', 10);
+      const next = (current + 1) % 24;
+      const formatted = String(next).padStart(2, '0');
+      setHour(formatted);
+      onChange(`${formatted}:${min ? min.padStart(2, '0') : '00'}`);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const current = parseInt(hour || '0', 10);
+      const prev = (current - 1 + 24) % 24;
+      const formatted = String(prev).padStart(2, '0');
+      setHour(formatted);
+      onChange(`${formatted}:${min ? min.padStart(2, '0') : '00'}`);
+    }
+  };
+
+  const handleMinChange = (e) => {
+    let raw = e.target.value.replace(/\D/g, '');
+    if (raw.length > 2) raw = raw.slice(0, 2);
+
+    if (raw === '') {
+      setMin('');
+      return;
+    }
+
+    let num = parseInt(raw, 10);
+    if (num > 59) {
+      raw = '59';
+    }
+
+    setMin(raw);
+
+    if (raw.length === 2) {
+      onChange(`${hour ? hour.padStart(2, '0') : '00'}:${raw}`);
+    }
+  };
+
+  const handleMinBlur = () => {
+    let formatted = min === '' ? '00' : min.padStart(2, '0');
+    let num = parseInt(formatted, 10);
+    if (num > 59) formatted = '59';
+    setMin(formatted);
+    onChange(`${hour ? hour.padStart(2, '0') : '00'}:${formatted}`);
+  };
+
+  const handleMinKeyDown = (e) => {
+    if (e.key === 'Backspace' && (min === '' || (e.target.selectionStart === 0 && e.target.selectionEnd === 0))) {
+      hourRef.current?.focus();
+      hourRef.current?.select();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const current = parseInt(min || '0', 10);
+      const next = (current + 5) % 60;
+      const formatted = String(next).padStart(2, '0');
+      setMin(formatted);
+      onChange(`${hour ? hour.padStart(2, '0') : '00'}:${formatted}`);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const current = parseInt(min || '0', 10);
+      const prev = (current - 5 + 60) % 60;
+      const formatted = String(prev).padStart(2, '0');
+      setMin(formatted);
+      onChange(`${hour ? hour.padStart(2, '0') : '00'}:${formatted}`);
+    }
+  };
 
   return (
-    <div className="flex items-center gap-1">
-      <div className="relative flex-1">
-        <select
-          className="w-full input-field font-mono text-xs py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold shadow-sm focus:ring-2 focus:ring-emerald-500 cursor-pointer appearance-none pr-6"
-          value={currentHour}
-          onChange={(e) => onChange(`${e.target.value}:${currentMin}`)}
-        >
-          {hours.map((h) => (
-            <option key={h} value={h}>
-              {h} น.
-            </option>
-          ))}
-        </select>
-        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">▼</span>
+    <div
+      className={`flex items-center justify-between w-full input-field font-mono text-xs py-2 px-3 rounded-lg border bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 shadow-sm transition-all focus-within:ring-2 ${
+        hasError
+          ? 'border-rose-400 focus-within:ring-rose-400 ring-1 ring-rose-300 dark:border-rose-500'
+          : 'border-slate-200 dark:border-slate-700 focus-within:ring-emerald-500'
+      }`}
+    >
+      <div className="flex items-center gap-1.5 flex-1 justify-center">
+        <input
+          ref={hourRef}
+          type="text"
+          inputMode="numeric"
+          placeholder="09"
+          maxLength={2}
+          value={hour}
+          onChange={handleHourChange}
+          onBlur={handleHourBlur}
+          onKeyDown={handleHourKeyDown}
+          onFocus={(e) => e.target.select()}
+          className="w-7 text-center font-bold bg-transparent outline-none p-0 focus:text-emerald-600 dark:focus:text-emerald-400 selection:bg-emerald-200 dark:selection:bg-emerald-900"
+          title="ชั่วโมง (00-23) - พิมพ์ 2 หลักจะเลื่อนไปหานาทีอัตโนมัติ"
+        />
+        <span className="font-extrabold text-slate-400 select-none pb-0.5">:</span>
+        <input
+          ref={minRef}
+          type="text"
+          inputMode="numeric"
+          placeholder="00"
+          maxLength={2}
+          value={min}
+          onChange={handleMinChange}
+          onBlur={handleMinBlur}
+          onKeyDown={handleMinKeyDown}
+          onFocus={(e) => e.target.select()}
+          className="w-7 text-center font-bold bg-transparent outline-none p-0 focus:text-emerald-600 dark:focus:text-emerald-400 selection:bg-emerald-200 dark:selection:bg-emerald-900"
+          title="นาที (00-59)"
+        />
       </div>
-      <span className="font-extrabold text-slate-500 text-sm">:</span>
-      <div className="relative flex-1">
-        <select
-          className="w-full input-field font-mono text-xs py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold shadow-sm focus:ring-2 focus:ring-emerald-500 cursor-pointer appearance-none pr-6"
-          value={currentMin}
-          onChange={(e) => onChange(`${currentHour}:${e.target.value}`)}
-        >
-          {minutes.map((m) => (
-            <option key={m} value={m}>
-              {m} นาที
-            </option>
-          ))}
-        </select>
-        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">▼</span>
-      </div>
+      <span className="text-[11px] font-sans font-semibold text-slate-400 select-none ml-2">น.</span>
     </div>
   );
 }
@@ -257,6 +384,40 @@ export default function MissionModal({
     }
   };
 
+  const handleStartDateChange = (newStartDate) => {
+    setStartDate(newStartDate);
+    if (endDate && endDate < newStartDate) {
+      setEndDate(newStartDate);
+    }
+  };
+
+  const handleStartTimeChange = (newStartTime) => {
+    setStartTime(newStartTime);
+    if (startDate === endDate) {
+      const [sH, sM] = newStartTime.split(':').map(Number);
+      const [eH, eM] = (endTime || '10:00').split(':').map(Number);
+      const sMin = (sH * 60) + (sM || 0);
+      const eMin = (eH * 60) + (eM || 0);
+      if (eMin <= sMin) {
+        setEndTime(addOneHour(newStartTime));
+      }
+    }
+  };
+
+  const isTimeInvalid = useMemo(() => {
+    if (allDay) return false;
+    if (!startDate || !endDate || !startTime || !endTime) return false;
+    if (endDate < startDate) return true;
+    if (startDate === endDate) {
+      const [sH, sM] = startTime.split(':').map(Number);
+      const [eH, eM] = endTime.split(':').map(Number);
+      const sMin = (sH * 60) + (sM || 0);
+      const eMin = (eH * 60) + (eM || 0);
+      return eMin < sMin;
+    }
+    return false;
+  }, [allDay, startDate, endDate, startTime, endTime]);
+
   if (!isOpen) return null;
 
   const repeatOptions = getRepeatOptionsForDate(startDate);
@@ -320,6 +481,21 @@ export default function MissionModal({
     if (selectedMembers.length === 0) {
       alert('กรุณาเลือกสมาชิกผู้รับผิดชอบอย่างน้อย 1 คน');
       return;
+    }
+
+    if (!allDay) {
+      if (endDate < startDate) {
+        alert('วันที่สิ้นสุดต้องไม่เกิดขึ้นก่อนวันที่เริ่มต้น');
+        return;
+      }
+      if (startDate === endDate) {
+        const [sH, sM] = startTime.split(':').map(Number);
+        const [eH, eM] = endTime.split(':').map(Number);
+        if ((eH * 60 + (eM || 0)) < (sH * 60 + (sM || 0))) {
+          alert('เวลาสิ้นสุดต้องไม่เกิดขึ้นก่อนเวลาเริ่มต้น (กรุณาตรวจสอบเวลา)');
+          return;
+        }
+      }
     }
 
     let startIso;
@@ -442,7 +618,7 @@ export default function MissionModal({
                 type="date"
                 className="input-field font-mono text-xs"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => handleStartDateChange(e.target.value)}
                 required
               />
             </div>
@@ -454,7 +630,7 @@ export default function MissionModal({
                 </label>
                 <TimePicker24h
                   value={startTime}
-                  onChange={(val) => setStartTime(val)}
+                  onChange={handleStartTimeChange}
                 />
               </div>
             )}
@@ -468,7 +644,7 @@ export default function MissionModal({
               </label>
               <input
                 type="date"
-                className="input-field font-mono text-xs"
+                className={`input-field font-mono text-xs ${endDate < startDate ? 'border-rose-400 ring-1 ring-rose-300 dark:border-rose-500' : ''}`}
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 required
@@ -483,10 +659,22 @@ export default function MissionModal({
                 <TimePicker24h
                   value={endTime}
                   onChange={(val) => setEndTime(val)}
+                  hasError={isTimeInvalid}
                 />
               </div>
             )}
           </div>
+
+          {!allDay && isTimeInvalid && (
+            <div className="px-2.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 flex items-center gap-1.5 text-[11px] text-rose-600 dark:text-rose-400 font-bold animate-fade-in -mt-1">
+              <span>⚠️</span>
+              <span>
+                {endDate < startDate
+                  ? 'วันที่สิ้นสุดต้องไม่เกิดขึ้นก่อนวันที่เริ่มต้น'
+                  : 'เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่มต้น (ในวันเดียวกัน)'}
+              </span>
+            </div>
+          )}
 
           {/* Members Selector with Select All Button */}
           <div className="flex flex-col gap-1.5">
