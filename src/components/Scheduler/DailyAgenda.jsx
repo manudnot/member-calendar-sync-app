@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, Edit3, Trash2, Clock, MapPin, Link as LinkIcon, CheckCircle2 } from 'lucide-react';
-import { THAI_MONTHS, formatTimeShort, isEventOnDate, getEventColor, isAllDayEvent, getLocalDateStr } from '../../utils/helpers';
+import { THAI_MONTHS, formatTimeShort, isEventOnDate, getEventColor, isAllDayEvent, getLocalDateStr, isSpecialDayEvent, isWfhEvent } from '../../utils/helpers';
 
 export default function DailyAgenda({
   selectedDateStr,
@@ -20,6 +20,7 @@ export default function DailyAgenda({
   const getMemberById = (mId) => members.find(m => m.id === mId);
 
   const rawDayEvents = events.filter(evt => {
+    if (isSpecialDayEvent(evt)) return false;
     if (!isEventOnDate(evt, selectedDateStr)) return false;
     if (!Array.isArray(evt.member_ids) || evt.member_ids.length === 0) return true;
 
@@ -77,11 +78,7 @@ export default function DailyAgenda({
     return (a.title || '').localeCompare(b.title || '');
   });
 
-  const wfhEvents = dayEvents.filter(evt => {
-    const cat = String(evt.category || '').toLowerCase();
-    const t = String(evt.title || '').toLowerCase();
-    return cat.includes('wfh') || cat.includes('ปฏิบัติงานที่พัก') || t.startsWith('[wfh]') || t.includes('work from home');
-  });
+  const wfhEvents = events.filter(evt => isWfhEvent(evt) && isEventOnDate(evt, selectedDateStr));
 
   return (
     <div className="h-60 bg-white dark:bg-dark-card border-t-2 border-emerald-500 flex flex-col shadow-lg shrink-0 glass-panel">
@@ -119,7 +116,7 @@ export default function DailyAgenda({
           <div className="p-2 px-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex items-center gap-2 text-amber-800 dark:text-amber-200 shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
             <span className="text-xs font-black">
-              🏠 ปฏิบัติงานที่พัก (WFH): {wfhEvents.map(e => e.title.replace(/^\[WFH\]\s*/i, '')).join(', ')}
+              ปฏิบัติงานที่พัก (WFH): {wfhEvents.map(e => e.title.replace(/^\[WFH\]\s*/i, '')).join(', ')}
             </span>
           </div>
         )}

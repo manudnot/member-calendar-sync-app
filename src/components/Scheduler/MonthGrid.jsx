@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { formatDateKey, formatTimeShort, hexToRgba, isEventOnDate, getEventColor, isAllDayEvent, getLocalDateStr } from '../../utils/helpers';
+import { formatDateKey, formatTimeShort, hexToRgba, isEventOnDate, getEventColor, isAllDayEvent, getLocalDateStr, isSpecialDayEvent, isWfhEvent } from '../../utils/helpers';
 import { getHolidayForDate } from '../../utils/holidays';
 import { Move, Copy, X } from 'lucide-react';
 
@@ -182,6 +182,9 @@ export default function MonthGrid({
     return evt.member_ids.some(mId => visibleMemberIds.includes(mId));
   });
 
+  // Only regular duty missions get rendered as horizontal event bars (exclude holidays & WFH)
+  const dutyEvents = visibleEvents.filter(evt => !isSpecialDayEvent(evt));
+
   const handleCellDrop = (e, cellDateStr) => {
     e.preventDefault();
     e.stopPropagation();
@@ -272,7 +275,7 @@ export default function MonthGrid({
           // Calculate events present in this week
           const weekEvents = [];
 
-          visibleEvents.forEach(evt => {
+          dutyEvents.forEach(evt => {
             let startCol = -1;
             let endCol = -1;
 
@@ -375,17 +378,13 @@ export default function MonthGrid({
               
               {/* Day Background Cells with Full 4-Side Borders & Drag Target Handlers */}
               {week.map((cell, colIdx) => {
-                const dayAllEvents = visibleEvents.filter(e => isEventOnDate(e, cell.dateStr));
+                const dayAllEvents = dutyEvents.filter(e => isEventOnDate(e, cell.dateStr));
                 const totalEventsOnDay = dayAllEvents.length;
                 const visibleInCellCount = itemsWithSlots.filter(item => item.startCol <= colIdx && item.endCol >= colIdx && item.slotIndex < maxVisibleSlots).length;
                 const overflowCount = totalEventsOnDay - visibleInCellCount;
                 const isDragTarget = dragOverDateStr === cell.dateStr;
                 const holiday = getHolidayForDate(cell.dateStr, holidays);
-                const wfhEvents = dayAllEvents.filter(e => {
-                  const cat = String(e.category || '').toLowerCase();
-                  const t = String(e.title || '').toLowerCase();
-                  return cat.includes('wfh') || cat.includes('ปฏิบัติงานที่พัก') || t.startsWith('[wfh]') || t.includes('work from home');
-                });
+                const wfhEvents = events.filter(e => isWfhEvent(e) && isEventOnDate(e, cell.dateStr));
                 const hasWfh = wfhEvents.length > 0;
 
                 return (
@@ -418,14 +417,14 @@ export default function MonthGrid({
                         : holiday
                         ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/60 hover:bg-rose-100/80 dark:hover:bg-rose-950/40'
                         : hasWfh
-                        ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/60 hover:bg-amber-100/80 dark:hover:bg-amber-950/40'
+                        ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/60 hover:bg-amber-100/80 dark:hover:bg-amber-950/40'
                         : 'bg-white dark:bg-dark-card hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     } ${cell.isOtherMonth ? 'bg-slate-50/60 dark:bg-dark-card/40 opacity-60' : ''}`}
                     title={
                       holiday
                         ? `${holiday.name} (วันหยุดราชการ)`
                         : hasWfh
-                        ? `ปฏิบัติงานที่พัก (WFH): ${wfhEvents.map(e => e.title).join(', ')}`
+                        ? `ปฏิบัติงานที่พัก (WFH): ${wfhEvents.map(e => e.title.replace(/^\[WFH\]\s*/i, '')).join(', ')}`
                         : 'กด 1 ครั้งเพื่อเลือกวัน (กรอบสีเขียว) กดซ้ำเพื่อสร้างภารกิจใหม่'
                     }
                   >

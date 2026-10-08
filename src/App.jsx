@@ -16,7 +16,7 @@ import MonthYearPickerModal from './components/Modals/MonthYearPickerModal';
 import SearchModal from './components/Modals/SearchModal';
 import HolidayModal from './components/Modals/HolidayModal';
 import { fetchLiveHolidays } from './utils/holidays';
-import { formatDateKey, formatThaiDateTime, sanitizeEventsTime, INITIAL_CATEGORIES, ensureEventCategoryAndColor, getLocalDateStr, isAllDayEvent } from './utils/helpers';
+import { formatDateKey, formatThaiDateTime, sanitizeEventsTime, INITIAL_CATEGORIES, ensureEventCategoryAndColor, getLocalDateStr, isAllDayEvent, isHolidayEvent } from './utils/helpers';
 import { supabase } from './utils/supabase';
 import { hashPasscode } from './utils/crypto';
 
@@ -122,8 +122,7 @@ export default function App() {
   const combinedHolidays = useMemo(() => {
     const merged = { ...holidays };
     events.forEach(evt => {
-      const cat = String(evt.category || '').toLowerCase();
-      if (cat.includes('วันหยุดพิเศษ') || cat.includes('วันหยุดราชการ')) {
+      if (isHolidayEvent(evt)) {
         const startD = evt.start_time ? evt.start_time.split('T')[0] : '';
         const endD = evt.end_time ? evt.end_time.split('T')[0] : startD;
         if (startD) {

@@ -371,6 +371,33 @@ export function formatAlarmLabel(totalMinutes) {
   return `${mins} นาทีก่อนหน้า`;
 }
 
+export function isHolidayEvent(evt) {
+  if (!evt) return false;
+  const cat = String(evt.category || '').toLowerCase();
+  const title = String(evt.title || '').toLowerCase();
+  if (cat.includes('wfh') || title.startsWith('[wfh]')) return false;
+  return (
+    cat.includes('วันหยุดพิเศษ') ||
+    cat.includes('วันหยุดราชการ') ||
+    cat.includes('วันหยุด') ||
+    title.includes('วันหยุดราชการ') ||
+    title.includes('วันหยุดพิเศษ')
+  );
+}
 
+export function isWfhEvent(evt) {
+  if (!evt) return false;
+  if (isHolidayEvent(evt)) return false;
+  const cat = String(evt.category || '').toLowerCase();
+  const title = String(evt.title || '').toLowerCase();
+  return (
+    cat.includes('wfh') ||
+    cat.includes('ปฏิบัติงานที่พัก') ||
+    title.startsWith('[wfh]') ||
+    title.includes('work from home')
+  );
+}
 
-
+export function isSpecialDayEvent(evt) {
+  return isHolidayEvent(evt) || isWfhEvent(evt);
+}

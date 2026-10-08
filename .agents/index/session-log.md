@@ -2,6 +2,19 @@
 
 ## 📅 Session Log: 2026-10-08
 
+### Version 4.10 - Day Status Styling: Cell Background & Banners Only (No Event Bars/Cards, Clean WFH Text)
+- **MonthGrid Day Status vs. Duty Missions (`MonthGrid.jsx`)**:
+  - Filtered `dutyEvents` (`!isSpecialDayEvent(evt)`) for horizontal event bars overlay and `overflowCount`.
+  - Custom holidays and WFH days are strictly treated as **Day Statuses** instead of duty missions: no event bars are rendered on the grid.
+  - Implemented cell background priority: Red (`bg-rose-50 dark:bg-rose-950/20 border-rose-200/80`) if Holiday (official or custom); Orange (`bg-amber-50 dark:bg-amber-950/20 border-amber-200/80`) if WFH; if WFH overlaps with a normal/official holiday, Red background takes precedence.
+- **Daily Modals & Agenda Cleanup (`DayEventsModal.jsx`, `DailyAgenda.jsx`)**:
+  - Excluded special day events from daily event item lists (no duty mission cards created for holidays/WFH).
+  - Kept top status notification banners: Red badge for Holidays, Orange badge for WFH.
+  - Cleaned WFH banner text: Removed `🏠` emoji -> `ปฏิบัติงานที่พัก (WFH): [รายชื่อ/ภารกิจ]`.
+- **Helpers (`src/utils/helpers.js`)**:
+  - Added `isHolidayEvent`, `isWfhEvent`, and `isSpecialDayEvent` utilities.
+- **Git Commit**: Pushed to `manudnot/member-calendar-sync-app` main branch.
+
 ### Version 4.9 - Exclude Custom Holidays & WFH from iCal Feeds
 - **iCal Feed Filtering (`api/feed.js`)**:
   - Excluded custom holidays (`วันหยุดพิเศษ`, `วันหยุดราชการ`) and WFH events (`WFH`, `ปฏิบัติงานที่พัก`) from `/api/feed.js`.
