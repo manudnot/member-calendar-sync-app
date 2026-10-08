@@ -186,6 +186,16 @@ export function getEventColor(evt, categories = INITIAL_CATEGORIES, members = []
 
   const catList = Array.isArray(categories) && categories.length > 0 ? categories : INITIAL_CATEGORIES;
   const catStr = String(evt.category || '').toLowerCase();
+  const titleStr = String(evt.title || '').toLowerCase();
+
+  // WFH (Orange)
+  if (catStr.includes('wfh') || catStr.includes('ปฏิบัติงานที่พัก') || titleStr.includes('wfh') || titleStr.includes('work from home')) {
+    return '#f97316';
+  }
+  // Holiday (Red)
+  if (catStr.includes('วันหยุด') || catStr.includes('หยุดพิเศษ') || catStr.includes('หยุดราชการ')) {
+    return '#ef4444';
+  }
 
   // 1. By explicit category text match (Highest Priority)
   if (catStr.includes('กิจกรรม') || catStr.includes('cat_special') || catStr.includes('🌸')) {

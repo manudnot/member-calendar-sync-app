@@ -2,6 +2,21 @@
 
 ## 📅 Session Log: 2026-10-08
 
+### Version 4.7 - Custom Holidays (Red) & WFH (Orange) Management Modal
+- **Quick Actions Button Reordering (`FirstTimeUserModal.jsx`)**:
+  - Moved "จัดการสมาชิก" (Users icon) to the 1st button slot (replacing the previous add-mission button).
+  - Placed new "วันหยุด & WFH" (CalendarOff icon) button in the 4th/last slot of the 2x2 grid.
+  - Added shortcut button in `RightToolbar.jsx` for desktop access.
+- **Dedicated Modal (`HolidayModal.jsx`)**:
+  - Form to add Custom Holidays (Red) or Work From Home / WFH (Orange) with date ranges and member assignments.
+  - Interactive list of custom items with deletion option.
+  - Official Thai public holidays reference tab (Auto live sync).
+- **Calendar & Agenda Visuals (`MonthGrid.jsx`, `DailyAgenda.jsx`, `DayEventsModal.jsx`)**:
+  - Custom holidays turn calendar cells and day numbers Red with tooltips and banners.
+  - WFH days render warm Orange styling (`bg-amber-50`, `text-amber-600`, tooltip & agenda banner).
+- **Supabase Integration**:
+  - Saved directly into existing `events` table (`category: 'วันหยุดพิเศษ'` / `'WFH'`) with zero SQL schema migration needed.
+
 ### Version 4.6 - Direct File Upload to Google Drive via GAS & LINE Bot Auto-Attachment
 - **Direct File Upload UI (`MissionModal.jsx`)**:
   - Hidden file input ref supporting PDF, Word, Excel, PowerPoint, and images (JPEG, PNG, WebP, HEIC).

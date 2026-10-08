@@ -1,10 +1,11 @@
 import React from 'react';
-import { Users, QrCode, Activity, Plus, Sun, Moon, Laptop } from 'lucide-react';
+import { Users, QrCode, Activity, Plus, Sun, Moon, Laptop, CalendarOff } from 'lucide-react';
 
 export default function RightToolbar({
   onOpenMemberManagement,
   onOpenIcalModal,
   onOpenActivityLog,
+  onOpenHolidayModal,
   onOpenAddEvent,
   unreadActivityCount,
   theme = 'light',
@@ -47,6 +48,16 @@ export default function RightToolbar({
           </span>
         )}
       </button>
+
+      {onOpenHolidayModal && (
+        <button
+          onClick={onOpenHolidayModal}
+          className="p-2.5 rounded-xl text-slate-500 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none cursor-pointer"
+          title="จัดการวันหยุด & WFH (Holidays & WFH)"
+        >
+          <CalendarOff className="w-5 h-5" />
+        </button>
+      )}
 
       {setTheme && (
         <button

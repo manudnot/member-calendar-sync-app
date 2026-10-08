@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import RightToolbar from './components/RightToolbar';
@@ -14,6 +14,7 @@ import ForgotPinModal from './components/Modals/ForgotPinModal';
 import DayEventsModal from './components/Modals/DayEventsModal';
 import MonthYearPickerModal from './components/Modals/MonthYearPickerModal';
 import SearchModal from './components/Modals/SearchModal';
+import HolidayModal from './components/Modals/HolidayModal';
 import { fetchLiveHolidays } from './utils/holidays';
 import { formatDateKey, formatThaiDateTime, sanitizeEventsTime, INITIAL_CATEGORIES, ensureEventCategoryAndColor, getLocalDateStr, isAllDayEvent } from './utils/helpers';
 import { supabase } from './utils/supabase';
@@ -109,12 +110,35 @@ export default function App() {
   const [memberToEdit, setMemberToEdit] = useState(null);
   const [toast, setToast] = useState(null);
   const [holidays, setHolidays] = useState({});
+  const [isHolidayModalOpen, setIsHolidayModalOpen] = useState(false);
 
   useEffect(() => {
     fetchLiveHolidays(currentYear).then(hData => {
       if (hData) setHolidays(hData);
     });
   }, [currentYear]);
+
+  // Merge official holidays with custom holidays from events (Category: 'วันหยุดพิเศษ' or 'วันหยุดราชการ')
+  const combinedHolidays = useMemo(() => {
+    const merged = { ...holidays };
+    events.forEach(evt => {
+      const cat = String(evt.category || '').toLowerCase();
+      if (cat.includes('วันหยุดพิเศษ') || cat.includes('วันหยุดราชการ')) {
+        const startD = evt.start_time ? evt.start_time.split('T')[0] : '';
+        const endD = evt.end_time ? evt.end_time.split('T')[0] : startD;
+        if (startD) {
+          const curr = new Date(startD);
+          const end = new Date(endD || startD);
+          while (curr <= end) {
+            const dStr = curr.toISOString().split('T')[0];
+            merged[dStr] = evt.title || 'วันหยุดพิเศษ';
+            curr.setDate(curr.getDate() + 1);
+          }
+        }
+      }
+    });
+    return merged;
+  }, [holidays, events]);
 
   const activeUser = activeUserId 
     ? (members.find(m => m.id === activeUserId && m.member_type !== 'virtual') || null)
@@ -782,6 +806,22 @@ export default function App() {
     }
   };
 
+  const handleSaveHolidayOrWfh = async (payload) => {
+    const newEvt = {
+      id: `evt_custom_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      title: payload.title,
+      start_time: `${payload.startDate}T00:00:00.000Z`,
+      end_time: `${payload.endDate || payload.startDate}T23:59:59.000Z`,
+      all_day: true,
+      category: payload.category,
+      description: payload.description || '',
+      location: '',
+      member_ids: payload.memberIds || [],
+      alarm_minutes: 0
+    };
+    await handleSaveEvent(newEvt);
+  };
+
   const handleMoveEvent = async (targetEvtOrId, targetDateStr) => {
     const targetEvt = (typeof targetEvtOrId === 'object' && targetEvtOrId !== null)
       ? targetEvtOrId
@@ -1167,7 +1207,7 @@ export default function App() {
             members={members}
             categories={categories}
             visibleMemberIds={visibleMemberIds}
-            holidays={holidays}
+            holidays={combinedHolidays}
             onEditEvent={handleOpenEditEvent}
             onMoveEvent={handleMoveEvent}
             onCopyEvent={handleCopyEvent}
@@ -1184,6 +1224,7 @@ export default function App() {
           onOpenMemberManagement={() => { setMemberToEdit(null); setIsMemberManagementOpen(true); }}
           onOpenIcalModal={() => setIsIcalModalOpen(true)}
           onOpenActivityLog={handleOpenActivityLogModal}
+          onOpenHolidayModal={() => setIsHolidayModalOpen(true)}
           onOpenAddEvent={() => handleOpenAddEvent(selectedDateStr)}
           unreadActivityCount={unreadActivityCount}
           theme={theme}
@@ -1204,6 +1245,7 @@ export default function App() {
         onOpenMemberManagement={() => { setMemberToEdit(null); setIsMemberManagementOpen(true); }}
         onOpenIcalModal={() => setIsIcalModalOpen(true)}
         onOpenActivityLog={handleOpenActivityLogModal}
+        onOpenHolidayModal={() => setIsHolidayModalOpen(true)}
         unreadActivityCount={unreadActivityCount}
         theme={theme}
         setTheme={setTheme}
@@ -1297,9 +1339,20 @@ export default function App() {
         members={members}
         categories={categories}
         visibleMemberIds={visibleMemberIds}
-        holidays={holidays}
+        holidays={combinedHolidays}
         onOpenAddEvent={handleOpenAddEvent}
         onEditEvent={handleOpenEditEvent}
+        onDeleteEvent={handleDeleteEvent}
+      />
+
+      <HolidayModal
+        isOpen={isHolidayModalOpen}
+        onClose={() => setIsHolidayModalOpen(false)}
+        events={events}
+        officialHolidays={holidays}
+        members={members}
+        currentYear={currentYear}
+        onSaveHolidayOrWfh={handleSaveHolidayOrWfh}
         onDeleteEvent={handleDeleteEvent}
       />
 

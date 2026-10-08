@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, KeyRound, ShieldCheck, Fingerprint, Check, AlertCircle, Sparkles, Lock, ArrowRight, RefreshCw, X, Plus, Users, QrCode, Activity, UserCheck, Sun, Moon, Laptop, Search } from 'lucide-react';
+import { User, KeyRound, ShieldCheck, Fingerprint, Check, AlertCircle, Sparkles, Lock, ArrowRight, RefreshCw, X, Plus, Users, QrCode, Activity, UserCheck, Sun, Moon, Laptop, Search, CalendarOff } from 'lucide-react';
 import { verifyMasterPasscode, verifyPinCode } from '../../utils/crypto';
 
 export default function FirstTimeUserModal({
@@ -14,6 +14,7 @@ export default function FirstTimeUserModal({
   onOpenMemberManagement,
   onOpenIcalModal,
   onOpenActivityLog,
+  onOpenHolidayModal,
   unreadActivityCount = 0,
   theme = 'light',
   setTheme,
@@ -303,24 +304,13 @@ export default function FirstTimeUserModal({
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
-                    {onOpenAddEvent && (
-                      <button
-                        type="button"
-                        onClick={() => { onClose && onClose(); onOpenAddEvent(); }}
-                        className="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center gap-2 text-xs font-black transition-all cursor-pointer shadow-xs"
-                      >
-                        <Plus className="w-4 h-4 shrink-0" />
-                        <span>เพิ่มกิจกรรมใหม่</span>
-                      </button>
-                    )}
-
                     {onOpenMemberManagement && (
                       <button
                         type="button"
                         onClick={() => { onClose && onClose(); onOpenMemberManagement(); }}
-                        className="p-2.5 bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-slate-700 dark:text-slate-200 hover:border-emerald-500 rounded-xl flex items-center gap-2 text-xs font-black transition-all cursor-pointer shadow-xs"
+                        className="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center gap-2 text-xs font-black transition-all cursor-pointer shadow-xs"
                       >
-                        <Users className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <Users className="w-4 h-4 shrink-0" />
                         <span>จัดการสมาชิก</span>
                       </button>
                     )}
@@ -349,6 +339,17 @@ export default function FirstTimeUserModal({
                             {unreadActivityCount}
                           </span>
                         )}
+                      </button>
+                    )}
+
+                    {onOpenHolidayModal && (
+                      <button
+                        type="button"
+                        onClick={() => { onClose && onClose(); onOpenHolidayModal(); }}
+                        className="p-2.5 bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-slate-700 dark:text-slate-200 hover:border-amber-500 rounded-xl flex items-center gap-2 text-xs font-black transition-all cursor-pointer shadow-xs"
+                      >
+                        <CalendarOff className="w-4 h-4 text-amber-500 shrink-0" />
+                        <span>วันหยุด & WFH</span>
                       </button>
                     )}
                   </div>

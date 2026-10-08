@@ -337,6 +337,12 @@ export default function MonthGrid({
                 const overflowCount = totalEventsOnDay - visibleInCellCount;
                 const isDragTarget = dragOverDateStr === cell.dateStr;
                 const holiday = getHolidayForDate(cell.dateStr, holidays);
+                const wfhEvents = dayAllEvents.filter(e => {
+                  const cat = String(e.category || '').toLowerCase();
+                  const t = String(e.title || '').toLowerCase();
+                  return cat.includes('wfh') || cat.includes('ปฏิบัติงานที่พัก') || t.startsWith('[wfh]') || t.includes('work from home');
+                });
+                const hasWfh = wfhEvents.length > 0;
 
                 return (
                   <div
@@ -367,9 +373,17 @@ export default function MonthGrid({
                         ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-50/40 dark:bg-emerald-950/30 font-semibold z-20'
                         : holiday
                         ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/60 hover:bg-rose-100/80 dark:hover:bg-rose-950/40'
+                        : hasWfh
+                        ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/60 hover:bg-amber-100/80 dark:hover:bg-amber-950/40'
                         : 'bg-white dark:bg-dark-card hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     } ${cell.isOtherMonth ? 'bg-slate-50/60 dark:bg-dark-card/40 opacity-60' : ''}`}
-                    title={holiday ? `${holiday.name} (วันหยุดราชการ)` : 'กด 1 ครั้งเพื่อเลือกวัน (กรอบสีเขียว) กดซ้ำเพื่อสร้างภารกิจใหม่'}
+                    title={
+                      holiday
+                        ? `${holiday.name} (วันหยุดราชการ)`
+                        : hasWfh
+                        ? `ปฏิบัติงานที่พัก (WFH): ${wfhEvents.map(e => e.title).join(', ')}`
+                        : 'กด 1 ครั้งเพื่อเลือกวัน (กรอบสีเขียว) กดซ้ำเพื่อสร้างภารกิจใหม่'
+                    }
                   >
                     {/* Day Header Strip Box (Centered Day Number + Clickable for Day Agenda Modal) */}
                     <div
@@ -402,6 +416,8 @@ export default function MonthGrid({
                             ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-300'
                             : holiday
                             ? 'text-rose-600 dark:text-rose-400 font-extrabold'
+                            : hasWfh
+                            ? 'text-amber-600 dark:text-amber-400 font-black'
                             : cell.isOtherMonth
                             ? 'text-slate-300 dark:text-slate-600'
                             : cell.dayOfWeek === 0
@@ -413,11 +429,15 @@ export default function MonthGrid({
                       >
                         {cell.dayNum}
                       </span>
-                      {holiday && (
+                      {holiday ? (
                         <span className="sch-holiday-tooltip hidden group-hover:block absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-red-500 text-white font-normal text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
                           {holiday.name}
                         </span>
-                      )}
+                      ) : hasWfh ? (
+                        <span className="sch-holiday-tooltip hidden group-hover:block absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-amber-500 text-white font-normal text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
+                          WFH: {wfhEvents.map(e => e.title.replace(/^\[WFH\]\s*/i, '')).join(', ')}
+                        </span>
+                      ) : null}
                     </div>
 
                     {/* Overflow "+N" Pill Badge (TimeTree Style +1, +2) */}

@@ -32,6 +32,11 @@ export default function DayEventsModal({
   });
 
   const holiday = getHolidayForDate(selectedDateStr, holidays);
+  const wfhEvents = dayEvents.filter(evt => {
+    const cat = String(evt.category || '').toLowerCase();
+    const t = String(evt.title || '').toLowerCase();
+    return cat.includes('wfh') || cat.includes('ปฏิบัติงานที่พัก') || t.startsWith('[wfh]') || t.includes('work from home');
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
@@ -81,6 +86,13 @@ export default function DayEventsModal({
             <div className="p-2.5 px-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl flex items-center gap-2 text-rose-700 dark:text-rose-300 text-xs font-bold shadow-2xs">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
               <span><strong className="font-extrabold">{holiday.name}</strong></span>
+            </div>
+          )}
+
+          {wfhEvents.length > 0 && (
+            <div className="p-2.5 px-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-center gap-2 text-amber-800 dark:text-amber-200 text-xs font-bold shadow-2xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+              <span><strong>🏠 ปฏิบัติงานที่พัก (WFH):</strong> {wfhEvents.map(e => e.title.replace(/^\[WFH\]\s*/i, '')).join(', ')}</span>
             </div>
           )}
 

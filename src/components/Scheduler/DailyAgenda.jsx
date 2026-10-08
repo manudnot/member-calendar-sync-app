@@ -27,6 +27,11 @@ export default function DailyAgenda({
     return evt.member_ids.some(mId => visibleMemberIds.includes(mId));
   });
 
+  const wfhEvents = dayEvents.filter(evt => {
+    const cat = String(evt.category || '').toLowerCase();
+    const t = String(evt.title || '').toLowerCase();
+    return cat.includes('wfh') || cat.includes('ปฏิบัติงานที่พัก') || t.startsWith('[wfh]') || t.includes('work from home');
+  });
 
   return (
     <div className="h-60 bg-white dark:bg-dark-card border-t-2 border-emerald-500 flex flex-col shadow-lg shrink-0 glass-panel">
@@ -56,6 +61,15 @@ export default function DailyAgenda({
             <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
             <span className="text-xs font-black">
               {holidayName}
+            </span>
+          </div>
+        )}
+        {/* WFH Banner Badge */}
+        {wfhEvents.length > 0 && (
+          <div className="p-2 px-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex items-center gap-2 text-amber-800 dark:text-amber-200 shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+            <span className="text-xs font-black">
+              🏠 ปฏิบัติงานที่พัก (WFH): {wfhEvents.map(e => e.title.replace(/^\[WFH\]\s*/i, '')).join(', ')}
             </span>
           </div>
         )}
