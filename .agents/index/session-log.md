@@ -2,6 +2,14 @@
 
 ## 📅 Session Log: 2026-10-08
 
+### Version 4.9 - Exclude Custom Holidays & WFH from iCal Feeds
+- **iCal Feed Filtering (`api/feed.js`)**:
+  - Excluded custom holidays (`วันหยุดพิเศษ`, `วันหยุดราชการ`) and WFH events (`WFH`, `ปฏิบัติงานที่พัก`) from `/api/feed.js`.
+  - Ensures external calendar subscriptions (Apple Calendar, Google Calendar, Outlook) only receive actual team missions and duty rosters, without being cluttered by custom holidays or internal WFH schedules.
+- **Google Apps Script Sync Update (`gas/Code.gs`)**:
+  - Updated `syncSupabaseToGoogleCalendar()` to skip holidays and WFH days when syncing to Google Calendar.
+- **Git Commit**: Pushed to `manudnot/member-calendar-sync-app` main branch.
+
 ### Version 4.8 - 3-Tier Chronological Event Sorting (Spanned First, Timed Morning-to-Evening)
 - **MonthGrid 3-Tier Sorting (`MonthGrid.jsx`)**:
   - Tier 1: Multi-day continuous spanned events (`span > 1`) placed at the topmost slots (`slot 0`, `slot 1`), sorted by longest span and start date.

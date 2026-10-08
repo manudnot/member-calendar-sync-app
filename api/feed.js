@@ -135,6 +135,23 @@ export default async function handler(req, res) {
       events = [];
     }
 
+    // Exclude custom holidays and WFH events from iCal feeds as requested
+    events = events.filter(evt => {
+      const cat = String(evt.category || '').toLowerCase();
+      const title = String(evt.title || '').toLowerCase();
+      if (
+        cat.includes('วันหยุดพิเศษ') ||
+        cat.includes('วันหยุดราชการ') ||
+        cat.includes('wfh') ||
+        cat.includes('ปฏิบัติงานที่พัก') ||
+        title.startsWith('[wfh]') ||
+        title.includes('work from home')
+      ) {
+        return false;
+      }
+      return true;
+    });
+
     // Fetch all members & categories dynamically from Supabase
     const { data: allMembersData } = await supabase.from('members').select('*');
     const allMembers = allMembersData || [];

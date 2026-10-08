@@ -59,6 +59,19 @@ function syncSupabaseToGoogleCalendar() {
   }
 
   events.forEach(function(evt) {
+    const cat = String(evt.category || '').toLowerCase();
+    const title = String(evt.title || '').toLowerCase();
+    if (
+      cat.includes('วันหยุดพิเศษ') ||
+      cat.includes('วันหยุดราชการ') ||
+      cat.includes('wfh') ||
+      cat.includes('ปฏิบัติงานที่พัก') ||
+      title.startsWith('[wfh]') ||
+      title.includes('work from home')
+    ) {
+      return; // Skip holiday and WFH from syncing to Google Calendar
+    }
+
     const startTime = new Date(evt.start_time);
     const endTime = new Date(evt.end_time);
     
