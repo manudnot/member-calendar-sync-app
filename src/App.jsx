@@ -651,7 +651,7 @@ export default function App() {
 
   const buildSupaEventPayload = (evt) => {
     const cleanTitle = (evt.title || '').replace(/\/ ทั้งวัน|\/ทั้งวัน|ทั้งวัน/g, '').trim() || evt.title;
-    return {
+    const payload = {
       id: evt.id,
       title: cleanTitle,
       start_time: evt.start_time,
@@ -659,11 +659,27 @@ export default function App() {
       all_day: Boolean(evt.all_day),
       description: evt.description || '',
       location: evt.location || '',
-      attachment_url: evt.attachment_url || evt.url || '',
       category: evt.category || 'งานกองพัน',
       member_ids: evt.member_ids || [],
       alarm_minutes: evt.alarm_minutes || 15
     };
+    const attachUrl = evt.attachment_url || evt.url;
+    if (attachUrl) {
+      payload.attachment_url = attachUrl;
+    }
+    return payload;
+  };
+
+  const safeUpsertEvent = async (supaPayload) => {
+    if (!supabase) return { error: null };
+    let { error } = await supabase.from('events').upsert([supaPayload]);
+    if (error && (error.code === 'PGRST204' || error.message?.includes('attachment_url') || error.details?.includes('attachment_url'))) {
+      const fallback = { ...supaPayload };
+      delete fallback.attachment_url;
+      const retry = await supabase.from('events').upsert([fallback]);
+      error = retry.error;
+    }
+    return { error };
   };
 
   const handleSaveEvent = async (eventPayload) => {
@@ -745,7 +761,7 @@ export default function App() {
       try {
         const supaEvtPayload = buildSupaEventPayload(eventPayload);
 
-        const { error } = await supabase.from('events').upsert([supaEvtPayload]);
+        const { error } = await safeUpsertEvent(supaEvtPayload);
         if (error) {
           throw error;
         }
@@ -831,7 +847,7 @@ export default function App() {
     if (supabase) {
       try {
         const supaEvtPayload = buildSupaEventPayload(updatedEvt);
-        const { error } = await supabase.from('events').upsert([supaEvtPayload]);
+        const { error } = await safeUpsertEvent(supaEvtPayload);
         if (error) throw error;
       } catch (e) {
         console.warn('Supabase move event warning:', e);
@@ -908,7 +924,7 @@ export default function App() {
     if (supabase) {
       try {
         const supaEvtPayload = buildSupaEventPayload(newEvt);
-        const { error } = await supabase.from('events').upsert([supaEvtPayload]);
+        const { error } = await safeUpsertEvent(supaEvtPayload);
         if (error) throw error;
       } catch (e) {
         console.warn('Supabase copy event warning:', e);
@@ -993,7 +1009,7 @@ export default function App() {
     if (supabase) {
       try {
         const supaEvtPayload = buildSupaEventPayload(restoredEvt);
-        await supabase.from('events').upsert([supaEvtPayload]);
+        await safeUpsertEvent(supaEvtPayload);
       } catch(e) {
         console.warn('Supabase restore event warning:', e);
       }
