@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, Edit3, Trash2, Clock, MapPin, Link as LinkIcon, Calendar, X } from 'lucide-react';
-import { THAI_MONTHS, formatTimeShort, isEventOnDate, getEventColor, isAllDayEvent } from '../../utils/helpers';
+import { THAI_MONTHS, formatTimeShort, isEventOnDate, getEventColor, isAllDayEvent, getLocalDateStr } from '../../utils/helpers';
 import { getHolidayForDate } from '../../utils/holidays';
 
 export default function DayEventsModal({
@@ -25,10 +25,60 @@ export default function DayEventsModal({
 
   const getMemberById = (mId) => members.find(m => m.id === mId);
 
-  const dayEvents = events.filter(evt => {
+  const rawDayEvents = events.filter(evt => {
     if (!isEventOnDate(evt, selectedDateStr)) return false;
     if (!Array.isArray(evt.member_ids) || evt.member_ids.length === 0) return true;
     return evt.member_ids.some(mId => visibleMemberIds.includes(mId));
+  });
+
+  // Sort dayEvents:
+  // Tier 1: Multi-day continuous events (start_date !== end_date)
+  // Tier 2: All-day single-day events (all_day === true)
+  // Tier 3: Timed events sorted chronologically (earlier start time first, evening last!)
+  const dayEvents = [...rawDayEvents].sort((a, b) => {
+    const aStartD = getLocalDateStr(a.start_time);
+    const aEndD = getLocalDateStr(a.end_time) || aStartD;
+    const bStartD = getLocalDateStr(b.start_time);
+    const bEndD = getLocalDateStr(b.end_time) || bStartD;
+
+    const aMultiDay = aStartD !== aEndD;
+    const bMultiDay = bStartD !== bEndD;
+    const aAllDay = isAllDayEvent(a);
+    const bAllDay = isAllDayEvent(b);
+
+    const getTier = (isMulti, isAll) => {
+      if (isMulti) return 1;
+      if (isAll) return 2;
+      return 3;
+    };
+
+    const tierA = getTier(aMultiDay, aAllDay);
+    const tierB = getTier(bMultiDay, bAllDay);
+
+    if (tierA !== tierB) {
+      return tierA - tierB;
+    }
+
+    if (tierA === 1) {
+      const timeA = new Date(a.start_time).getTime();
+      const timeB = new Date(b.start_time).getTime();
+      return timeA - timeB;
+    }
+
+    if (tierA === 2) {
+      return (a.title || '').localeCompare(b.title || '');
+    }
+
+    // Tier 3: Timed events strictly sorted by start time (earlier first, evening last)
+    const timeA = new Date(a.start_time).getTime();
+    const timeB = new Date(b.start_time).getTime();
+    if (timeA !== timeB) return timeA - timeB;
+
+    const endA = new Date(a.end_time).getTime();
+    const endB = new Date(b.end_time).getTime();
+    if (endA !== endB) return endA - endB;
+
+    return (a.title || '').localeCompare(b.title || '');
   });
 
   const holiday = getHolidayForDate(selectedDateStr, holidays);

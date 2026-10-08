@@ -2,6 +2,15 @@
 
 ## 📅 Session Log: 2026-10-08
 
+### Version 4.8 - 3-Tier Chronological Event Sorting (Spanned First, Timed Morning-to-Evening)
+- **MonthGrid 3-Tier Sorting (`MonthGrid.jsx`)**:
+  - Tier 1: Multi-day continuous spanned events (`span > 1`) placed at the topmost slots (`slot 0`, `slot 1`), sorted by longest span and start date.
+  - Tier 2: All-day single-day events (`isAllDayEvent`).
+  - Tier 3: Timed single-day events sorted strictly chronologically by `start_time` (morning -> afternoon -> evening), guaranteeing evening events appear at the bottom.
+- **Daily Agenda & Modal Sync (`DailyAgenda.jsx`, `DayEventsModal.jsx`)**:
+  - Sorted daily event lists with identical 3-tier rules to keep all views completely harmonious.
+- **Git Commit**: Pushed to `manudnot/member-calendar-sync-app` main branch.
+
 ### Version 4.7 - Custom Holidays (Red) & WFH (Orange) Management Modal
 - **Quick Actions Button Reordering (`FirstTimeUserModal.jsx`)**:
   - Moved "จัดการสมาชิก" (Users icon) to the 1st button slot (replacing the previous add-mission button).

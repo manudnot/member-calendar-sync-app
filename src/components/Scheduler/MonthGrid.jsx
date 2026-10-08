@@ -302,14 +302,58 @@ export default function MonthGrid({
             }
           });
 
-          // Sort week events: multi-day/all-day first, then by startCol, then longer span
+          // Sort week events:
+          // Tier 1: Multi-day continuous spanned events (span > 1) -> longest span first, then earlier startCol, then earlier start_time
+          // Tier 2: All-day single-day events (all_day === true && span === 1)
+          // Tier 3: Timed single-day events -> strictly sorted by start_time (morning -> afternoon -> evening)
           weekEvents.sort((a, b) => {
-            const aAllDay = isAllDayEvent(a.evt) || a.span > 1;
-            const bAllDay = isAllDayEvent(b.evt) || b.span > 1;
-            if (aAllDay && !bAllDay) return -1;
-            if (!aAllDay && bAllDay) return 1;
+            const aMultiDay = a.span > 1;
+            const bMultiDay = b.span > 1;
+            const aAllDay = isAllDayEvent(a.evt);
+            const bAllDay = isAllDayEvent(b.evt);
+
+            const getTier = (isMulti, isAll) => {
+              if (isMulti) return 1;
+              if (isAll) return 2;
+              return 3;
+            };
+
+            const tierA = getTier(aMultiDay, aAllDay);
+            const tierB = getTier(bMultiDay, bAllDay);
+
+            if (tierA !== tierB) {
+              return tierA - tierB;
+            }
+
+            // Within Tier 1 (Multi-day):
+            if (tierA === 1) {
+              if (a.span !== b.span) return b.span - a.span;
+              if (a.startCol !== b.startCol) return a.startCol - b.startCol;
+              const timeA = new Date(a.evt.start_time).getTime();
+              const timeB = new Date(b.evt.start_time).getTime();
+              return timeA - timeB;
+            }
+
+            // Within Tier 2 (All-day single-day):
+            if (tierA === 2) {
+              if (a.startCol !== b.startCol) return a.startCol - b.startCol;
+              return (a.evt.title || '').localeCompare(b.evt.title || '');
+            }
+
+            // Within Tier 3 (Timed single-day):
             if (a.startCol !== b.startCol) return a.startCol - b.startCol;
-            return b.span - a.span;
+
+            // Strictly sort by start time: earlier first, evening last!
+            const timeA = new Date(a.evt.start_time).getTime();
+            const timeB = new Date(b.evt.start_time).getTime();
+            if (timeA !== timeB) return timeA - timeB;
+
+            // If same start time, earlier end time first
+            const endA = new Date(a.evt.end_time).getTime();
+            const endB = new Date(b.evt.end_time).getTime();
+            if (endA !== endB) return endA - endB;
+
+            return (a.evt.title || '').localeCompare(b.evt.title || '');
           });
 
           // Assign slotIndex for ALL week events so there are ZERO gaps between items
