@@ -183,6 +183,32 @@ function doGet(e) {
     .setMimeType(ContentService.MimeType.TEXT);
 }
 
+/**
+ * Web App Endpoint (doPost) for Uploading Files to Google Drive
+ */
+function doPost(e) {
+  try {
+    let data;
+    if (e.postData && e.postData.contents) {
+      data = JSON.parse(e.postData.contents);
+    } else {
+      data = e.parameter || {};
+    }
+
+    if (data.action === 'uploadFile' || data.fileBase64) {
+      const res = uploadFileToDrive(data.fileBase64, data.fileName, data.mimeType, data.dateStr);
+      return ContentService.createTextOutput(JSON.stringify(res))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'Unknown action or missing fileBase64' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
 function formatDateToICS(date) {
   return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 }

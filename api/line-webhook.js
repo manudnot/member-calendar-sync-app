@@ -1,6 +1,7 @@
 // api/line-webhook.js - Vercel Serverless Endpoint for LINE Messaging Bot (AI เสมียนกองร้อย)
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { uploadBufferToDrive } from './upload.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://aevutuguijjakfhulgjd.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_8LNKQLJ6snj6AvxPGf2TmA_Sm8KCbhU';
@@ -1491,13 +1492,14 @@ export function formatDraftSummaryMessage(draftObj) {
     const notesLine = formatNotesLine(item.notes || item.description);
     const warnLine = formatWarningLine(item.time_warning || item.timeWarning);
     const locLine = item.location ? `\n📍 สถานที่: ${item.location}` : '';
+    const attachLine = (item.attachment_url || item.url) ? `\n📎 เอกสารแนบ: ${item.attachment_url || item.url}` : '';
 
     return `📋 สรุปร่างภารกิจ (1 รายการ):
 
 ${dateStr}
 📝 ชื่อ: ${item.title}
 🏷️ หมวดหมู่: ${catBadge}${warnLine}${dressLine}${notesLine}
-🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}
+🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}${attachLine}
 
 ⏱️ บันทึกให้อัตโนมัติใน 3 นาที`;
   }
@@ -1511,8 +1513,9 @@ ${dateStr}
     const notesLine = formatNotesLine(item.notes || item.description);
     const warnLine = formatWarningLine(item.time_warning || item.timeWarning);
     const locLine = item.location ? `\n📍 สถานที่: ${item.location}` : '';
+    const attachLine = (item.attachment_url || item.url) ? `\n📎 เอกสารแนบ: ${item.attachment_url || item.url}` : '';
 
-    return `${badge} ${dateStr}\n📝 ชื่อ: ${item.title}\n🏷️ หมวดหมู่: ${catBadge}${warnLine}${dressLine}${notesLine}\n🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}`;
+    return `${badge} ${dateStr}\n📝 ชื่อ: ${item.title}\n🏷️ หมวดหมู่: ${catBadge}${warnLine}${dressLine}${notesLine}\n🎯 ผู้รับผิดชอบ: ${memberDisplayStr}${locLine}${attachLine}`;
   }).join('\n\n');
 
   return `📋 สรุปร่างภารกิจ (${missions.length} รายการ):\n\n${itemsText}\n\n⏱️ บันทึกให้อัตโนมัติใน 3 นาที`;
@@ -2239,10 +2242,12 @@ export default async function handler(req, res) {
     let analyzedData = null;
     let cleanMissionText = '';
     let ocrText = '';
+    let driveUploadPromise = null;
 
     if (msgType === 'image') {
       try {
         const imageBuf = await fetchLineBinary(event.message.id);
+        driveUploadPromise = uploadBufferToDrive(imageBuf, `line_img_${event.message.id}.jpg`, 'image/jpeg');
         ocrText = await extractTextWithTyphoonOCR(imageBuf, 'image.png', 'image/png');
         if (ocrText && ocrText.length > 5) {
           analyzedData = await analyzeMissionOrderWithAI(ocrText, null, dbMembers);
@@ -2274,6 +2279,10 @@ export default async function handler(req, res) {
           text: `❌ ไม่สามารถดาวน์โหลดไฟล์เอกสารจาก LINE ได้ (${dlErr?.message || dlErr})\n\nกรุณาลองส่งไฟล์ใหม่อีกครั้งครับ`
         });
         continue;
+      }
+
+      if (fileBuf) {
+        driveUploadPromise = uploadBufferToDrive(fileBuf, fileName, fileName.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
       }
 
       let ocrErrStr = '';
@@ -2331,6 +2340,19 @@ export default async function handler(req, res) {
     }
 
     if (analyzedData) {
+      let uploadedDriveUrl = null;
+      if (driveUploadPromise) {
+        try {
+          const driveRes = await driveUploadPromise;
+          if (driveRes && driveRes.success && driveRes.url) {
+            uploadedDriveUrl = driveRes.url;
+            console.log('Successfully uploaded attachment to Google Drive:', uploadedDriveUrl);
+          }
+        } catch (dErr) {
+          console.warn('Drive upload error:', dErr);
+        }
+      }
+
       const rawMissions = Array.isArray(analyzedData.missions) && analyzedData.missions.length > 0
         ? analyzedData.missions
         : [analyzedData];
@@ -2350,6 +2372,8 @@ export default async function handler(req, res) {
           location: m.location || '',
           notes: m.notes || m.description || '',
           description: m.description || m.notes || '',
+          attachment_url: uploadedDriveUrl || m.attachment_url || m.url || null,
+          url: uploadedDriveUrl || m.attachment_url || m.url || null,
           member_ids: memberIds,
           member_names: memberNames
         };

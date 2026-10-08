@@ -22,6 +22,10 @@
       "dest": "/api/holidays.js"
     },
     {
+      "src": "/api/upload(.*)",
+      "dest": "/api/upload.js"
+    },
+    {
       "handle": "filesystem"
     },
     {

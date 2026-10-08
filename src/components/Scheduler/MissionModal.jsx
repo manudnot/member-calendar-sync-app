@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Check, Users, Plus, Trash2, Palette, ExternalLink, FileText, Upload } from 'lucide-react';
+import { X, Calendar, Edit3, Clock, MapPin, Link as LinkIcon, Bell, Repeat, Check, Users, Plus, Trash2, Palette, ExternalLink, FileText, Upload, Loader2 } from 'lucide-react';
 import { isAllDayEvent, convertMinutesToNotif, getLocalDateStr, getLocalTimeStr } from '../../utils/helpers';
 
 const DEFAULT_COLOR_PALETTE = [
@@ -257,6 +257,10 @@ export default function MissionModal({
   const [location, setLocation] = useState('');
   const [url, setUrl] = useState('');
   const [description, setDescription] = useState('');
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [attachmentMode, setAttachmentMode] = useState('upload');
+  const fileInputRef = useRef(null);
 
   // Derive color/category options list from categories prop or DEFAULT_COLOR_PALETTE
   const colorOptions = (Array.isArray(categories) && categories.length > 0 ? categories : DEFAULT_COLOR_PALETTE).map(c => ({
@@ -468,6 +472,60 @@ export default function MissionModal({
     setColor(newCatHex);
     setCustomCategoryName('');
     setIsAddingCustomColor(false);
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 25 * 1024 * 1024) {
+      alert('ขนาดไฟล์ต้องไม่เกิน 25 MB');
+      return;
+    }
+
+    setIsUploadingFile(true);
+    setUploadError('');
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Content = reader.result.split(',')[1];
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileBase64: base64Content,
+              fileName: file.name,
+              mimeType: file.type || 'application/octet-stream',
+              dateStr: startDate || new Date().toISOString().split('T')[0]
+            })
+          });
+
+          const data = await res.json();
+          if (data.success && data.url) {
+            setUrl(data.url);
+          } else {
+            setUploadError(data.error || 'การอัปโหลดไฟล์ล้มเหลว (กรุณาตรวจสอบการตั้งค่า GAS)');
+          }
+        } catch (fetchErr) {
+          setUploadError(fetchErr.message || 'การเชื่อมต่ออัปโหลดล้มเหลว');
+        } finally {
+          setIsUploadingFile(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+      };
+
+      reader.onerror = () => {
+        setUploadError('เกิดข้อผิดพลาดในการอ่านไฟล์');
+        setIsUploadingFile(false);
+      };
+
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setUploadError(err.message || 'เกิดข้อผิดพลาดในการอัปโหลด');
+      setIsUploadingFile(false);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -1006,15 +1064,29 @@ export default function MissionModal({
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                 <span className="flex items-center gap-1">
-                  <FileText className="w-3.5 h-3.5 text-emerald-600" /> เอกสารแนบ / Google Drive Link
+                  <FileText className="w-3.5 h-3.5 text-emerald-600" /> เอกสารแนบ (Google Drive)
                 </span>
-                {url && (
+                {url ? (
                   <button
                     type="button"
-                    onClick={() => setUrl('')}
-                    className="text-[11px] text-rose-500 hover:underline flex items-center gap-0.5"
+                    onClick={() => {
+                      setUrl('');
+                      setUploadError('');
+                    }}
+                    className="text-[11px] text-rose-500 hover:underline flex items-center gap-0.5 cursor-pointer font-bold"
                   >
                     <Trash2 className="w-3 h-3" /> ลบไฟล์แนบ
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttachmentMode(attachmentMode === 'upload' ? 'link' : 'upload');
+                      setUploadError('');
+                    }}
+                    className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5 cursor-pointer font-bold"
+                  >
+                    {attachmentMode === 'upload' ? '🔗 สลับเป็นวางลิงก์' : '📁 สลับเป็นอัปโหลดไฟล์'}
                   </button>
                 )}
               </label>
@@ -1034,15 +1106,57 @@ export default function MissionModal({
                     <ExternalLink className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />
                   </a>
                 </div>
+              ) : attachmentMode === 'upload' ? (
+                <div className="flex flex-col gap-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.heic"
+                    onChange={handleFileUpload}
+                  />
+                  <button
+                    type="button"
+                    disabled={isUploadingFile}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border-2 border-dashed font-bold text-xs transition-all shadow-sm cursor-pointer ${
+                      isUploadingFile
+                        ? 'bg-slate-100 dark:bg-slate-800 border-slate-300 text-slate-500 cursor-not-allowed'
+                        : 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40'
+                    }`}
+                  >
+                    {isUploadingFile ? (
+                      <>
+                        <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />
+                        <span>กำลังอัปโหลดขึ้น Google Drive...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 text-emerald-600" />
+                        <span>เลือกไฟล์จากเครื่อง (PDF, รูปภาพ, เอกสาร)</span>
+                      </>
+                    )}
+                  </button>
+                  {uploadError && (
+                    <span className="text-[11px] text-rose-500 font-bold flex items-center gap-1">
+                      ⚠️ {uploadError}
+                    </span>
+                  )}
+                </div>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-1">
                   <input
                     type="url"
-                    className="input-field text-xs flex-1 font-mono"
+                    className="input-field text-xs font-mono"
                     placeholder="วางลิงก์ Google Drive (https://drive.google.com/...)"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                   />
+                  {uploadError && (
+                    <span className="text-[11px] text-rose-500 font-bold flex items-center gap-1">
+                      ⚠️ {uploadError}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
