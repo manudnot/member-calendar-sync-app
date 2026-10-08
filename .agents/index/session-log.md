@@ -2,6 +2,23 @@
 
 ## 📅 Session Log: 2026-10-08
 
+### Version 4.6 - Direct File Upload to Google Drive via GAS & LINE Bot Auto-Attachment
+- **Direct File Upload UI (`MissionModal.jsx`)**:
+  - Hidden file input ref supporting PDF, Word, Excel, PowerPoint, and images (JPEG, PNG, WebP, HEIC).
+  - Clean dashed button with loading spinner (`Loader2`) during upload.
+  - Mode toggle allowing users to switch between Direct Upload and pasting external links.
+  - Preview card with link to Google Drive and trash delete button.
+- **Vercel Serverless Upload Proxy (`api/upload.js`)**:
+  - Proxies Base64 file uploads to Google Apps Script Web App endpoint (`GAS_DEPLOYMENT_URL`), preventing browser CORS issues.
+- **GAS Drive Storage & Retention (`gas/Code.gs`)**:
+  - `doPost(e)` receives fileBase64, decodes and saves into Google Drive directory: `MemberCalendarAttachments/YYYY-MM-DD/`.
+  - Sets sharing permissions to anyone with link viewable.
+  - Preserved 365-day automated cleanup trigger (`autoCleanupOldDriveFiles()`).
+- **LINE Bot Concurrent Upload (`api/line-webhook.js`)**:
+  - Concurrently uploads incoming images and PDF/documents to Google Drive during OCR/AI analysis.
+  - Attaches the resulting Google Drive URL to draft missions and stores in Supabase `attachment_url`.
+- **Git Commit**: `12aee54` pushed to `manudnot/member-calendar-sync-app` main branch.
+
 ### Version 4.5 - Modal UX Polish: Disabled Title AutoFocus & Optional Empty Members
 - **Disabled Title AutoFocus**: Removed `autoFocus` from the event title input in `MissionModal.jsx` to prevent the on-screen keyboard from popping up and obstructing the modal on mobile/tablet devices.
 - **Optional & Empty Default Members**:
