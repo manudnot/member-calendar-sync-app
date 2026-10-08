@@ -2,6 +2,17 @@
 
 ## 📅 Session Log: 2026-10-08
 
+### Version 4.12 - Strict Category-Based Day Status & Clean Button Labels in HolidayModal
+- **Direct Category Evaluation (`src/utils/helpers.js`)**:
+  - Simplified `isWfhEvent(evt)` to strictly check `evt.category === 'WFH'` and `isHolidayEvent(evt)` to check `evt.category === 'วันหยุดพิเศษ' || evt.category === 'วันหยุดราชการ'`.
+  - Removed title keyword guessing and sniffing: whatever option the user selects in the modal is respected 100% directly from `category`.
+- **Button Labels & Payload Cleanup (`HolidayModal.jsx`)**:
+  - Changed type selection button labels from `"วันหยุดพิเศษ (สีแดง)"` and `"วัน WFH (สีส้ม)"` to cleanly read **`"วันหยุดพิเศษ"`** and **`"วัน WFH"`**.
+  - Updated submit button to `"บันทึกวันหยุดพิเศษ"` / `"บันทึกวัน WFH"`.
+  - Removed automatic `[WFH]` prefixing in payload title: saves the exact title entered by user.
+  - Custom entries list evaluates `entry.category === 'WFH'` directly.
+- **Git Commit**: Pushed to `manudnot/member-calendar-sync-app` main branch.
+
 ### Version 4.11 - Fix WFH Category Preservation & Prevent Bouncing to Red in HolidayModal
 - **Root Cause Fix in `ensureEventCategoryAndColor` (`src/utils/helpers.js`)**:
   - Previously, periodic Supabase polling fetched events and mapped `category` to `'งานกองพัน'` because `WFH` was not in the legacy category array.

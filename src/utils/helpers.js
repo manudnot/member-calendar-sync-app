@@ -263,7 +263,7 @@ export function ensureEventCategoryAndColor(evt, categories = INITIAL_CATEGORIES
   if (!evt) return evt;
 
   // Preserve Day Statuses (Holidays & WFH) so they never get converted to 'งานกองพัน'
-  if (isWfhEvent(evt)) {
+  if (evt.category === 'WFH') {
     return {
       ...evt,
       category_id: 'cat_wfh',
@@ -272,11 +272,11 @@ export function ensureEventCategoryAndColor(evt, categories = INITIAL_CATEGORIES
     };
   }
 
-  if (isHolidayEvent(evt)) {
+  if (evt.category === 'วันหยุดพิเศษ' || evt.category === 'วันหยุดราชการ') {
     return {
       ...evt,
       category_id: 'cat_holiday',
-      category: evt.category && evt.category.includes('วันหยุด') ? evt.category : 'วันหยุดพิเศษ',
+      category: evt.category,
       color: '#ef4444'
     };
   }
@@ -392,29 +392,12 @@ export function formatAlarmLabel(totalMinutes) {
 
 export function isWfhEvent(evt) {
   if (!evt) return false;
-  const cat = String(evt.category || '').toLowerCase();
-  const title = String(evt.title || '').toLowerCase();
-  return (
-    cat === 'wfh' ||
-    cat.includes('wfh') ||
-    cat.includes('ปฏิบัติงานที่พัก') ||
-    title.includes('[wfh]') ||
-    title.includes('work from home')
-  );
+  return evt.category === 'WFH';
 }
 
 export function isHolidayEvent(evt) {
   if (!evt) return false;
-  if (isWfhEvent(evt)) return false;
-  const cat = String(evt.category || '').toLowerCase();
-  const title = String(evt.title || '').toLowerCase();
-  return (
-    cat.includes('วันหยุดพิเศษ') ||
-    cat.includes('วันหยุดราชการ') ||
-    cat.includes('วันหยุด') ||
-    title.includes('วันหยุดราชการ') ||
-    title.includes('วันหยุดพิเศษ')
-  );
+  return evt.category === 'วันหยุดพิเศษ' || evt.category === 'วันหยุดราชการ';
 }
 
 export function isSpecialDayEvent(evt) {

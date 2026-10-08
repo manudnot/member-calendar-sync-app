@@ -61,7 +61,7 @@ export default function HolidayModal({
     setIsSubmitting(true);
     try {
       const payload = {
-        title: entryType === 'wfh' && !finalTitle.toUpperCase().startsWith('[WFH]') ? `[WFH] ${finalTitle}` : finalTitle,
+        title: finalTitle,
         category: entryType === 'holiday' ? 'วันหยุดพิเศษ' : 'WFH',
         startDate: startDate,
         endDate: endDate || startDate,
@@ -177,7 +177,7 @@ export default function HolidayModal({
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                        วันหยุดพิเศษ (สีแดง)
+                        วันหยุดพิเศษ
                       </span>
                       {entryType === 'holiday' && <Check className="w-3.5 h-3.5 text-rose-600" />}
                     </div>
@@ -198,7 +198,7 @@ export default function HolidayModal({
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                        วัน WFH (สีส้ม)
+                        วัน WFH
                       </span>
                       {entryType === 'wfh' && <Check className="w-3.5 h-3.5 text-amber-600" />}
                     </div>
@@ -301,7 +301,7 @@ export default function HolidayModal({
                   }`}
                 >
                   <Plus className="w-4 h-4" />
-                  <span>{isSubmitting ? 'กำลังบันทึก...' : entryType === 'holiday' ? 'บันทึกวันหยุดพิเศษ (สีแดง)' : 'บันทึกวัน WFH (สีส้ม)'}</span>
+                  <span>{isSubmitting ? 'กำลังบันทึก...' : entryType === 'holiday' ? 'บันทึกวันหยุดพิเศษ' : 'บันทึกวัน WFH'}</span>
                 </button>
               </form>
 
@@ -319,7 +319,7 @@ export default function HolidayModal({
                 ) : (
                   <div className="flex flex-col gap-2">
                     {customEntries.map(entry => {
-                      const isWfh = isWfhEvent(entry) || String(entry.category || '').toUpperCase() === 'WFH';
+                      const isWfh = entry.category === 'WFH';
                       const isHoliday = !isWfh;
                       const startD = entry.start_time ? entry.start_time.split('T')[0] : (entry.startDate || '');
                       const endD = entry.end_time ? entry.end_time.split('T')[0] : (entry.endDate || startD);
