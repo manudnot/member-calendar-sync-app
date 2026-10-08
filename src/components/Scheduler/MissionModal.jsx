@@ -354,7 +354,7 @@ export default function MissionModal({
         setCustomEndsOnDate(defaultDate);
         setStartTime('09:00');
         setEndTime('10:00');
-        setSelectedMembers(members.length > 0 ? [members[0].id] : []);
+        setSelectedMembers([]);
         setColor('#f59e0b');
         setRepeat('none');
         setCustomInterval(1);
@@ -478,11 +478,6 @@ export default function MissionModal({
       return;
     }
 
-    if (selectedMembers.length === 0) {
-      alert('กรุณาเลือกสมาชิกผู้รับผิดชอบอย่างน้อย 1 คน');
-      return;
-    }
-
     if (!allDay) {
       if (endDate < startDate) {
         alert('วันที่สิ้นสุดต้องไม่เกิดขึ้นก่อนวันที่เริ่มต้น');
@@ -588,7 +583,6 @@ export default function MissionModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              autoFocus
             />
           </div>
 
@@ -680,7 +674,7 @@ export default function MissionModal({
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                <Users className="w-3.5 h-3.5 text-emerald-600" /> Members *
+                <Users className="w-3.5 h-3.5 text-emerald-600" /> Members
               </label>
               <button
                 type="button"

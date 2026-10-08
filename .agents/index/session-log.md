@@ -2,6 +2,14 @@
 
 ## 📅 Session Log: 2026-10-08
 
+### Version 4.5 - Modal UX Polish: Disabled Title AutoFocus & Optional Empty Members
+- **Disabled Title AutoFocus**: Removed `autoFocus` from the event title input in `MissionModal.jsx` to prevent the on-screen keyboard from popping up and obstructing the modal on mobile/tablet devices.
+- **Optional & Empty Default Members**:
+  - Changed `selectedMembers` initial state on new mission creation from auto-selecting the first member (`members[0]`) to an empty array (`[]`).
+  - Removed mandatory member requirement check in `handleSubmit`, allowing missions to be saved without assigned members.
+  - Updated UI label from `Members *` to `Members`.
+- **Git Commit**: `0ddf06b` pushed to `manudnot/member-calendar-sync-app` main branch. Deployed to Vercel.
+
 ### Version 4.4 - Supabase `attachment_url` Resilience & Auto-Fallback
 - **Supabase Column Addition**: Verified SQL migration `ALTER TABLE public.events ADD COLUMN IF NOT EXISTS attachment_url TEXT;` executed on Supabase PostgreSQL.
 - **Defensive Frontend Fallback**: Added `safeUpsertEvent` helper in `src/App.jsx` that automatically retries without `attachment_url` on any schema cache mismatch (`PGRST204`).
