@@ -1,5 +1,13 @@
 # Development Session Log & Architecture History
 
+## 📅 Session Log: 2026-10-08
+
+### Version 4.4 - Supabase `attachment_url` Resilience & Auto-Fallback
+- **Supabase Column Addition**: Verified SQL migration `ALTER TABLE public.events ADD COLUMN IF NOT EXISTS attachment_url TEXT;` executed on Supabase PostgreSQL.
+- **Defensive Frontend Fallback**: Added `safeUpsertEvent` helper in `src/App.jsx` that automatically retries without `attachment_url` on any schema cache mismatch (`PGRST204`).
+- **Conditional Payload**: Updated `buildSupaEventPayload` to omit `attachment_url` when no external attachment link is attached, preventing unnecessary schema checks.
+- **Git Commit**: `c40b81d` pushed to `manudnot/member-calendar-sync-app` main branch. Deployed to Vercel.
+
 ## 📅 Session Log: 2026-10-07
 
 ### Version 4.3 - Direct-Typing 24h TimePicker, Auto-Adjust Time Validation, & Typhoon AI Title Fix
