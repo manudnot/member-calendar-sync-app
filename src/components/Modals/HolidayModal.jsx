@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, CalendarOff, Home, Plus, Trash2, Calendar, Users, Check, AlertCircle, Sparkles } from 'lucide-react';
-import { getLocalDateStr } from '../../utils/helpers';
+import { getLocalDateStr, isSpecialDayEvent, isWfhEvent, isHolidayEvent } from '../../utils/helpers';
 
 export default function HolidayModal({
   isOpen,
@@ -25,15 +25,7 @@ export default function HolidayModal({
 
   // Filter custom holidays and WFH events from events list
   const customEntries = events.filter(e => {
-    const cat = String(e.category || '').toLowerCase();
-    const t = String(e.title || '').toLowerCase();
-    return (
-      cat.includes('วันหยุดพิเศษ') ||
-      cat.includes('วันหยุดราชการ') ||
-      cat.includes('wfh') ||
-      t.startsWith('[wfh]') ||
-      t.includes('work from home')
-    );
+    return isSpecialDayEvent(e) || String(e.category || '').toUpperCase() === 'WFH' || String(e.category || '').includes('วันหยุด');
   }).sort((a, b) => new Date(a.start_time || a.startDate) - new Date(b.start_time || b.startDate));
 
   const handleToggleMember = (memId) => {
@@ -327,7 +319,8 @@ export default function HolidayModal({
                 ) : (
                   <div className="flex flex-col gap-2">
                     {customEntries.map(entry => {
-                      const isHoliday = String(entry.category || '').includes('วันหยุด') || !String(entry.category || '').toLowerCase().includes('wfh');
+                      const isWfh = isWfhEvent(entry) || String(entry.category || '').toUpperCase() === 'WFH';
+                      const isHoliday = !isWfh;
                       const startD = entry.start_time ? entry.start_time.split('T')[0] : (entry.startDate || '');
                       const endD = entry.end_time ? entry.end_time.split('T')[0] : (entry.endDate || startD);
                       const isDateRange = startD !== endD;

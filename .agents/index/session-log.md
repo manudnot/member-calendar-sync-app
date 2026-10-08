@@ -2,6 +2,16 @@
 
 ## 📅 Session Log: 2026-10-08
 
+### Version 4.11 - Fix WFH Category Preservation & Prevent Bouncing to Red in HolidayModal
+- **Root Cause Fix in `ensureEventCategoryAndColor` (`src/utils/helpers.js`)**:
+  - Previously, periodic Supabase polling fetched events and mapped `category` to `'งานกองพัน'` because `WFH` was not in the legacy category array.
+  - Added explicit preservation of `WFH` (`category_id: 'cat_wfh'`, `category: 'WFH'`, `color: '#f97316'`) and custom holidays (`category_id: 'cat_holiday'`, `color: '#ef4444'`).
+  - Strengthened `isHolidayEvent` and `isWfhEvent` so that any event with WFH markers immediately returns `false` from `isHolidayEvent`, guaranteeing it never gets classified as a holiday.
+- **HolidayModal Custom Entries Styling (`HolidayModal.jsx`)**:
+  - Replaced ambiguous string check on line 330 with strict `isWfhEvent(entry) || String(entry.category).toUpperCase() === 'WFH'`.
+  - Fixes the bug where WFH cards in the modal's "รายการที่บันทึกไว้ในระบบ" bounced from orange to red after 3 seconds.
+- **Git Commit**: Pushed to `manudnot/member-calendar-sync-app` main branch.
+
 ### Version 4.10 - Day Status Styling: Cell Background & Banners Only (No Event Bars/Cards, Clean WFH Text)
 - **MonthGrid Day Status vs. Duty Missions (`MonthGrid.jsx`)**:
   - Filtered `dutyEvents` (`!isSpecialDayEvent(evt)`) for horizontal event bars overlay and `overflowCount`.
