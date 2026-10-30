@@ -440,6 +440,39 @@ export function parseTimeRangeToStartEnd(startDate, endDate, timeStr, allDay) {
   return { startTime, endTime, timeWarning };
 }
 
+export function extractImagesFromPdfBuffer(pdfBuf) {
+  if (!Buffer.isBuffer(pdfBuf) || pdfBuf.length < 100) return [];
+  const images = [];
+  let pos = 0;
+
+  while (pos < pdfBuf.length - 4) {
+    // Look for JPEG start-of-image marker: 0xFF, 0xD8, 0xFF
+    if (pdfBuf[pos] === 0xFF && pdfBuf[pos + 1] === 0xD8 && pdfBuf[pos + 2] === 0xFF) {
+      let endPos = -1;
+      // Search for JPEG end-of-image marker: 0xFF, 0xD9
+      for (let i = pos + 3; i < pdfBuf.length - 1; i++) {
+        if (pdfBuf[i] === 0xFF && pdfBuf[i + 1] === 0xD9) {
+          endPos = i + 2;
+          break;
+        }
+      }
+
+      if (endPos > pos) {
+        const imgSize = endPos - pos;
+        // Keep scan images of meaningful size (>= 30 KB)
+        if (imgSize >= 30 * 1024) {
+          images.push(pdfBuf.subarray(pos, endPos));
+        }
+        pos = endPos;
+        continue;
+      }
+    }
+    pos++;
+  }
+
+  return images;
+}
+
 export async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pdf', mimeType = 'application/pdf') {
   if (!TYPHOON_API_KEY) return '';
   try {
@@ -466,7 +499,7 @@ export async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pd
         'Authorization': `Bearer ${TYPHOON_API_KEY}`
       },
       body: formData,
-      signal: AbortSignal.timeout(25000)
+      signal: AbortSignal.timeout(50000)
     });
 
     if (res.ok) {
@@ -2289,13 +2322,35 @@ export default async function handler(req, res) {
 
       const lowerName = fileName.toLowerCase();
       if (lowerName.endsWith('.pdf') || (fileBuf && fileBuf.toString('ascii', 0, 4) === '%PDF')) {
-        try {
-          ocrText = await extractTextWithTyphoonOCR(fileBuf, fileName, 'application/pdf');
-        } catch (ocrE) {
-          ocrErrStr = ocrE?.message || String(ocrE);
-          console.warn('Typhoon OCR error:', ocrE);
+        // Step 1: Check if PDF contains embedded scan images (Scanned PDF)
+        const embeddedImages = extractImagesFromPdfBuffer(fileBuf);
+        if (embeddedImages.length > 0) {
+          console.log(`Found ${embeddedImages.length} embedded scan image(s) in PDF "${fileName}", extracting with Typhoon Image OCR...`);
+          const extractedPageTexts = [];
+          for (let imgIdx = 0; imgIdx < embeddedImages.length; imgIdx++) {
+            try {
+              const imgText = await extractTextWithTyphoonOCR(embeddedImages[imgIdx], `page_${imgIdx + 1}.jpg`, 'image/jpeg');
+              if (imgText) extractedPageTexts.push(imgText);
+            } catch (imgOcrE) {
+              console.warn(`Error OCR-ing embedded image ${imgIdx + 1}:`, imgOcrE);
+            }
+          }
+          if (extractedPageTexts.length > 0) {
+            ocrText = extractedPageTexts.join('\n\n--- [หน้าถัดไป] ---\n\n').trim();
+          }
         }
 
+        // Step 2: If no embedded image or OCR text too short, send whole PDF to Typhoon OCR
+        if (!ocrText || ocrText.length < 5) {
+          try {
+            ocrText = await extractTextWithTyphoonOCR(fileBuf, fileName, 'application/pdf');
+          } catch (ocrE) {
+            ocrErrStr = ocrE?.message || String(ocrE);
+            console.warn('Typhoon OCR error for PDF:', ocrE);
+          }
+        }
+
+        // Step 3: If still empty, fallback to digital pdf-parse
         if (!ocrText || ocrText.length < 5) {
           try {
             ocrText = await extractPdfTextWithTimeout(fileBuf, 5000);

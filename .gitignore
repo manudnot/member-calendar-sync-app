@@ -23,6 +23,6 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Scratch scripts
+# Scratch scripts & temp files
 scratch/
-
+*.pdf

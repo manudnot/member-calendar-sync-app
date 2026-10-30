@@ -1,5 +1,20 @@
 # Development Session Log & Architecture History
 
+## 📅 Session Log: 2026-10-30
+
+### Version 4.13 - Scanned PDF Embedded Image Extraction & Typhoon OCR Fast Path
+- **Embedded Scan Extraction (`extractImagesFromPdfBuffer` in `api/line-webhook.js`)**:
+  - Implemented high-performance binary stream extraction for JPEG scan images (`0xFF 0xD8 0xFF` ... `0xFF 0xD9`) embedded inside PDF files.
+  - Automatically identifies scanned military mission orders (such as `0305-1958.pdf`).
+  - Sends extracted JPEG images directly to Typhoon OCR as `image/jpeg` which completes in **~11 seconds** (compared to >50s or timeouts when submitting the raw PDF container).
+- **Extended OCR Timeout**:
+  - Increased `extractTextWithTyphoonOCR` timeout from 25s to 50s (`AbortSignal.timeout(50000)`) to safely accommodate multi-page documents under Vercel's 60s Serverless execution window.
+- **Multi-Tier Text Extraction Fallback**:
+  - Tier 1: Embedded scan JPEG extraction + Typhoon OCR (~11s).
+  - Tier 2: Whole PDF Typhoon OCR (for non-standard embedded streams).
+  - Tier 3: `pdf-parse` digital text extraction (for digital vector PDFs).
+- **Git Commit**: Pushed to `manudnot/member-calendar-sync-app` main branch.
+
 ## 📅 Session Log: 2026-10-08
 
 ### Version 4.12 - Strict Category-Based Day Status & Clean Button Labels in HolidayModal
