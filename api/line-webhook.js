@@ -259,6 +259,32 @@ async function replyOrPushLineMessage(replyToken, toId, messages) {
   }
 }
 
+async function startLineLoadingAnimation(chatId, loadingSeconds = 60) {
+  if (!chatId) return;
+  try {
+    await fetch('https://api.line.me/v2/bot/chat/loading/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+      },
+      body: JSON.stringify({
+        chatId,
+        loadingSeconds: Math.min(60, Math.max(5, loadingSeconds))
+      })
+    });
+  } catch (e) {
+    console.warn('startLineLoadingAnimation notice:', e?.message || e);
+  }
+}
+
+async function deliverLineMessage(replyToken, toId, messages, replyTokenUsed = false) {
+  if (replyTokenUsed) {
+    return pushLineMessage(toId, messages);
+  }
+  return replyOrPushLineMessage(replyToken, toId, messages);
+}
+
 async function fetchLineBinary(messageId) {
   const res = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
     headers: {
@@ -499,7 +525,7 @@ export async function extractTextWithTyphoonOCR(fileBuf, filename = 'document.pd
         'Authorization': `Bearer ${TYPHOON_API_KEY}`
       },
       body: formData,
-      signal: AbortSignal.timeout(50000)
+      signal: AbortSignal.timeout(25000)
     });
 
     if (res.ok) {
@@ -2276,8 +2302,17 @@ export default async function handler(req, res) {
     let cleanMissionText = '';
     let ocrText = '';
     let driveUploadPromise = null;
+    let replyTokenUsed = false;
 
     if (msgType === 'image') {
+      // Instant acknowledgment & LINE Loading Animation (Expense project / นกยูง style)
+      await startLineLoadingAnimation(userId, 60);
+      await replyLineMessage(replyToken, {
+        type: 'text',
+        text: '⏳ พิราบได้รับรูปภาพคำสั่งแล้วครับ\nกำลังอ่านข้อความและวิเคราะห์ภารกิจด้วย Typhoon AI โปรดรอสักครู่...'
+      });
+      replyTokenUsed = true;
+
       try {
         const imageBuf = await fetchLineBinary(event.message.id);
         driveUploadPromise = uploadBufferToDrive(imageBuf, `line_img_${event.message.id}.jpg`, 'image/jpeg');
@@ -2293,24 +2328,32 @@ export default async function handler(req, res) {
         console.error('Image analysis error:', err);
       }
       if (!analyzedData) {
-        await replyOrPushLineMessage(replyToken, userId, {
+        await deliverLineMessage(replyToken, userId, {
           type: 'text',
           text: '❌ ไม่สามารถวิเคราะห์รูปภาพสั่งการได้ครับ กรุณาลองส่งภาพถ่ายคำสั่งภารกิจที่ชัดเจนอีกครั้ง หรือพิมพ์ข้อความสั่งการเข้ามาได้เลยครับ'
-        });
+        }, replyTokenUsed);
         continue;
       }
     } else if (msgType === 'file') {
       const fileName = (event.message.fileName || 'document.pdf');
+
+      // Instant acknowledgment & LINE Loading Animation (Expense project / นกยูง style)
+      await startLineLoadingAnimation(userId, 60);
+      await replyLineMessage(replyToken, {
+        type: 'text',
+        text: `⏳ พิราบได้รับไฟล์ "${fileName}" แล้วครับ\nกำลังอ่านข้อความและวิเคราะห์ภารกิจด้วย Typhoon AI โปรดรอสักครู่...`
+      });
+      replyTokenUsed = true;
 
       let fileBuf = null;
       try {
         fileBuf = await fetchLineBinary(event.message.id);
       } catch (dlErr) {
         console.error('LINE binary download error:', dlErr);
-        await replyOrPushLineMessage(replyToken, userId, {
+        await deliverLineMessage(replyToken, userId, {
           type: 'text',
           text: `❌ ไม่สามารถดาวน์โหลดไฟล์เอกสารจาก LINE ได้ (${dlErr?.message || dlErr})\n\nกรุณาลองส่งไฟล์ใหม่อีกครั้งครับ`
-        });
+        }, replyTokenUsed);
         continue;
       }
 
@@ -2340,8 +2383,8 @@ export default async function handler(req, res) {
           }
         }
 
-        // Step 2: If no embedded image or OCR text too short, send whole PDF to Typhoon OCR
-        if (!ocrText || ocrText.length < 5) {
+        // Step 2: If no embedded image found (digital vector PDF), try whole PDF with Typhoon OCR
+        if ((!ocrText || ocrText.length < 5) && embeddedImages.length === 0) {
           try {
             ocrText = await extractTextWithTyphoonOCR(fileBuf, fileName, 'application/pdf');
           } catch (ocrE) {
@@ -2358,6 +2401,17 @@ export default async function handler(req, res) {
             console.warn('pdf-parse fallback error:', pdfE);
           }
         }
+
+        // Step 4: If text OCR yielded nothing but we had embedded image, fallback to Multimodal Vision AI
+        if ((!ocrText || ocrText.length < 5) && embeddedImages.length > 0) {
+          try {
+            console.log('Trying multimodal vision fallback on embedded scan image...');
+            const firstImgBase64 = embeddedImages[0].toString('base64');
+            analyzedData = await analyzeMissionOrderWithAI(null, firstImgBase64, dbMembers, 'image/jpeg');
+          } catch (visE) {
+            console.warn('Vision fallback error on embedded image:', visE);
+          }
+        }
       } else if (lowerName.endsWith('.txt') || lowerName.endsWith('.csv')) {
         ocrText = fileBuf.toString('utf-8');
       } else {
@@ -2368,25 +2422,25 @@ export default async function handler(req, res) {
         }
       }
 
-      if (ocrText && ocrText.length > 5) {
+      if (!analyzedData && ocrText && ocrText.length > 5) {
         try {
           analyzedData = await analyzeMissionOrderWithAI(ocrText, null, dbMembers);
         } catch (aiErr) {
           console.error('AI analysis error:', aiErr);
-          await replyOrPushLineMessage(replyToken, userId, {
+          await deliverLineMessage(replyToken, userId, {
             type: 'text',
             text: `❌ อ่านเอกสารสำเร็จแต่ไม่สามารถวิเคราะห์ภารกิจด้วย Typhoon AI ได้ (${aiErr?.message || aiErr})`
-          });
+          }, replyTokenUsed);
           continue;
         }
       }
 
       if (!analyzedData) {
         const detailMsg = ocrErrStr ? `\n(รายละเอียด: ${ocrErrStr})` : '';
-        await replyOrPushLineMessage(replyToken, userId, {
+        await deliverLineMessage(replyToken, userId, {
           type: 'text',
-          text: `❌ ไม่สามารถสกัดข้อความภารกิจจากไฟล์ "${fileName}" ด้วย Typhoon OCR ได้ครับ${detailMsg}\n\nกรุณาลองถ่ายภาพคำสั่งภารกิจ หรือพิมพ์เนื้อหาภารกิจเข้ามาได้เลยครับ`
-        });
+          text: `❌ ไม่สามารถสกัดข้อความภารกิจจากไฟล์ "${fileName}" ได้ครับ${detailMsg}\n\nกรุณาลองถ่ายภาพคำสั่งภารกิจ หรือพิมพ์เนื้อหาภารกิจเข้ามาได้เลยครับ`
+        }, replyTokenUsed);
         continue;
       }
     } else if (msgType === 'text') {
@@ -2441,8 +2495,8 @@ export default async function handler(req, res) {
       // Save draft (In-memory + Supabase)
       await saveDraft(userId, newDraft);
 
-      // Reply with Draft Summary and Quick Reply Buttons
-      await replyOrPushLineMessage(replyToken, userId, [
+      // Reply with Draft Summary and Quick Reply Buttons (Push if reply token was already used)
+      await deliverLineMessage(replyToken, userId, [
         {
           type: 'text',
           text: formatDraftSummaryMessage(newDraft),
@@ -2459,8 +2513,8 @@ export default async function handler(req, res) {
             ]
           }
         }
-      ]);
-      }
+      ], replyTokenUsed);
+    }
     }
   } catch (err) {
     console.error('Async webhook event processing error:', err);

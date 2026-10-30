@@ -2,6 +2,21 @@
 
 ## 📅 Session Log: 2026-10-30
 
+### Version 4.14 - Instant Acknowledgment, LINE Loading Animation & Async Push Delivery (Expense Bot Style)
+- **Instant Acknowledgment (< 1s)**:
+  - Responds immediately to user upon receiving any PDF or image with `replyToken`:
+    `⏳ พิราบได้รับไฟล์ "${fileName}" แล้วครับ กำลังอ่านข้อความและวิเคราะห์ภารกิจด้วย Typhoon AI โปรดรอสักครู่...`
+  - Prevents the chat from going silent ("เงียบหายไปเลย") and eliminates user anxiety while waiting for OCR/AI.
+- **LINE Chat Loading Animation (`startLineLoadingAnimation`)**:
+  - Triggers LINE's native typing/loading bubble (`POST /v2/bot/chat/loading/start`) to show active processing in chat.
+- **Asynchronous Push Delivery (`deliverLineMessage`)**:
+  - Automatically routes subsequent draft summaries and quick reply buttons (`✅ ยืนยันบันทึก`, `❌ ยกเลิก`) through `pushLineMessage` when `replyToken` has already been utilized for the instant acknowledgment.
+  - Guarantees error messages and failure alerts are delivered to the user rather than failing silently.
+- **Timeout Tuning & Multimodal Vision Fallback**:
+  - Tightened Typhoon OCR timeout to 25s (`AbortSignal.timeout(25000)`), leaving ample execution margin within Vercel's 60s serverless container.
+  - Added multimodal vision AI fallback on extracted scan images if OCR text is empty or times out.
+- **Git Commit**: Pushed to `manudnot/member-calendar-sync-app` main branch.
+
 ### Version 4.13 - Scanned PDF Embedded Image Extraction & Typhoon OCR Fast Path
 - **Embedded Scan Extraction (`extractImagesFromPdfBuffer` in `api/line-webhook.js`)**:
   - Implemented high-performance binary stream extraction for JPEG scan images (`0xFF 0xD8 0xFF` ... `0xFF 0xD9`) embedded inside PDF files.
