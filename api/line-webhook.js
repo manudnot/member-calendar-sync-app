@@ -623,6 +623,8 @@ export function normalizeThaiDocumentText(str) {
     const regex = new RegExp(`(${escapedM})\\s*69\\b`, 'g');
     s = s.replace(regex, '$1 2569');
   });
+  // Convert Thai dot time (e.g. 16.00 น. -> 16:00, 09.30 น. -> 09:30)
+  s = s.replace(/\b([01]?\d|2[0-3])\.([0-5]\d)(?:\s*น\.?)?/g, '$1:$2');
   // Convert 4-digit military time (e.g. 1000 -> 10:00, 0830 -> 08:30)
   s = s.replace(/\b([01]\d|2[0-3])([0-5]\d)\b/g, '$1:$2');
   return s;
@@ -712,9 +714,12 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
      ให้ใช้ชื่องานนั้นเป็น "title" ให้กับทุกๆ วันที่ที่ระบุ (เช่น "คัดเลือกพลทหารอาสา") ทุกรายการ ห้ามใช้คำว่า "ภารกิจสั่งการ" เด็ดขาด!
 6. กฎเฉพาะสำหรับภารกิจหมาย (ที่มีรหัส "904", "HMSV", "เสด็จ"):
    - กำหนด category เป็น "🟡 ภารกิจหมาย" เสมอ
-   - สร้าง title สั้นกระชับเป็น "หมาย <รหัสภารกิจหมาย>" (เช่น "หมาย 904/ HMSV" หรือ "หมาย 904")
-   - ในฟิลด์ "notes": รวบรวมรายละเอียดข้อมูลทุกคอลัมน์ในแถวนั้นเข้าด้วยกันอย่างสมบูรณ์ เช่น "<ข้อความเสด็จ/ภารกิจ> ณ <สถานที่> (หน่วยรับผิดชอบ: <หน่วยรับผิดชอบ>) (หมายเหตุ: <หมายเหตุ/รายละเอียดอื่น>)"
-   - ในฟิลด์ "members": หากไม่ได้ระบุชื่อบุคคลเฉพาะเจาะจง ให้ใส่ ["เวรหมาย"] เสมอ
+   - สร้าง title สั้นกระชับเป็น "หมาย <รหัสภารกิจหมาย>" (เช่น "หมาย 904, HMSV" หรือ "หมาย HMSV" หรือ "หมาย 904")
+   - ห้ามใส่คำว่า "วันที่" หรือ "วัน" เป็นชื่อภารกิจ (title) เด็ดขาด!
+   - ในฟิลด์ "time_str": หากมีระบุเวลา เช่น "เวลา 16.00 น." หรือ "19.00 น." ให้แปลงเป็น "16:00" หรือ "19:00" และกำหนด all_day เป็น false ทันที! หากระบุ "รอกำหนดการ" หรือไม่มีเวลา ให้ time_str เป็น "ตลอดวัน" (all_day: true)
+   - ในฟิลด์ "location": สกัดสถานที่จัดงานหรือเสด็จฯ จากข้อความ "ณ ..." แยกเฉพาะของแต่ละรายการอย่างแม่นยำ 100% ห้ามคัดลอกสถานที่ของรายการอื่นมาใส่เด็ดขาด!
+   - ในฟิลด์ "notes": รวบรวมรายละเอียดข้อความของแต่ละข้อให้ครบถ้วน
+   - ในฟิลด์ "members": สำหรับภารกิจหมาย หากไม่ได้ระบุชื่อบุคคลเฉพาะเจาะจง ให้ใส่ ["เวรหมาย"] เสมอ
 7. ถอนข้อความส่วนสถานที่ (เช่น ประโยคที่ขึ้นต้นด้วย 'ณ ...') ออกจากชื่อภารกิจ (title) โดยนำสถานที่ไปใส่ไว้เฉพาะในฟิลด์ location เท่านั้น
 8. ในฟิลด์ "members": ให้สกัดเฉพาะรายชื่อบุคคลที่มีอยู่จริงในฐานข้อมูลกำลังพล Supabase ต่อไปนี้เท่านั้น: [${activeMembersList}] หากชื่อไม่ตรงกับรายชื่อกำลังพลข้างต้นและไม่ใช่ภารกิจหมาย ให้ members เป็น []
 
@@ -734,7 +739,8 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
       "members": ["รายชื่อผู้รับผิดชอบเฉพาะที่มีระบุในข้อความและตรงกับฐานข้อมูล Supabase เท่านั้น"]
     }
   ]
-}`;
+}
+`;
 
   // 1. Opentyphoon API (typhoon-v2.5-30b-a3b-instruct) - Primary AI Analyzer
   if (TYPHOON_API_KEY) {
@@ -771,7 +777,7 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
           temperature: 0.1,
           max_completion_tokens: 3072
         }),
-        signal: AbortSignal.timeout(20000)
+        signal: AbortSignal.timeout(35000)
       });
 
       if (res.ok) {
@@ -1034,8 +1040,11 @@ export function parseAllThaiMissions(text, dbMembers = []) {
     let dateObjs = [];
     let matchedDateText = '';
 
-    const rangeMatch = line.match(rangePattern);
-    if (rangeMatch) {
+    const isSubLineOrDetail = line.match(/^เวลา\s*\d/i) || line.includes('เฉลิมพระชนมพรรษา') || line.includes('ปีการศึกษา');
+
+    if (!isSubLineOrDetail) {
+      const rangeMatch = line.match(rangePattern);
+      if (rangeMatch) {
       matchedDateText = rangeMatch[0];
       const startDay = rangeMatch[1].padStart(2, '0');
       const endDay = rangeMatch[2].padStart(2, '0');
@@ -1108,6 +1117,7 @@ export function parseAllThaiMissions(text, dbMembers = []) {
         }
       }
     }
+  }
 
     if (dateObjs.length > 0) {
       let timeStr = 'ตลอดวัน';
@@ -1115,7 +1125,7 @@ export function parseAllThaiMissions(text, dbMembers = []) {
       const timeRangeMatch = line.match(/(\d{4})\s*[-–ถึง]\s*(\d{4})/) || line.match(/(\d{1,2}(?:\:\d{2})?)\s*[-–ถึง]\s*(\d{1,2}(?:\:\d{2})?)/);
       let timeMatchText = '';
 
-      if (timeRangeMatch) {
+      if (timeRangeMatch && (!matchedDateText || !matchedDateText.includes(timeRangeMatch[0]))) {
         timeMatchText = timeRangeMatch[0];
         let tStart = timeRangeMatch[1];
         let tEnd = timeRangeMatch[2];
@@ -1150,10 +1160,20 @@ export function parseAllThaiMissions(text, dbMembers = []) {
         .replace(/^[\:\-\s\.\,]+/, '')
         .trim();
 
-      dateObjs.forEach(dObj => {
-        const defaultCategory = headerCategory || (text && text.includes('หมาย') ? '🔴 ภารกิจหมาย' : '🔵 ภารกิจหน่วย');
-        const defaultMembers = headerMembers.length > 0 ? headerMembers : [];
+      // Strip "วันที่" or "วัน" prefix and discard if empty
+      inlineTitle = inlineTitle.replace(/^(?:วันที่|วัน)\s*/i, '').trim();
+      if (inlineTitle === 'วันที่' || inlineTitle === 'วัน') {
+        inlineTitle = '';
+      }
 
+      // Reset pending missions for the new date to avoid cross-day location/subline leaking
+      pendingDateMissions = [];
+
+      const isRoyal = text && (text.includes('หมาย') || text.includes('HMSV') || text.includes('904') || text.includes('เสด็จ'));
+      const defaultCategory = headerCategory || (isRoyal ? '🟡 ภารกิจหมาย' : '🔴 ภารกิจหน่วย');
+      const defaultMembers = isRoyal ? ['mem_wm'] : (headerMembers.length > 0 ? headerMembers : []);
+
+      dateObjs.forEach(dObj => {
         const newM = {
           title: inlineTitle,
           start_date: dObj.start_date,
@@ -1177,19 +1197,39 @@ export function parseAllThaiMissions(text, dbMembers = []) {
       if (subLine.includes(' ณ ')) {
         const locParts = subLine.split(' ณ ');
         location = locParts[1].trim();
-        subLine = locParts[0];
+        subLine = locParts[0].trim();
       } else if (subLine.includes('ณ ') && !subLine.startsWith('ณ ')) {
         const locParts = subLine.split('ณ ');
         location = locParts[1].trim();
-        subLine = locParts[0];
+        subLine = locParts[0].trim();
+      } else if (subLine.match(/(?:\s+|^)ณ[ก-๙]/)) {
+        const matchIdx = subLine.search(/(?:\s+|^)ณ[ก-๙]/);
+        location = subLine.slice(matchIdx).replace(/^\s*ณ/, '').trim();
+        subLine = subLine.slice(0, matchIdx).trim();
+      }
+
+      // Extract time from subLine (e.g. "เวลา 16.00 น.", "เวลา 19.00 น.", "16:00", "09.30 น.")
+      let subTimeStr = '';
+      const subTimeMatch = subLine.match(/(?:เวลา\s*)?([01]?\d|2[0-3])[\.:]([0-5]\d)(?:\s*น\.?)?/i);
+      if (subTimeMatch) {
+        const h = subTimeMatch[1].padStart(2, '0');
+        const m = subTimeMatch[2];
+        subTimeStr = `${h}:${m}`;
       }
 
       const memberIds = matchMemberIds([subLine], dbMembers);
       let isMemberLine = subLine.includes('ผู้รับผิดชอบ') || subLine.includes('รับผิดชอบ') || memberIds.length > 0;
       let isDressLine = subLine.includes('ชุด') || subLine.includes('แต่งกาย');
 
+      // Check if subLine has Royal Mission codes (e.g. "904, HMSV", "HMSV - เสด็จฯ...")
+      const isRoyalLine = subLine.includes('HMSV') || subLine.includes('904') || subLine.includes('เสด็จ');
+
       pendingDateMissions.forEach(m => {
         if (location) m.location = location;
+        if (subTimeStr) {
+          m.time_str = subTimeStr;
+          m.all_day = false;
+        }
         if (memberIds.length > 0) {
           m.member_ids = memberIds;
           m.member_names = formatMemberNamesForDisplay(memberIds, dbMembers);
@@ -1198,14 +1238,16 @@ export function parseAllThaiMissions(text, dbMembers = []) {
         else if (subLine.includes('ชุดฝึก')) m.dress_code = 'ชุดฝึก';
         else if (subLine.includes('เครื่องแบบ')) m.dress_code = 'ชุดเครื่องแบบ';
 
-        if (!isMemberLine && !isDressLine && subLine.length > 1 && !subLine.includes('ครับ') && !subLine.includes('ค่ะ')) {
-          if (!m.title) {
-            m.title = subLine;
-          } else {
-            // Preserve original title; do not concatenate additional sublines unless title is empty
-          if (!m.title) {
-            m.title = subLine;
-          }
+        if (isRoyalLine) {
+          m.category = '🟡 ภารกิจหมาย';
+          m.member_ids = ['mem_wm'];
+          m.member_names = 'เวรหมาย';
+          const royalCode = (subLine.includes('904') && subLine.includes('HMSV')) ? 'หมาย 904, HMSV' : (subLine.includes('904') ? 'หมาย 904' : (subLine.includes('HMSV') ? 'หมาย HMSV' : 'หมายเสด็จ'));
+          m.title = royalCode;
+          m.notes = (m.notes ? m.notes + '\n' : '') + line;
+        } else if (!isMemberLine && !isDressLine && subLine.length > 1 && !subLine.includes('ครับ') && !subLine.includes('ค่ะ')) {
+          if (!m.title || m.title === 'วันที่' || m.title === 'วัน') {
+            m.title = subLine.slice(0, 60);
           }
         }
       });
@@ -1214,8 +1256,8 @@ export function parseAllThaiMissions(text, dbMembers = []) {
 
   // Final cleanup of title for any missions that had empty titles
   missions.forEach(m => {
-    if (!m.title || m.title.trim().length === 0) {
-      m.title = headerTitle || 'ภารกิจสั่งการ';
+    if (!m.title || m.title.trim().length === 0 || m.title === 'วันที่' || m.title === 'วัน') {
+      m.title = headerTitle || (m.category.includes('ภารกิจหมาย') ? 'ภารกิจหมาย' : 'ภารกิจสั่งการ');
     }
   });
 

@@ -1,6 +1,21 @@
 # Development Session Log & Architecture History
 
-## 📅 Session Log: 2026-10-30
+## 📅 Session Log: 2026-10-31
+
+### Version 4.15 - Fix Royal Mission (ภารกิจหมาย 904/HMSV) Parsing, Time Extraction & Location Leak Prevention
+- **Eliminated "วันที่" as Title in Fallback Engine (`parseAllThaiMissions` in `api/line-webhook.js`)**:
+  - Automatically strips `"วันที่"` / `"วัน"` prefix and discards generic date terms from `inlineTitle`.
+  - For Royal Missions (with `904`, `HMSV`, or `เสด็จ`), titles are synthesized cleanly as `หมาย 904, HMSV`, `หมาย 904`, or `หมาย HMSV`.
+- **Accurate Thai Time Extraction for Sublines**:
+  - Added regex `(?:เวลา\s*)?([01]?\d|2[0-3])[\.:]([0-5]\d)(?:\s*น\.?)?` to capture subline times like `เวลา 16.00 น.`, `เวลา 19.00 น.`, `15.00 น.`, and converts them into ISO time strings (`16:00`, `19:00`, `15:00`) with `all_day: false`.
+- **Fixed Location Leak Across Items**:
+  - Reset `pendingDateMissions = []` upon encountering each new date, preventing the last item's location (e.g. วัดพระศรีรัตนศาสดาราม) from bleeding backwards into preceding dates.
+  - Excluded subline time headers and memorial/academic reference dates (e.g. `เฉลิมพระชนมพรรษา 6 รอบ 28 กรกฎาคม 2567`, `ปีการศึกษา 2566 – 2567`) from falsely triggering new date events.
+- **Enforced Royal Assignment to "เวรหมาย" (`mem_wm`)**:
+  - Automatically assigns `mem_wm` ("เวรหมาย") for all Royal Missions, preventing external rank references (e.g. `นาวาอากาศเอก`) from falsely matching staff members (e.g. "เอก").
+- **Extended Typhoon AI Chat Completion Timeout**:
+  - Increased AI timeout from 20s to 35s (`AbortSignal.timeout(35000)`) and optimized the system prompt with multi-item Royal Mission parsing rules.
+- **Git Commit**: Pushed to `manudnot/member-calendar-sync-app` main branch.
 
 ### Version 4.14 - Instant Acknowledgment, LINE Loading Animation & Async Push Delivery (Expense Bot Style)
 - **Instant Acknowledgment (< 1s)**:
