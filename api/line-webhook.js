@@ -727,24 +727,43 @@ export async function analyzeMissionOrderWithAI(text, imageBase64 = null, dbMemb
         });
       }
 
-      const res = await fetch('https://api.opentyphoon.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${TYPHOON_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'typhoon-v2.5-30b-a3b-instruct',
-          messages,
-          temperature: 0.1,
-          max_completion_tokens: 1500
-        }),
-        signal: AbortSignal.timeout(35000)
-      });
+      let rawJsonText = '';
+      const attempts = [
+        { timeoutMs: 30000, maxTokens: 700 },
+        { timeoutMs: 18000, maxTokens: 500 }
+      ];
 
-      if (res.ok) {
-        const data = await res.json();
-        const rawJsonText = data.choices?.[0]?.message?.content || '';
+      for (let attemptIdx = 0; attemptIdx < attempts.length; attemptIdx++) {
+        const { timeoutMs, maxTokens } = attempts[attemptIdx];
+        try {
+          const res = await fetch('https://api.opentyphoon.ai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${TYPHOON_API_KEY}`
+            },
+            body: JSON.stringify({
+              model: 'typhoon-v2.5-30b-a3b-instruct',
+              messages,
+              temperature: 0.1,
+              max_completion_tokens: maxTokens
+            }),
+            signal: AbortSignal.timeout(timeoutMs)
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            rawJsonText = data.choices?.[0]?.message?.content || '';
+            if (rawJsonText) break;
+          } else {
+            console.warn(`Typhoon attempt ${attemptIdx + 1} failed with status:`, res.status);
+          }
+        } catch (attemptErr) {
+          console.warn(`Typhoon attempt ${attemptIdx + 1} failed:`, attemptErr.name === 'TimeoutError' ? 'Timeout' : attemptErr.message);
+        }
+      }
+
+      if (rawJsonText) {
         const cleanJson = rawJsonText.replace(/```json/g, '').replace(/```/g, '').trim();
         const parsedObj = JSON.parse(cleanJson);
         if (parsedObj) {
