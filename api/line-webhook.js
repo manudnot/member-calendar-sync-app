@@ -2458,7 +2458,15 @@ export default async function handler(req, res) {
       }
     } else if (msgType === 'text') {
       cleanMissionText = event.message.text ? event.message.text.replace(/พิราบ\s*/gi, '').trim() : '';
-      startLineLoadingAnimation(userId, 30);
+
+      // Instant acknowledgment & LINE Loading Animation (ExpenseTracker / นกยูง style)
+      await startLineLoadingAnimation(userId, 60);
+      await replyLineMessage(replyToken, {
+        type: 'text',
+        text: '⏳ พิราบได้รับข้อความคำสั่งแล้วครับ\nกำลังอ่านและวิเคราะห์ภารกิจด้วย Typhoon AI โปรดรอสักครู่...'
+      });
+      replyTokenUsed = true;
+
       analyzedData = await analyzeMissionOrderWithAI(cleanMissionText || event.message.text, null, dbMembers);
       if (!analyzedData) {
         await deliverLineMessage(replyToken, userId, {

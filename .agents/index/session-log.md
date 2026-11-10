@@ -2,6 +2,17 @@
 
 ## 📅 Session Log: 2026-11-10
 
+### Version 4.18 - Full Nokyoong (ExpenseTracker) Architecture for Text Mission Orders
+- **Instant Acknowledgment & LINE Loading Animation (< 1s)**:
+  - Text mission orders now immediately respond with `replyToken`:
+    `⏳ พิราบได้รับข้อความคำสั่งแล้วครับ\nกำลังอ่านและวิเคราะห์ภารกิจด้วย Typhoon AI โปรดรอสักครู่...`
+  - Simultaneously activates LINE typing loading animation (`startLineLoadingAnimation(userId, 60)`).
+- **Eliminated Webhook Timeout Risk**:
+  - Immediately closes LINE Webhook HTTP 200 loop in < 1 second, granting Typhoon AI up to 50 seconds in the background.
+- **Asynchronous Push Delivery of Draft Summary**:
+  - Automatically delivers the final draft summary and interactive action buttons (`[✅ ยืนยันบันทึก]`, `[❌ ยกเลิก]`) via `pushLineMessage` once AI finishes.
+- **Git Commit**: Pushed to `manudnot/member-calendar-sync-app` main branch.
+
 ### Version 4.17 - 100% Pure Typhoon AI Pipeline (Removed Regex Fallback & Streamlined Prompt)
 - **Eliminated Corrupted Fallback Regex Parser (`parseAllThaiMissions`)**:
   - Removed regex fallback parsing completely from `analyzeMissionOrderWithAI` so the bot never generates distorted titles like `"พรุ่งนี้ วันพุธที่"`, misclassified categories, or `"ตลอดวัน"` for military times.
