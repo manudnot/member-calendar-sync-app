@@ -2105,15 +2105,37 @@ export default async function handler(req, res) {
 
     // 3. User Command: Interactive Edit Command on Active Draft
     const rawTextTrim = rawText.trim();
-    const editCmdKeywords = ['แก้ไข', 'แก้ข้อ', 'แก้ภารกิจ', 'แก้รายการ', 'เปลี่ยนเป็น', 'เปลี่ยนวันที่'];
+
+    // Check if message is a full new mission order (has dates, multi-line meeting/mission details)
+    const hasThaiDatePattern = /(?:วันที่\s*\d{1,2}|\d{1,2}\s*(?:ม\.?ค\.?|ก\.?พ\.?|มี\.?ค\.?|เม\.?ย\.?|พ\.?ค\.?|มิ\.?ย\.?|ก\.?ค\.?|ส\.?ค\.?|ก\.?ย\.?|ต\.?ค\.?|พ\.?ย\.?|ธ\.?ค\.?|มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)|วันพรุ่งนี้|วันนี้)/i.test(rawTextTrim);
+    const hasMeetingOrderContext = (rawTextTrim.includes('เรียนเชิญ') || rawTextTrim.includes('ขอเชิญ') || rawTextTrim.includes('ประชุม') || rawTextTrim.includes('ระเบียบวาระ') || rawTextTrim.includes('คำสั่ง')) && (rawTextTrim.split('\n').length >= 3 || rawTextTrim.length > 80);
+    const isNewMissionOrder = hasThaiDatePattern && hasMeetingOrderContext;
+
+    // Explicit edit command starting keywords (must start with edit prefix, not merely contain "แก้ไข" in body text!)
     const isExplicitEditCmd = msgType === 'text' && (
-      editCmdKeywords.some(k => rawTextTrim.includes(k)) ||
-      rawTextTrim.startsWith('แก้ ') ||
-      rawTextTrim.startsWith('เปลี่ยน ') ||
+      /^(?:แก้ไข|แก้ข้อ|แก้ภารกิจ|แก้รายการ|แก้|เปลี่ยนเป็น|เปลี่ยนวันที่|เปลี่ยนชื่อเป็น|เปลี่ยนชื่อ|เปลี่ยน|ปรับปรุงแก้ไข|ปรับเป็น|เพิ่มภารกิจ)(?:\s+|$|:)/i.test(rawTextTrim) ||
+      rawTextTrim.startsWith('แก้') ||
+      rawTextTrim.startsWith('เปลี่ยน') ||
       rawTextTrim.startsWith('เพิ่มภารกิจ')
     ) && !rawTextTrim.includes('เกษรแก้ว');
 
-    if (isExplicitEditCmd) {
+    // Natural edit candidate when activeDraft exists (e.g. user just types "ผู้รับผิดชอบ พี่เติร์ธ", "พี่เติร์ธ", "เวลา 10:00", "สถานที่...")
+    let isNaturalDraftEdit = false;
+    if (activeDraft && msgType === 'text' && !isNewMissionOrder) {
+      const startsWithFieldLabel = /^(?:ชื่อ|รายละเอียด|ผู้รับผิดชอบ|สถานที่|เวลา|ประเภท|หมวดหมู่|ภารกิจ|แจ้งเตือน|ชุด|การแต่งกาย|แต่งกาย)(?:[\s*[:：]|\s+)/i.test(rawTextTrim);
+      const isItemizedNumberEdit = /^(?:ภารกิจ\s*|ข้อ\s*|รายการ\s*)?\d{1,2}[\:\.\)\s]+/i.test(rawTextTrim);
+      const isShortMemberOnly = rawTextTrim.length <= 40 && matchMemberIds([rawTextTrim], dbMembers).length > 0;
+      const isShortDressCode = rawTextTrim.length <= 30 && (rawTextTrim.includes('ชุดฝึก') || rawTextTrim.includes('ชุดอ่อน') || rawTextTrim.includes('ชุดสุภาพ') || rawTextTrim.includes('เครื่องแบบ'));
+      const isShortCategory = rawTextTrim.length <= 30 && (rawTextTrim.includes('ภารกิจหมาย') || rawTextTrim.includes('ภารกิจหน่วย') || rawTextTrim.includes('งานกองพัน') || rawTextTrim.includes('การฝึก'));
+
+      if (startsWithFieldLabel || isItemizedNumberEdit || isShortMemberOnly || isShortDressCode || isShortCategory) {
+        isNaturalDraftEdit = true;
+      }
+    }
+
+    const shouldProcessAsEdit = (isExplicitEditCmd || isNaturalDraftEdit) && !isNewMissionOrder;
+
+    if (shouldProcessAsEdit) {
       if (!activeDraft) {
         await replyOrPushLineMessage(replyToken, userId, {
           type: 'text',
@@ -2142,13 +2164,19 @@ export default async function handler(req, res) {
         'ประเภท': 'category',
         'หมวดหมู่': 'category',
         'ภารกิจ': 'category',
-        'แจ้งเตือน': 'alarm_minutes'
+        'แจ้งเตือน': 'alarm_minutes',
+        'ชุด': 'dress_code',
+        'การแต่งกาย': 'dress_code',
+        'แต่งกาย': 'dress_code'
       };
       const parsedFields = {};
       lines.forEach(line => {
         // Remove prefixes like "แก้ไขทั้งหมด", "แก้ไข", "แก้"
-        const cleanL = line.replace(/^(?:แก้ไขทั้งหมด|แก้ไขทุกภารกิจ|แก้ไข|แก้)\s*/i, '').trim();
-        const labelRegex = /^(ชื่อ|รายละเอียด|ผู้รับผิดชอบ|สถานที่|เวลา|ประเภท|หมวดหมู่|ภารกิจ|แจ้งเตือน)(?:[\s*[:：]|\s+)(.+)$/i;
+        let cleanL = line.replace(/^(?:แก้ไขทั้งหมด|แก้ไขทุกภารกิจ|แก้ไข|แก้)\s*/i, '').trim();
+        cleanL = cleanL.replace(/^เปลี่ยนชื่อ(?:เป็น)?\s*/i, 'ชื่อ ').trim();
+        cleanL = cleanL.replace(/^เปลี่ยน(?:เป็น)?\s*/i, '').trim();
+
+        const labelRegex = /^(ชื่อ|รายละเอียด|ผู้รับผิดชอบ|สถานที่|เวลา|ประเภท|หมวดหมู่|ภารกิจ|แจ้งเตือน|ชุด|การแต่งกาย|แต่งกาย)(?:[\s*[:：]|\s+)(.+)$/i;
         const match = cleanL.match(labelRegex);
         if (match) {
           const key = match[1];
@@ -2292,8 +2320,20 @@ export default async function handler(req, res) {
               mItem.location = parsedFields.location;
             }
             if (parsedFields.time_str) {
-              mItem.time_str = parsedFields.time_str;
-              mItem.all_day = false;
+              const tmMatch = parsedFields.time_str.match(/(?:เวลา\s*)?([01]?\d|2[0-3])[\.:]([0-5]\d)(?:\s*น\.?)?/i) ||
+                              parsedFields.time_str.match(/(?:เวลา\s*)?([01]\d|2[0-3])([0-5]\d)(?:\s*น\.?)?/i);
+              if (tmMatch) {
+                const hh = tmMatch[1].padStart(2, '0');
+                const mm = tmMatch[2];
+                mItem.time_str = `${hh}:${mm}`;
+                mItem.all_day = false;
+              } else {
+                mItem.time_str = parsedFields.time_str;
+                if (parsedFields.time_str.includes('ตลอดวัน')) mItem.all_day = true;
+              }
+            }
+            if (parsedFields.dress_code) {
+              mItem.dress_code = parsedFields.dress_code;
             }
             if (parsedFields.category) {
               mItem.category = formatCategoryWithBadge(parsedFields.category);
@@ -2308,6 +2348,9 @@ export default async function handler(req, res) {
                 mItem.member_ids = matchedFromLabel;
                 mItem.member_names = formatMemberNamesForDisplay(matchedFromLabel, dbMembers);
               }
+            } else if (newMemberIds && newMemberIds.length > 0) {
+              mItem.member_ids = newMemberIds;
+              mItem.member_names = formatMemberNamesForDisplay(newMemberIds, dbMembers);
             }
           }
         });

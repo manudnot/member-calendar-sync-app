@@ -1,5 +1,16 @@
 # Development Session Log & Architecture History
 
+## 📅 Session Log: 2026-11-10
+
+### Version 4.16 - Natural Draft Editing & Prevention of False-Positive Edit Errors on Meeting Orders
+- **Prevented False-Positive Edit Errors on Mission Announcements (`api/line-webhook.js`)**:
+  - Eliminated global `.includes('แก้ไข')` scanning which previously caused announcements with phrases like "ผลการปรับปรุงแก้ไขปัญหา..." to be rejected with `"❌ ไม่พบร่างภารกิจที่ค้างอยู่ในการแก้ไขครับ"`.
+  - Added `isNewMissionOrder` heuristic (detecting Thai date patterns + multi-line meeting/mission contexts) so official announcements always proceed to AI mission extraction.
+- **Enabled Natural Language Draft Editing Without Typing "แก้ไข"**:
+  - When an active draft is present, incoming messages starting with field labels (`ผู้รับผิดชอบ ...`, `ชื่อ ...`, `สถานที่ ...`, `เวลา ...`, `ชุด ...`), member nicknames directly (e.g. `พี่เติร์ธ`, `เติร์ธ`), or quick changes (`ชุดฝึก`, `ภารกิจหมาย`) are immediately applied to the draft.
+  - Normalized time input in draft updates (e.g. `เวลา 1000 น.` -> `10:00`).
+- **Git Commit**: Pushed to `manudnot/member-calendar-sync-app` main branch.
+
 ## 📅 Session Log: 2026-10-31
 
 ### Version 4.15 - Fix Royal Mission (ภารกิจหมาย 904/HMSV) Parsing, Time Extraction & Location Leak Prevention
